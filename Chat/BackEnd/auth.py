@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, Field
@@ -15,6 +16,9 @@ load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret_key")  
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # Access Token hết hạn sau 1 giờ
+
+# Khai báo OAuth2
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
@@ -91,16 +95,13 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
-    return {
-        "access_token": access_token
-    }
+    return {"access_token": access_token}
 
 # =========================
 # 🔹 API LẤY USER TỪ TOKEN
 # =========================
-async def get_current_user(authorization: str = Header(...), db: Session = Depends(get_db)):
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
-        token = authorization.split(" ")[1]  # Lấy token sau "Bearer "
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
@@ -109,7 +110,7 @@ async def get_current_user(authorization: str = Header(...), db: Session = Depen
         user = db.query(models.User).filter(models.User.email == email).first()
         if user is None:
             raise HTTPException(status_code=401, detail="User not found")
-    except (PyJWTError, IndexError):
+    except PyJWTError:
         raise HTTPException(status_code=401, detail="Could not validate credentials")
     
     return user
