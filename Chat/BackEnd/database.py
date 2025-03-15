@@ -1,36 +1,21 @@
 import os
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from models import Base  # Import Base từ models
+from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
 
-# Load biến môi trường từ .env
+# Load biến môi trường từ file .env
 load_dotenv()
 
-# Lấy URL database từ file .env
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Tạo engine kết nối MySQL
 engine = create_engine(DATABASE_URL)
-
-# Tạo session để làm việc với database
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()  # Sử dụng sqlalchemy.orm.declarative_base()
 
-# Hàm để lấy session trong API
+# Hàm để lấy session database
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
-
-# Tạo bảng trong database
-def init_db():
-    Base.metadata.create_all(bind=engine)
-
-if __name__ == "__main__":
-    try:
-        init_db()
-        print("✅ Database tables created successfully!")
-    except Exception as e:
-        print(f"❌ Database table creation failed: {e}")
