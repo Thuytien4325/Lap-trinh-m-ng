@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test API Authentication</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+      }
+
+      .container {
+        width: 400px;
+        margin: auto;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h2 {
+        color: #333;
+      }
+
+      .form-container {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background: #fff;
+      }
+
+      input {
+        width: 90%;
+        padding: 10px;
+        margin: 5px 0;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+
+      button {
+        width: 100%;
+        padding: 10px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #218838;
+      }
+
+      pre {
+        text-align: left;
+        background: #eee;
+        padding: 10px;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Test API Authentication</h2>
+
+      <!-- Form đăng ký -->
+      <div class="form-container">
+        <h3>Đăng ký</h3>
+        <input
+          type="text"
+          id="reg_username"
+          placeholder="Tên đăng nhập"
+          required
+        />
+        <input type="email" id="reg_email" placeholder="Email" required />
+        <input
+          type="password"
+          id="reg_password"
+          placeholder="Mật khẩu"
+          required
+        />
+        <button onclick="register()">Đăng ký</button>
+      </div>
+
+      <!-- Form đăng nhập -->
+      <div class="form-container">
+        <h3>Đăng nhập</h3>
+        <input
+          type="text"
+          id="login_username"
+          placeholder="Tên đăng nhập"
+          required
+        />
+        <input
+          type="password"
+          id="login_password"
+          placeholder="Mật khẩu"
+          required
+        />
+        <button onclick="login()">Đăng nhập</button>
+      </div>
+
+      <!-- Hiển thị thông tin user -->
+      <div class="form-container">
+        <h3>Thông tin người dùng</h3>
+        <button onclick="getUserInfo()">Lấy thông tin</button>
+        <pre id="user_info"></pre>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = "http://127.0.0.1:8000"; // Thay đổi nếu FastAPI chạy ở URL khác
+
+      async function register() {
+        const username = document.getElementById("reg_username").value;
+        const email = document.getElementById("reg_email").value;
+        const password = document.getElementById("reg_password").value;
+
+        const response = await fetch(`${API_URL}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, email, password }),
+        });
+
+        const data = await response.json();
+        alert(data.message || JSON.stringify(data));
+      }
+
+      async function login() {
+        const username = document.getElementById("login_username").value;
+        const password = document.getElementById("login_password").value;
+
+        const formData = new URLSearchParams();
+        formData.append("username", username);
+        formData.append("password", password);
+
+        const response = await fetch(`${API_URL}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (data.access_token) {
+          localStorage.setItem("token", data.access_token);
+          alert("Đăng nhập thành công!");
+        } else {
+          alert("Lỗi: " + JSON.stringify(data));
+        }
+      }
+
+      async function getUserInfo() {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+          alert("Bạn chưa đăng nhập!");
+          return;
+        }
+
+        const response = await fetch(`${API_URL}/users/me`, {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          document.getElementById("user_info").textContent = JSON.stringify(
+            data,
+            null,
+            2
+          );
+        } else {
+          alert("Lỗi: " + JSON.stringify(data));
+        }
+      }
+    </script>
+  </body>
+</html>
