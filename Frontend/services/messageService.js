@@ -1,1 +1,0 @@
-//Gửi/nhận tin nhắn
