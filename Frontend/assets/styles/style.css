@@ -1,0 +1,50 @@
+/* Custom nút close bên ngoài */
+.custom-close-outside {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  background-color: #ffc107; /* màu vàng pastel */
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  opacity: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+/* Icon bên trong nút */
+.custom-close-outside::before {
+  content: '✕';
+  font-size: 18px;
+  color: #6c3e00;
+  font-weight: bold;
+}
+
+/* Hover effect */
+.custom-close-outside:hover {
+  background-color: #ffca2c;
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+
+
+
+.btn-custom-yellow {
+  background: linear-gradient(135deg, #f6d365 0%, #fda085 100%) !important;
+  color: #000 !important;
+  border: none !important;
+  transition: all 0.3s ease-in-out;
+}
+
+.btn-custom-yellow:hover {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px rgba(245, 87, 108, 0.5) !important;
+}
+
