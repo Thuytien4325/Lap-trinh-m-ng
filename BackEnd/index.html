@@ -105,16 +105,17 @@
         <button onclick="login()">Đăng nhập</button>
       </div>
 
-      <!-- Hiển thị thông tin user -->
+     <!-- Hiển thị thông tin user -->
       <div class="form-container">
         <h3>Thông tin người dùng</h3>
         <button onclick="getUserInfo()">Lấy thông tin</button>
+        <br />
+        <img id="user_avatar" src="" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%; display: none;" />
         <pre id="user_info"></pre>
-      </div>
-    </div>
+      </div>  
 
     <script>
-      const API_URL = "http://127.0.0.1:8000"; // Thay đổi nếu FastAPI chạy ở URL khác
+      const API_URL = "http://127.0.0.1:9000"; // Thay đổi nếu FastAPI chạy ở URL khác
 
       async function register() {
         const username = document.getElementById("reg_username").value;
@@ -171,11 +172,16 @@
         const data = await response.json();
 
         if (response.ok) {
-          document.getElementById("user_info").textContent = JSON.stringify(
-            data,
-            null,
-            2
-          );
+          document.getElementById("user_info").textContent = JSON.stringify(data, null, 2);
+
+          // Nếu có avatar, hiển thị nó
+          const avatarImg = document.getElementById("user_avatar");
+          if (data.avatar) {
+            avatarImg.src = `${API_URL}/${data.avatar}`;
+            avatarImg.style.display = "block";
+          } else {
+            avatarImg.style.display = "none"; // Ẩn nếu không có avatar
+          }
         } else {
           alert("Lỗi: " + JSON.stringify(data));
         }

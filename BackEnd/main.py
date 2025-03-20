@@ -2,8 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 import models
-from auth import auth_router, users_router
-
+from routers.auth import auth_router
+from routers.users import users_router
+from routers.messages import message_router
+from fastapi.staticfiles import StaticFiles
+import os
 app = FastAPI()
 
 # Thêm middleware CORS
@@ -20,8 +23,9 @@ models.Base.metadata.create_all(bind=engine)
 # Thêm router
 app.include_router(auth_router)
 app.include_router(users_router)
-
+app.include_router(message_router)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # Chạy ứng dụng
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=6868, reload=True)
+    uvicorn.run(app,reload=True)
