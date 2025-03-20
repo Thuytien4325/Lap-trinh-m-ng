@@ -1,87 +1,117 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chat</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Chat</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script>
+        function openChat(chatName) {
+            document.getElementById('chat-header').innerText = chatName;
+            document.getElementById('chat-content').innerHTML = `<p>Đây là cuộc trò chuyện về <strong>${chatName}</strong></p>`;
+        }
 
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <!-- Bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="assets/styles/style.css"/>
-  
+        function addUser() {
+            let userName = prompt("Nhập tên người dùng mới:");
+            if (userName) {
+                let chatList = document.querySelector('.chat-list');
+                let newUser = document.createElement('li');
+                newUser.className = 'chat-item';
+                newUser.innerText = userName;
+                newUser.onclick = function() { openChat(userName); };
+                chatList.appendChild(newUser);
+                updateChatDisplay();
+            }
+        }
 
-  <!-- Auth JS -->
-  <script src="services/authservice.js" defer></script>
-  
+        function addGroupChat() {
+            let groupName = prompt("Nhập tên nhóm trò chuyện:");
+            if (groupName) {
+                let chatList = document.querySelector('.chat-list');
+                let newGroup = document.createElement('li');
+                newGroup.className = 'chat-item';
+                newGroup.innerText = groupName;
+                newGroup.onclick = function() { openChat(groupName); };
+                chatList.appendChild(newGroup);
+                updateChatDisplay();
+            }
+        }
+
+        function updateChatDisplay() {
+            let chatItems = document.querySelectorAll('.chat-item');
+            let chatList = document.querySelector('.chat-list');
+            chatList.innerHTML = '';
+            chatItems.forEach(item => chatList.appendChild(item));
+        }
+
+        function uploadAvatar(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('avatar-img').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function editProfile() {
+            let newBio = prompt("Nhập Bio mới:", document.getElementById('profile-bio').innerText);
+            let newEmail = prompt("Nhập Email mới:", document.getElementById('profile-email').innerText);
+            let newPhone = prompt("Nhập số điện thoại mới:", document.getElementById('profile-phone').innerText);
+            let newBirthDate = prompt("Nhập ngày sinh mới:", document.getElementById('profile-birthdate').innerText);
+            
+            if (newBio !== null) document.getElementById('profile-bio').innerText = newBio;
+            if (newEmail !== null) document.getElementById('profile-email').innerText = newEmail;
+            if (newPhone !== null) document.getElementById('profile-phone').innerText = newPhone;
+            if (newBirthDate !== null) document.getElementById('profile-birthdate').innerText = newBirthDate;
+        }
+    </script>
 </head>
 <body>
-  <div class="d-flex flex-column flex-md-row w-100 vh-100">
-     <!-- ❌ Icon ngoài form -->
-     <button type="button" class="btn btn-sm btn-close custom-close-outside" id="closeLogin" aria-label="Close"></button>
-    <!-- Logo -->
-    <div class="col-md-6 d-flex flex-column justify-content-center align-items-center p-4 bg-white">
-      <img src="assets/image/logo.jpg" alt="logo" class="img-fluid mb-3" style="max-height: 150px;" />
-      <h4 class="text-center fw-bold">Simple talks – Strong bonds</h4>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="profile">
+                <div class="avatar-wrapper">
+                    <img id="avatar-img" src="avatar.jpg" alt="Avatar">
+                    <input type="file" accept="image/*" onchange="uploadAvatar(event)" style="display: none;" id="avatar-upload">
+                    
+                    <!-- Thay ảnh bằng icon máy ảnh -->
+                    <i class="fa fa-camera camera-icon" onclick="document.getElementById('avatar-upload').click()"></i>
+                </div>
+                <h2>Nguyễn Văn A</h2>
+                <p>Bio: <span id="profile-bio">u i a i u i a</span></p>
+                <p>Ngày sinh: <span id="profile-birthdate">1/1/2000</span></p>
+                <p>Điện thoại: <span id="profile-phone">0123456789</span></p>
+                <p>Email: <span id="profile-email">vana@gmail.com</span></p>
+                
+                <!-- Nút chỉnh sửa thông tin với icon -->
+                <button onclick="editProfile()">
+                    <i class="fa fa-edit"></i> Chỉnh sửa thông tin
+                </button>
+            </div>
+            <input type="text" class="search" placeholder="Tìm kiếm">
+            
+            <!-- Nút Thêm Người Dùng    -->
+            <button onclick="addUser()">
+                <i class="fa fa-user-plus"></i> Thêm Người Dùng
+            </button>
+
+            <!-- Nút Thêm Nhóm -->
+            <button onclick="addGroupChat()">
+                <i class="fa fa-users"></i> Thêm Nhóm
+            </button>
+
+            <ul class="chat-list">
+                <!-- Danh sách cuộc trò chuyện sẽ được thêm vào đây -->
+            </ul>
+        </aside>
+        <main class="chat-window">
+            <div id="chat-header" class="chat-header"></div>
+            <div id="chat-content" class="chat-content"></div>
+            <input type="text" class="chat-input" placeholder="Nhập tin nhắn...">
+        </main>
     </div>
-
-    <!-- Login Section -->
-    <div class="col-md-6 d-flex align-items-center justify-content-center p-0" style="background-color: white;">
-      <div class="position-relative d-flex align-items-center justify-content-center" style="height: 100vh; width: 100%;">
-       
-        
-        
-        <!-- Login Form -->
-        <div class="p-4 rounded-4 shadow" style="width: 90%; max-width: 420px; min-height: 500px; background-color: #fff5f5;">
-          <form id="loginForm" method="post" class="pt-3">
-            <h2 class="text-center mb-4 fw-bold">Login</h2>
-
-            <!-- Username -->
-            <div class="mb-3">
-              <div class="input-group shadow-sm rounded-pill overflow-hidden">
-                <span class="input-group-text bg-warning-subtle border-0">
-                  <i class="fa-solid fa-circle-user"></i>
-                </span>
-                <input type="text" id="loginUsername" name="username" class="form-control bg-warning-subtle border-0" placeholder="Username" required />
-              </div>
-            </div>
-
-            <!-- Password -->
-            <div class="mb-3">
-              <div class="input-group shadow-sm rounded-pill overflow-hidden">
-                <span class="input-group-text bg-warning-subtle border-0">
-                  <i class="fa-solid fa-lock"></i>
-                </span>
-                <input type="password" id="loginPassword" name="password" class="form-control bg-warning-subtle border-0" placeholder="Password" required />
-              </div>
-            </div>
-
-            <!-- Forgot Password -->
-            <div class="mb-3 text-end">
-              <a href="assets/HTML/forgotPass.html" class="text-decoration-none small text-primary">Forgot Password? Click here</a>
-            </div>
-
-            <!-- Login Button -->
-            <div class="d-flex justify-content-center">
-              <button type="submit" class="btn btn-custom-yellow px-4 py-2 rounded-pill fw-bold">Login</button>
-            </div>
-
-            <!-- Register -->
-            <div class="text-center mt-3">
-              <a href="assets/HTML/register.html" class="text-decoration-none small text-primary">New User? Register here</a>
-            </div>
-
-            <!-- Error Message -->
-            <div id="loginError" class="text-danger text-center mt-3"></div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
