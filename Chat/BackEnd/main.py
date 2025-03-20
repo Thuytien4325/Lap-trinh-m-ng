@@ -1,22 +1,51 @@
 from fastapi import FastAPI
-from fastapi.security import OAuth2PasswordBearer
-from auth import auth_router, users_router
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from database import engine, Base, SessionLocal
+from routers import messages
+from models import Conversation
+import webbrowser
+import uvicorn
+
 app = FastAPI()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-
-app.include_router(auth_router)
-app.include_router(users_router)
-
+# Thêm middleware CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Cho phép tất cả domain (có thể thay đổi thành ["http://localhost:5500"])
-    allow_credentials=True,
-    allow_methods=["*"],  # Cho phép tất cả phương thức (POST, GET, OPTIONS, v.v.)
-    allow_headers=["*"],  # Cho phép tất cả headers
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"]
 )
 
-@app.get("/")
-def home():
-    return {"message": "API is running"}
+# Tạo bảng nếu chưa có
+Base.metadata.create_all(bind=engine)
+
+# Thêm router messages
+app.include_router(messages.message_router)
+
+# Phục vụ file tĩnh (CSS, JS, favicon)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Trả về giao diện HTML
+@app.get("/", response_class=HTMLResponse)
+async def read_root():
+    with open("index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+# Thêm một conversation mẫu khi khởi động
+@app.on_event("startup")
+def startup_event():
+    db = SessionLocal()
+    if not db.query(Conversation).first():
+        db.add(Conversation(name="private"))
+        db.commit()
+    db.close()
+
+# Mở trình duyệt khi khởi động
+@app.on_event("startup")
+async def open_browser():
+    webbrowser.open("http://127.0.0.1:8000")
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8000)
