@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Text, TIMESTAMP
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Text, TIMESTAMP, UniqueConstraint, CheckConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database import Base
@@ -8,12 +8,15 @@ class User(Base):
 
     user_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     username = Column(String(50), unique=True, nullable=False)
-    nickname = Column(String(255),nullable=True)
+    nickname = Column(String(255), nullable=True)
     email = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     avatar = Column(String(255), nullable=True)
     created_at = Column(TIMESTAMP, default=func.now(), nullable=False)
 
+    messages = relationship("Message", backref="sender", cascade="all, delete-orphan")
+    group_memberships = relationship("GroupMember", backref="user", cascade="all, delete-orphan")
+    created_conversations = relationship("Conversation", backref="creator")
 
 class Conversation(Base):
     __tablename__ = "conversations"
@@ -21,6 +24,10 @@ class Conversation(Base):
     conversation_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     type = Column(Enum("private", "group", name="conversation_type"), nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
+    creator_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
+
+    members = relationship("GroupMember", backref="conversation")
+    messages = relationship("Message", backref="conversation", cascade="all, delete-orphan")  # Thêm quan hệ ORM
 
 class GroupMember(Base):
     __tablename__ = "group_members"
@@ -36,10 +43,16 @@ class Message(Base):
 
     message_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     conversation_id = Column(Integer, ForeignKey("conversations.conversation_id", ondelete="CASCADE"))
-    sender_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"))
+    sender_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"))
     content = Column(Text, nullable=True)
     message_type = Column(Enum("text", "image", "video", "file", name="message_type"), default="text")
     sent_at = Column(TIMESTAMP, server_default=func.now())
+
+    attachments = relationship("Attachment", backref="message", cascade="all, delete-orphan")  # Thêm quan hệ ORM
+
+    __table_args__ = (
+        CheckConstraint("message_type IN ('text', 'image', 'video', 'file')", name="valid_message_type"),
+    )
 
 class Attachment(Base):
     __tablename__ = "attachments"
@@ -49,3 +62,27 @@ class Attachment(Base):
     file_url = Column(String(255), nullable=False)
     file_type = Column(String(50), nullable=False)
     uploaded_at = Column(TIMESTAMP, server_default=func.now())
+
+class FriendRequest(Base):
+    __tablename__ = "friend_requests"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    sender_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    receiver_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    status = Column(Enum("pending", "accepted", "declined", name="friend_request_status"), default="pending")
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    __table_args__ = (UniqueConstraint('sender_id', 'receiver_id', name='unique_friend_request'),)
+
+class Friend(Base):
+    __tablename__ = "friends"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    friend_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'friend_id', name='unique_friendship'),
+        CheckConstraint('user_id != friend_id', name='no_self_friendship')
+    )
