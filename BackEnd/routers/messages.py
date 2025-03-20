@@ -3,11 +3,9 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from routers.users import get_current_user
-from pydantic import BaseModel
 from datetime import datetime
 import json
-from schemas import MessageResponse, MessageCreate
-
+from schemas import MessageCreate, MessageResponse
 
 message_router = APIRouter(prefix="/messages", tags=["Messages"])
 

@@ -2,13 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from sqlalchemy.orm import Session
 import os
 import shutil
-
 from database import get_db
 import models
 from routers.auth import oauth2_scheme, SECRET_KEY, ALGORITHM
 import jwt
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
+from schemas import UserResponse, UserUpdate
 
 # Tạo router
 users_router = APIRouter(prefix="/users", tags=["User"])
@@ -16,19 +16,6 @@ users_router = APIRouter(prefix="/users", tags=["User"])
 # Thư mục lưu avatar
 UPLOAD_DIR = "uploads/avatars"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-# Schema
-class UserResponse(BaseModel):
-    user_id: int
-    username: str
-    nickname: str | None
-    email: EmailStr
-    avatar: str | None
-    created_at: datetime
-
-class UserUpdate(BaseModel):
-    nickname: str | None = None
-    email: EmailStr | None = None
 
 # Lấy thông tin user từ JWT token
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):

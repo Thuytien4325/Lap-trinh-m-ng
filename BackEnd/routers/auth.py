@@ -6,11 +6,10 @@ from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime, timedelta
 import jwt
 import os
-
 from database import get_db
 import models
 from dotenv import load_dotenv
-
+from schemas import UserCreate, TokenSchema
 # Load biến môi trường từ .env
 load_dotenv()
 SECRET_KEY: str = os.getenv("SECRET_KEY", "fallback_secret_key")
@@ -24,16 +23,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 # Mã hóa mật khẩu
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Schema
-class UserCreate(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50)
-    nickname: str | None
-    email: EmailStr
-    password: str = Field(..., min_length=8, max_length=100)
-
-class TokenSchema(BaseModel):
-    access_token: str
-    token_type: str
 
 # Tạo access token
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
