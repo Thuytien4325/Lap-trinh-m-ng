@@ -67,22 +67,22 @@ class FriendRequest(Base):
     __tablename__ = "friend_requests"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    sender_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
-    receiver_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
-    status = Column(Enum("pending", "accepted", "declined", name="friend_request_status"), default="pending")
+    sender_username = Column(String(50), ForeignKey("users.username", ondelete="CASCADE"), nullable=False)
+    receiver_username = Column(String(50), ForeignKey("users.username", ondelete="CASCADE"), nullable=False)
+    status = Column(Enum("Đợi", "Chấp nhận", "Từ chối", name="friend_request_status"), default="Đợi")
     created_at = Column(TIMESTAMP, server_default=func.now())
 
-    __table_args__ = (UniqueConstraint('sender_id', 'receiver_id', name='unique_friend_request'),)
+    __table_args__ = (UniqueConstraint('sender_username', 'receiver_username', name='unique_friend_request'),)
 
 class Friend(Base):
     __tablename__ = "friends"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
-    friend_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    user_username = Column(String(50), ForeignKey("users.username", ondelete="CASCADE"), nullable=False)
+    friend_username = Column(String(50), ForeignKey("users.username", ondelete="CASCADE"), nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
 
     __table_args__ = (
-        UniqueConstraint('user_id', 'friend_id', name='unique_friendship'),
-        CheckConstraint('user_id != friend_id', name='no_self_friendship')
+        UniqueConstraint('user_username', 'friend_username', name='unique_friendship'),
+        CheckConstraint('user_username != friend_username', name='no_self_friendship')
     )

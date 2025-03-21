@@ -55,16 +55,14 @@ class MessageResponse(BaseModel):
         from_attributes = True
 
 # Schema gửi kết bạn
-class FriendRequestBase(BaseModel):
-    sender_id: int
-    receiver_id: int
+class FriendRequestCreate(BaseModel):
+    receiver_username: str  # Chỉ cần nhập username người nhận
 
-class FriendRequestCreate(FriendRequestBase):
-    pass
-
-class FriendRequestResponse(FriendRequestBase):
+class FriendRequestResponse(BaseModel):
     id: int
-    status: str  # "Đợi", "Chấp nhận", "Từ chối"
+    sender_username: str
+    receiver_username: str
+    status: str
     created_at: datetime
 
     class Config:
