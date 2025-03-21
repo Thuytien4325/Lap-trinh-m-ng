@@ -6,7 +6,7 @@ import re
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     nickname: str | None
-    email: str
+    email: EmailStr
     password: str = Field(..., min_length=8)
 
     @validator("password")
@@ -62,6 +62,10 @@ class FriendRequestResponse(BaseModel):
     id: int
     sender_username: str
     receiver_username: str
+    sender_nickname: str | None 
+    sender_avatar: str | None 
+    receiver_nickname: str | None  
+    receiver_avatar: str | None 
     status: str
     created_at: datetime
 
