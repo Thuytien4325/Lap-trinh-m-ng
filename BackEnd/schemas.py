@@ -2,12 +2,15 @@ from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 import re
 
-# Schema xác thực người dùng
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     nickname: str | None
     email: EmailStr
-    password: str = Field(..., pattern="^[A-Za-z0-9@$!%*?&]{8,}$") # Ít nhất 8 ký tự, bao gồm chữ cái, số và các ký tự @$!%*?&
+    password: str = Field(
+        ..., 
+        min_length=8,
+        regex=r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+    )
 
 
 class TokenSchema(BaseModel):
