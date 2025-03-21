@@ -34,4 +34,4 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # Chạy ứng dụng
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=9001, reload=True)
+    uvicorn.run(app,reload=True)
