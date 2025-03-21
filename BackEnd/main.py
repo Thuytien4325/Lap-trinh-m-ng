@@ -1,41 +1,36 @@
-import webbrowser
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, Base
+from fastapi.staticfiles import StaticFiles
+
+from database import engine
 import models
 from routers.auth import auth_router
 from routers.users import users_router
 from routers.messages import message_router
-from fastapi.staticfiles import StaticFiles
-import os
-from contextlib import asynccontextmanager
+
 app = FastAPI()
 
 # Thêm middleware CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
 # Tạo bảng nếu chưa có
 models.Base.metadata.create_all(bind=engine)
 
-# Mở docs khi chạy server
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    webbrowser.open("http://127.0.0.1:8000/docs")
-    yield  # Cho phép ứng dụng chạy
-app = FastAPI(lifespan=lifespan)
-
 # Thêm router
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(message_router)
+
+# Cho phép truy cập file tĩnh (uploads)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Chạy ứng dụng
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app,reload=True)
+    uvicorn.run(app, host="127.0.0.1", port=9001, reload=True)

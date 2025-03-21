@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đăng Ký Tài Khoản</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+      .container {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 300px;
+      }
+      h2 {
+        text-align: center;
+        color: #333;
+      }
+      input {
+        width: 100%;
+        padding: 10px;
+        margin: 8px 0;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #218838;
+      }
+      #message {
+        margin-top: 10px;
+        text-align: center;
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Đăng Ký</h2>
+      <input type="text" id="username" placeholder="Tên đăng nhập" required />
+      <input type="text" id="nickname" placeholder="Biệt danh" required />
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Mật khẩu" required />
+      <button onclick="register()">Đăng Ký</button>
+      <p id="message"></p>
+    </div>
+
+    <script>
+      const API_URL = "http://127.0.0.1:9002"; // Địa chỉ FastAPI backend
+
+      async function register() {
+        const username = document.getElementById("username").value;
+        const nickname = document.getElementById("nickname").value;
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        const response = await fetch(`${API_URL}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, nickname, email, password }),
+        });
+
+        const data = await response.json();
+        const message = document.getElementById("message");
+
+        if (response.ok) {
+          message.style.color = "green";
+          message.textContent = "Đăng ký thành công!";
+        } else {
+          message.style.color = "red";
+          message.textContent = data.detail || "Đăng ký thất bại!";
+        }
+      }
+    </script>
+  </body>
+</html>

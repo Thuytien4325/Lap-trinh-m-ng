@@ -1,18 +1,24 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, validator
 from datetime import datetime
 import re
 
+# Schema xác thực người dùng
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     nickname: str | None
-    email: EmailStr
-    password: str = Field(
-        ..., 
-        min_length=8,
-        regex=r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
-    )
+    email: str
+    password: str = Field(..., min_length=8)
 
-
+    @validator("password")
+    def validate_password(cls, value):
+        if not any(c.isalpha() for c in value):
+            raise ValueError("Mật khẩu phải chứa ít nhất một chữ cái.")
+        if not any(c.isdigit() for c in value):
+            raise ValueError("Mật khẩu phải chứa ít nhất một số.")
+        if not any(c in "@$!%*?&" for c in value):
+            raise ValueError("Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@$!%*?&).")
+        return value
+    
 class TokenSchema(BaseModel):
     access_token: str
     token_type: str
