@@ -62,8 +62,11 @@ def upload_avatar(
     # Kiểm tra và xóa avatar cũ nếu có
     if current_user.avatar:
         old_avatar_path = current_user.avatar
-        if os.path.exists(old_avatar_path):
-            os.remove(old_avatar_path)
+        try:
+            if os.path.exists(old_avatar_path):
+                os.remove(old_avatar_path)
+        except Exception as e:
+            print(f"Lỗi khi xóa avatar cũ: {e}")
 
     # Định dạng tên file: user_id + phần mở rộng
     file_path = f"{UPLOAD_DIR}/userID_{current_user.user_id}.{file_extension}"
@@ -100,3 +103,36 @@ def update_user(
     db.refresh(current_user)
 
     return {"message": "Cập nhật thông tin thành công", "nickname": current_user.nickname, "email": current_user.email}
+
+@users_router.delete("/delete")
+def delete_user(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Xóa tài khoản"""
+
+    # Xóa avatar nếu có
+    if current_user.avatar:
+        try:
+            if os.path.exists(current_user.avatar):
+                os.remove(current_user.avatar)
+        except Exception as e:
+            print(f"Lỗi khi xóa avatar: {e}")
+
+    # Cập nhật sender_id, receiver_id của tin nhắn thành NULL
+    db.query(models.Message).filter(models.Message.sender_id == current_user.user_id).update(
+        {"sender_id": None}
+    )
+    db.query(models.Message).filter(models.Message.receiver_id == current_user.user_id).update(
+        {"receiver_id": None}  
+    )
+
+    # Xóa tài khoản
+    db.delete(current_user)
+    
+    try:
+        db.commit()
+        return {"message": "Tài khoản đã bị xóa, tin nhắn vẫn còn nhưng không có thông tin người gửi/nhận."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Lỗi server: {str(e)}")

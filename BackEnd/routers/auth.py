@@ -55,20 +55,50 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    return {"message": "Tạo tài khoản thành công"}
+    # Tạo token ngay sau khi đăng ký thành công
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": new_user.username}, expires_delta=access_token_expires
+    )
+
+    return {
+        "message": "Tạo tài khoản thành công",
+        "user": {
+            "username": new_user.username,
+            "nickname": new_user.nickname,
+            "email": new_user.email,
+            "created_at": new_user.created_at
+        },
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 # Đăng nhập
 @auth_router.post("/login", response_model=TokenSchema)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.username == form_data.username).first()
+    db_user = db.query(models.User).filter(
+        (models.User.username == form_data.username) | 
+        (models.User.email == form_data.username)
+    ).first()
+
     if not db_user:
-        raise HTTPException(status_code=400, detail="Tên đăng nhập không tồn tại!")
+        raise HTTPException(status_code=401, detail="Tên đăng nhập hoặc email không tồn tại!")
     if not pwd_context.verify(form_data.password, db_user.password_hash):
-        raise HTTPException(status_code=400, detail="Mật khẩu không đúng!")
+        raise HTTPException(status_code=401, detail="Mật khẩu không đúng!")
 
     access_token = create_access_token(
         data={"sub": db_user.username, "user_id": db_user.user_id},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
-    return TokenSchema(access_token=access_token, token_type="Bearer")
+    return {
+        "access_token": access_token,
+        "token_type": "Bearer",
+        "user": {
+            "user_id": db_user.user_id,
+            "username": db_user.username,
+            "nickname": db_user.nickname,
+            "email": db_user.email,
+            "avatar_url": db_user.avatar
+        }
+    }

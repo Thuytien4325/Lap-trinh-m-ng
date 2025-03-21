@@ -8,6 +8,7 @@ from routers.auth import auth_router
 from routers.users import users_router
 from routers.messages import message_router
 from routers.friends_requests import friend_request_router
+from routers.friends import friends_router
 app = FastAPI()
 
 # Thêm middleware CORS
@@ -27,6 +28,7 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(message_router)
 app.include_router(friend_request_router)
+app.include_router(friends_router)
 
 # Cho phép truy cập file tĩnh (uploads)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

@@ -14,9 +14,8 @@ class User(Base):
     avatar = Column(String(255), nullable=True)
     created_at = Column(TIMESTAMP, default=func.now(), nullable=False)
 
-    messages = relationship("Message", backref="sender", cascade="all, delete-orphan")
-    group_memberships = relationship("GroupMember", backref="user", cascade="all, delete-orphan")
-    created_conversations = relationship("Conversation", backref="creator")
+    sent_messages = relationship("Message", foreign_keys="[Message.sender_id]", back_populates="sender")
+    received_messages = relationship("Message", foreign_keys="[Message.receiver_id]", back_populates="receiver")
 
 class Conversation(Base):
     __tablename__ = "conversations"
@@ -27,7 +26,7 @@ class Conversation(Base):
     creator_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
 
     members = relationship("GroupMember", backref="conversation")
-    messages = relationship("Message", backref="conversation", cascade="all, delete-orphan")  # Thêm quan hệ ORM
+    messages = relationship("Message", backref="conversation", cascade="all, delete-orphan")
 
 class GroupMember(Base):
     __tablename__ = "group_members"
@@ -44,11 +43,13 @@ class Message(Base):
     message_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     conversation_id = Column(Integer, ForeignKey("conversations.conversation_id", ondelete="CASCADE"))
     sender_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"))
+    receiver_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"))
     content = Column(Text, nullable=True)
     message_type = Column(Enum("text", "image", "video", "file", name="message_type"), default="text")
     sent_at = Column(TIMESTAMP, server_default=func.now())
 
-    attachments = relationship("Attachment", backref="message", cascade="all, delete-orphan")  # Thêm quan hệ ORM
+    sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_messages")
+    receiver = relationship("User", foreign_keys=[receiver_id], back_populates="received_messages")
 
     __table_args__ = (
         CheckConstraint("message_type IN ('text', 'image', 'video', 'file')", name="valid_message_type"),

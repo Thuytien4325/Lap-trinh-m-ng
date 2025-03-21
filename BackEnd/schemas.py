@@ -56,7 +56,7 @@ class MessageResponse(BaseModel):
 
 # Schema gửi kết bạn
 class FriendRequestCreate(BaseModel):
-    receiver_username: str  # Chỉ cần nhập username người nhận
+    receiver_username: str
 
 class FriendRequestResponse(BaseModel):
     id: int
@@ -71,3 +71,14 @@ class FriendRequestResponse(BaseModel):
 
     class Config:
         from_attributes = True
+#  Schema friend
+class FriendResponse(BaseModel):
+    username: str
+    nickname: str | None = None
+    avatar: str | None = None
+
+    class Config:
+        from_attributes = True
+
+class FriendRemoveRequest(BaseModel):
+    friend_username: str
