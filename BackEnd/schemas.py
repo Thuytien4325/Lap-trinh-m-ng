@@ -1,6 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, validator
 from datetime import datetime
-import re
 
 # Schema xác thực người dùng
 class UserCreate(BaseModel):
@@ -19,10 +18,6 @@ class UserCreate(BaseModel):
             raise ValueError("Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@$!%*?&).")
         return value
     
-class TokenSchema(BaseModel):
-    access_token: str
-    token_type: str
-
 # Schema người dùng
 class UserResponse(BaseModel):
     user_id: int
@@ -34,6 +29,22 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True 
+
+class UserProfile(BaseModel):
+    username: str
+    nickname: str | None
+    email: EmailStr
+    avatar: str | None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True 
+
+class TokenSchema(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+    user: UserResponse
 
 class UserUpdate(BaseModel):
     nickname: str | None = None
@@ -82,3 +93,26 @@ class FriendResponse(BaseModel):
 
 class FriendRemoveRequest(BaseModel):
     friend_username: str
+
+# Thông báo
+class NotificationBase(BaseModel):
+    message: str
+
+class NotificationCreate(NotificationBase):
+    user_username: str
+    sender_username: str
+    type: str
+    related_id: int
+    related_table: str
+
+class NotificationResponse(NotificationBase):
+    id: int 
+    type: str 
+    is_read: bool 
+    created_at: datetime 
+    related_id: int
+    related_table: str
+
+
+    class Config:
+        from_attributes = True

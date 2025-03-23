@@ -1,8 +1,7 @@
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Text, TIMESTAMP, UniqueConstraint, CheckConstraint
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Text, TIMESTAMP, UniqueConstraint, CheckConstraint, Boolean, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database import Base
-
 class User(Base):
     __tablename__ = "users"
 
@@ -16,7 +15,7 @@ class User(Base):
 
     sent_messages = relationship("Message", foreign_keys="[Message.sender_id]", back_populates="sender")
     received_messages = relationship("Message", foreign_keys="[Message.receiver_id]", back_populates="receiver")
-
+    notifications = relationship("Notification", back_populates="user", foreign_keys="[Notification.user_username]")
 class Conversation(Base):
     __tablename__ = "conversations"
 
@@ -69,8 +68,8 @@ class FriendRequest(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     sender_username = Column(String(50), ForeignKey("users.username", ondelete="CASCADE"), nullable=False)
-    receiver_username = Column(String(50), ForeignKey("users.username", ondelete="CASCADE"), nullable=False)
-    status = Column(Enum("Đợi", "Chấp nhận", "Từ chối", name="friend_request_status"), default="Đợi")
+    receiver_username = Column(String(50), ForeignKey("users.username", ondelete="CASCADE"), nullable=False, index=True)
+    status = Column(Enum("Đợi", "Chấp nhận", "Từ chối", name="friend_request_status"), default="Đợi", index=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
 
     __table_args__ = (UniqueConstraint('sender_username', 'receiver_username', name='unique_friend_request'),)
@@ -87,3 +86,21 @@ class Friend(Base):
         UniqueConstraint('user_username', 'friend_username', name='unique_friendship'),
         CheckConstraint('user_username != friend_username', name='no_self_friendship')
     )
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True)
+    user_username = Column(String(255), ForeignKey("users.username", ondelete="CASCADE"), index=True)
+    sender_username = Column(String(255), ForeignKey("users.username"), nullable=True)
+    message = Column(String(255), nullable=False)
+    type = Column(Enum("friend_request", "friend_accept","friend_reject", "message", name="notification_type"), nullable=False, index=True)
+    related_id = Column(Integer, nullable=True, index=True)
+    related_table = Column(Enum("friend_requests", "messages", name="related_table_type"), nullable=True, index=True)
+    is_read = Column(Boolean, default=False, index=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    user = relationship("User", back_populates="notifications", foreign_keys=[user_username])
+    sender = relationship("User", foreign_keys=[sender_username], lazy="joined")
+
+

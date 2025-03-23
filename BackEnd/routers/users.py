@@ -6,9 +6,7 @@ from database import get_db
 import models
 from routers.auth import oauth2_scheme, SECRET_KEY, ALGORITHM
 import jwt
-from pydantic import BaseModel, EmailStr
-from datetime import datetime
-from schemas import UserResponse, UserUpdate
+from schemas import UserResponse, UserUpdate, UserProfile
 
 # Tạo router
 users_router = APIRouter(prefix="/users", tags=["User"])
@@ -103,6 +101,13 @@ def update_user(
     db.refresh(current_user)
 
     return {"message": "Cập nhật thông tin thành công", "nickname": current_user.nickname, "email": current_user.email}
+
+@users_router.get("/{username}", response_model=UserProfile)
+def get_user_profile(username: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Người dùng không tồn tại")
+    return user
 
 @users_router.delete("/delete")
 def delete_user(

@@ -62,3 +62,27 @@ def unfriend(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Lỗi server: {str(e)}")
+    
+@friends_router.get("/mutual/{username}")
+def get_mutual_friends(username: str, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Lấy danh sách bạn chung giữa người dùng hiện tại và {username} (hỗ trợ truy vấn 2 chiều)"""
+    
+    # Danh sách bạn của current_user (cả hai chiều)
+    user_friends = db.query(models.Friend.friend_username).filter(models.Friend.user_username == current_user.username)
+    user_friends_reverse = db.query(models.Friend.user_username).filter(models.Friend.friend_username == current_user.username)
+    user_friends = user_friends.union(user_friends_reverse).subquery()
+
+    # Danh sách bạn của username (cả hai chiều)
+    target_friends = db.query(models.Friend.friend_username).filter(models.Friend.user_username == username)
+    target_friends_reverse = db.query(models.Friend.user_username).filter(models.Friend.friend_username == username)
+    target_friends = target_friends.union(target_friends_reverse).subquery()
+
+    # Lấy bạn chung giữa hai danh sách
+    mutual_friends = (
+        db.query(models.User)
+        .filter(models.User.username.in_(user_friends))
+        .filter(models.User.username.in_(target_friends))
+        .all()
+    )
+
+    return mutual_friends

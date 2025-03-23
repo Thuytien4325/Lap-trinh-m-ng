@@ -10,12 +10,13 @@ from database import get_db
 import models
 from dotenv import load_dotenv
 from schemas import UserCreate, TokenSchema
+
 # Load biến môi trường từ .env
 load_dotenv()
 SECRET_KEY: str = os.getenv("SECRET_KEY", "fallback_secret_key")
 ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
-
+REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
 # Tạo router
 auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -24,10 +25,22 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+# Tránh vòng lặp khi gọi hàm từ file users.py
+def get_current_user():
+    from routers.users import get_current_user as get_user
+    return get_user()
+
 # Tạo access token
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def create_refresh_token(data: dict) -> str:
+    """Tạo refresh token có thời gian dài hơn"""
+    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode = data.copy()
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -90,15 +103,17 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         data={"sub": db_user.username, "user_id": db_user.user_id},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-
+    refresh_token = create_refresh_token(data={"sub": db_user.username})
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "Bearer",
         "user": {
             "user_id": db_user.user_id,
             "username": db_user.username,
             "nickname": db_user.nickname,
             "email": db_user.email,
-            "avatar_url": db_user.avatar
+            "avatar": db_user.avatar,
+            "created_at": db_user.created_at
         }
     }
