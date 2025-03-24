@@ -16,7 +16,7 @@ message_router = APIRouter(prefix="/messages", tags=["Messages"])
 # API gửi tin nhắn
 @message_router.post("/send", response_model=MessageResponse)
 def send_message(message: MessageCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    conversation = db.query(models.Conversation).filter(models.Conversation.id == message.conversation_id).first()
+    conversation = db.query(models.Conversation).filter(models.Conversation.conversation_id == message.conversation_id).first()
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -57,7 +57,7 @@ def get_messages(conversation_id: int, db: Session = Depends(get_db), current_us
 # API xóa tin nhắn
 @message_router.delete("/{message_id}")
 def delete_message(message_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    message = db.query(models.Message).filter(models.Message.id == message_id, models.Message.sender_id == current_user.user_id).first()
+    message = db.query(models.Message).filter(models.Message.message_id == message_id, models.Message.sender_id == current_user.user_id).first()
     
     if not message:
         raise HTTPException(status_code=404, detail="Message not found or unauthorized")
@@ -131,7 +131,7 @@ async def websocket_endpoint(websocket: WebSocket, conversation_id: int, db: Ses
             db.refresh(new_message)
 
             message_json = {
-                "message_id": new_message.id,
+                "message_id": new_message.message_id,
                 "sender_id": new_message.sender_id,
                 "content": new_message.content,
                 "file_url": new_message.file_url,
