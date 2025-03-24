@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Box UI Design</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <!-- Liên kết Bootstrap Icons để dùng biểu tượng gửi -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
+</head>
+<body>
+    <!-- Container chính -->
+    <div class="container">
+        <!-- Phần header của chat -->
+        <div class="msg-header">
+            <img src="https://via.placeholder.com/50/FF0000/FFFFFF?text=U1" class="msgimg">
+            <div class="active">
+                <p>User name</p>
+            </div>
+        </div>
+
+        <!-- Khu vực chat -->
+        <div class="chat-page">
+            <div class="msg-inbox">
+                <div class="chats">
+                    <!-- Khu vực hiển thị tin nhắn -->
+                    <div class="msg-page">
+                        <!-- Tin nhắn sẽ được thêm động bằng JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Phần nhập tin nhắn -->
+                <div class="msg-bottom">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Write message...">
+                        <span class="input-group-text send-icon">
+                            <i class="bi bi-send"></i>
+                        </span>
+                    </div>
+
+                    <!-- Chọn và gửi file -->
+                    <div class="file-upload">
+                        <input type="file" id="fileInput">
+                        <button class="file-send-btn" onclick="sendFile()">📎 Gửi File</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liên kết file JavaScript -->
+    <script src="/static/script.js"></script>
+    <link rel="icon" href="/static/favicon.ico">
+</body>
+</html>
