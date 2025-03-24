@@ -75,14 +75,13 @@ button {
 
 button i.fa-user-plus,
 button i.fa-users {
-    color: #e0c085; 
+    color:white;
 }
 
 button:hover {
-    background: #fff9e6;
+    background: #e6ac50;
     transform: scale(1.05);
 }
-
 
 .search {
     width: 90%;
