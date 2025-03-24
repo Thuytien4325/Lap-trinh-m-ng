@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base, SessionLocal
-from routers import messages
+from routers import messages, conversations  # Thêm router conversations
 from models import Conversation
 from datetime import datetime
 import webbrowser
@@ -25,8 +25,9 @@ app.add_middleware(
 # Tạo bảng nếu chưa có
 Base.metadata.create_all(bind=engine)
 
-# Thêm router messages
+# Thêm router messages và conversations
 app.include_router(messages.message_router)
+app.include_router(conversations.conversation_router)  # Thêm router conversations
 
 # Phục vụ file tĩnh với Cache-Control để tắt cache
 app.mount("/static", StaticFiles(directory="static"), name="static")
