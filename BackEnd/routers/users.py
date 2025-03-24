@@ -5,34 +5,10 @@ import shutil
 from database import get_db
 import models
 from routers.auth import oauth2_scheme, SECRET_KEY, ALGORITHM
-import jwt
 from schemas import UserResponse, UserUpdate, UserProfile
-
+from routers.untils import get_current_user,UPLOAD_DIR
 # Tạo router
 users_router = APIRouter(prefix="/users", tags=["User"])
-
-# Thư mục lưu avatar
-UPLOAD_DIR = "uploads/avatars"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-# Lấy thông tin user từ JWT token
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("user_id")
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Token không hợp lệ")
-
-        user = db.query(models.User).filter(models.User.user_id == user_id).first()
-        if user is None:
-            raise HTTPException(status_code=401, detail="Người dùng không tồn tại")
-
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token đã hết hạn")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Token không hợp lệ")
-
-    return user
 
 # Lấy thông tin user hiện tại
 @users_router.get("/me", response_model=UserResponse)

@@ -18,6 +18,23 @@ class UserCreate(BaseModel):
             raise ValueError("Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@$!%*?&).")
         return value
     
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordConfirm(BaseModel):
+    token: str
+    new_password: str
+
+    @validator("new_password")
+    def validate_new_password(cls, value):
+        if not any(c.isalpha() for c in value):
+            raise ValueError("Mật khẩu phải chứa ít nhất một chữ cái.")
+        if not any(c.isdigit() for c in value):
+            raise ValueError("Mật khẩu phải chứa ít nhất một số.")
+        if not any(c in "@$!%*?&" for c in value):
+            raise ValueError("Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@$!%*?&).")
+        return value
+
 # Schema người dùng
 class UserResponse(BaseModel):
     user_id: int
@@ -25,6 +42,7 @@ class UserResponse(BaseModel):
     nickname: str | None
     email: EmailStr
     avatar: str | None
+    last_active: datetime | None 
     created_at: datetime
 
     class Config:
@@ -35,16 +53,18 @@ class UserProfile(BaseModel):
     nickname: str | None
     email: EmailStr
     avatar: str | None
+    last_active: datetime | None 
     created_at: datetime
 
     class Config:
         from_attributes = True 
 
+
 class TokenSchema(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
-    user: UserResponse
+    user: UserResponse | None
 
 class UserUpdate(BaseModel):
     nickname: str | None = None

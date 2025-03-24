@@ -11,11 +11,15 @@ class User(Base):
     email = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     avatar = Column(String(255), nullable=True)
+    is_admin = Column(Boolean, default=False)
+    last_active = Column(DateTime, default=None)
     created_at = Column(TIMESTAMP, default=func.now(), nullable=False)
 
     sent_messages = relationship("Message", foreign_keys="[Message.sender_id]", back_populates="sender")
     received_messages = relationship("Message", foreign_keys="[Message.receiver_id]", back_populates="receiver")
     notifications = relationship("Notification", back_populates="user", foreign_keys="[Notification.user_username]")
+    reset_tokens = relationship("ResetToken", back_populates="user", cascade="all, delete-orphan")
+    
 class Conversation(Base):
     __tablename__ = "conversations"
 
@@ -92,7 +96,7 @@ class Notification(Base):
 
     id = Column(Integer, primary_key=True)
     user_username = Column(String(255), ForeignKey("users.username", ondelete="CASCADE"), index=True)
-    sender_username = Column(String(255), ForeignKey("users.username"), nullable=True)
+    sender_username = Column(String(255), ForeignKey("users.username", ondelete="SET NULL"), nullable=True)
     message = Column(String(255), nullable=False)
     type = Column(Enum("friend_request", "friend_accept","friend_reject", "message", name="notification_type"), nullable=False, index=True)
     related_id = Column(Integer, nullable=True, index=True)
@@ -103,4 +107,13 @@ class Notification(Base):
     user = relationship("User", back_populates="notifications", foreign_keys=[user_username])
     sender = relationship("User", foreign_keys=[sender_username], lazy="joined")
 
+class ResetToken(Base):
+    __tablename__ = "reset_tokens"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    token = Column(String(255), nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    user = relationship("User", back_populates="reset_tokens")
 

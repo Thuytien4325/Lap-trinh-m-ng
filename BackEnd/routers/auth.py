@@ -1,52 +1,35 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
-from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime, timedelta
 import jwt
-import os
+import uuid
 from database import get_db
 import models
-from dotenv import load_dotenv
-from schemas import UserCreate, TokenSchema
+from schemas import UserCreate, TokenSchema, ResetPasswordConfirm, UserResponse
+from routers.untils import (
+    pwd_context, ACCESS_TOKEN_EXPIRE_MINUTES, 
+    create_access_token, create_refresh_token, 
+    SECRET_KEY, ALGORITHM, send_reset_email, hash_password
+)
 
-# Load biến môi trường từ .env
-load_dotenv()
-SECRET_KEY: str = os.getenv("SECRET_KEY", "fallback_secret_key")
-ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
-REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
 # Tạo router
 auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-# Mã hóa mật khẩu
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-# Tránh vòng lặp khi gọi hàm từ file users.py
-def get_current_user():
-    from routers.users import get_current_user as get_user
-    return get_user()
-
-# Tạo access token
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-def create_refresh_token(data: dict) -> str:
-    """Tạo refresh token có thời gian dài hơn"""
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode = data.copy()
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+# Hàm giải mã token dùng chung
+def decode_jwt_token(token: str):
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token đã hết hạn!")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token không hợp lệ!")
 
 # Đăng ký người dùng
-@auth_router.post("/register")
+@auth_router.post("/register", response_model=TokenSchema)
 def register(user: UserCreate, db: Session = Depends(get_db)):
+    user.email = user.email.lower()
     db_user_email = db.query(models.User).filter(models.User.email == user.email).first()
     db_user_username = db.query(models.User).filter(models.User.username == user.username).first()
 
@@ -68,52 +51,144 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    # Tạo token ngay sau khi đăng ký thành công
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": new_user.username}, expires_delta=access_token_expires
-    )
+    access_token = create_access_token(data={"sub": new_user.username})
+    refresh_token = create_refresh_token(data={"sub": new_user.username})
 
-    return {
-        "message": "Tạo tài khoản thành công",
-        "user": {
-            "username": new_user.username,
-            "nickname": new_user.nickname,
-            "email": new_user.email,
-            "created_at": new_user.created_at
-        },
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
+    # Trả về đúng `TokenSchema`
+    return TokenSchema(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="Bearer",
+        user=UserResponse(
+            user_id=new_user.user_id,
+            username=new_user.username,
+            nickname=new_user.nickname,
+            email=new_user.email,
+            avatar=new_user.avatar,
+            last_active=new_user.last_active,
+            created_at=new_user.created_at
+        )
+    )
 
 # Đăng nhập
 @auth_router.post("/login", response_model=TokenSchema)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(
         (models.User.username == form_data.username) | 
-        (models.User.email == form_data.username)
+        (models.User.email.ilike(form_data.username))
     ).first()
 
-    if not db_user:
-        raise HTTPException(status_code=401, detail="Tên đăng nhập hoặc email không tồn tại!")
-    if not pwd_context.verify(form_data.password, db_user.password_hash):
-        raise HTTPException(status_code=401, detail="Mật khẩu không đúng!")
+    if not db_user or not pwd_context.verify(form_data.password, db_user.password_hash):
+        raise HTTPException(status_code=401, detail="Tên đăng nhập, email hoặc mật khẩu không đúng!")
 
-    access_token = create_access_token(
-        data={"sub": db_user.username, "user_id": db_user.user_id},
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    )
+    # Tạo access token và refresh token
+    access_token = create_access_token(data={"sub": db_user.username, "user_id": db_user.user_id})
     refresh_token = create_refresh_token(data={"sub": db_user.username})
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "Bearer",
-        "user": {
-            "user_id": db_user.user_id,
-            "username": db_user.username,
-            "nickname": db_user.nickname,
-            "email": db_user.email,
-            "avatar": db_user.avatar,
-            "created_at": db_user.created_at
-        }
-    }
+
+    # Trả về đúng `TokenSchema` với refresh token
+    return TokenSchema(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="Bearer",
+        user=UserResponse(
+            user_id=db_user.user_id,
+            username=db_user.username,
+            nickname=db_user.nickname,
+            email=db_user.email,
+            avatar=db_user.avatar,
+            last_active=db_user.last_active,
+            created_at=db_user.created_at
+        )
+    )
+
+
+# API refresh token
+@auth_router.post("/refresh-token", response_model=TokenSchema)
+def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
+    db_refresh_token = db.query(models.RefreshToken).filter(models.RefreshToken.token == refresh_token).first()
+    if not db_refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh token không hợp lệ hoặc đã bị thu hồi!")
+
+    payload = decode_jwt_token(refresh_token)
+    username = payload.get("sub")
+
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Người dùng không tồn tại!")
+
+    new_access_token = create_access_token(data={"sub": user.username, "user_id": user.user_id})
+
+    # Trả về đúng `TokenSchema`
+    return TokenSchema(
+        access_token=new_access_token,
+        refresh_token=refresh_token,
+        token_type="Bearer",
+        user=UserResponse(
+            user_id=user.user_id,
+            username=user.username,
+            nickname=user.nickname,
+            email=user.email,
+            avatar=user.avatar,
+            last_active=user.last_active,
+            created_at=user.created_at
+        )
+    )
+
+
+# API quên mật khẩu
+@auth_router.post("/forgot-password")
+def forgot_password(email: str = Body(..., embed=True), db: Session = Depends(get_db)):
+    email = email.lower()
+    user = db.query(models.User).filter(models.User.email == email).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Email không tồn tại!")
+
+    if user.last_reset_request and datetime.utcnow() - user.last_reset_request < timedelta(minutes=5):
+        raise HTTPException(status_code=429, detail="Vui lòng chờ 5 phút trước khi gửi lại yêu cầu!")
+
+    user.last_reset_request = datetime.utcnow()
+    db.commit()
+
+    db.query(models.ResetToken).filter(models.ResetToken.user_id == user.user_id).delete()
+    db.commit()
+
+    reset_token = create_access_token(data={"user_id": user.user_id}, expires_delta=timedelta(minutes=5))
+    reset_id = str(uuid.uuid4())
+
+    new_reset = models.ResetToken(id=reset_id, user_id=user.user_id, token=reset_token)
+    db.add(new_reset)
+    db.commit()
+
+    reset_link = f"http://127.0.0.1:5500/BackEnd/index.html?reset_id={reset_id}"
+    send_reset_email(email, reset_link)
+
+    return {"message": "Đã gửi email thay đổi mật khẩu!"}
+
+# API xác nhận reset mật khẩu
+@auth_router.post("/reset-password")
+def reset_password(request: ResetPasswordConfirm, db: Session = Depends(get_db)):
+    reset_entry = db.query(models.ResetToken).filter(models.ResetToken.token == request.token).first()
+    if not reset_entry:
+        raise HTTPException(status_code=400, detail="Token không hợp lệ hoặc đã sử dụng!")
+
+    payload = decode_jwt_token(request.token)
+    user_id = payload.get("user_id")
+
+    user = db.query(models.User).filter(models.User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Người dùng không tồn tại!")
+
+    if pwd_context.verify(request.new_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Mật khẩu mới không được trùng với mật khẩu cũ!")
+
+    if len(request.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Mật khẩu mới phải có ít nhất 6 ký tự!")
+
+    user.password_hash = hash_password(request.new_password)
+    db.commit()
+
+    db.query(models.ResetToken).filter(models.ResetToken.user_id == user_id).delete()
+    db.commit()
+
+    return {"message": "Mật khẩu đã được đặt lại thành công!"}

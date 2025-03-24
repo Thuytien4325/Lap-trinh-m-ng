@@ -1,193 +1,85 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Test API Authentication</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        background-color: #f4f4f4;
-        margin: 0;
-        padding: 20px;
-      }
-
-      .container {
-        width: 400px;
-        margin: auto;
-        padding: 20px;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      }
-
-      h2 {
-        color: #333;
-      }
-
-      .form-container {
-        margin: 20px 0;
-        padding: 15px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        background: #fff;
-      }
-
-      input {
-        width: 90%;
-        padding: 10px;
-        margin: 5px 0;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-      }
-
-      button {
-        width: 100%;
-        padding: 10px;
-        background: #28a745;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-
-      button:hover {
-        background: #218838;
-      }
-
-      pre {
-        text-align: left;
-        background: #eee;
-        padding: 10px;
-        border-radius: 5px;
-      }
-    </style>
+    <title>Reset Password</title>
   </head>
   <body>
-    <div class="container">
-      <h2>Test API Authentication</h2>
-
-      <!-- Form đăng ký -->
-      <div class="form-container">
-        <h3>Đăng ký</h3>
-        <input
-          type="text"
-          id="reg_username"
-          placeholder="Tên đăng nhập"
-          required
-        />
-        <input type="text" id="reg_nickname" placeholder="Biệt danh" required />
-        <input type="email" id="reg_email" placeholder="Email" required />
-        <input
-          type="password"
-          id="reg_password"
-          placeholder="Mật khẩu"
-          required
-        />
-        <button onclick="register()">Đăng ký</button>
-      </div>
-
-      <!-- Form đăng nhập -->
-      <div class="form-container">
-        <h3>Đăng nhập</h3>
-        <input
-          type="text"
-          id="login_username"
-          placeholder="Tên đăng nhập"
-          required
-        />
-        <input
-          type="password"
-          id="login_password"
-          placeholder="Mật khẩu"
-          required
-        />
-        <button onclick="login()">Đăng nhập</button>
-      </div>
-
-     <!-- Hiển thị thông tin user -->
-      <div class="form-container">
-        <h3>Thông tin người dùng</h3>
-        <button onclick="getUserInfo()">Lấy thông tin</button>
-        <br />
-        <img id="user_avatar" src="" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%; display: none;" />
-        <pre id="user_info"></pre>
-      </div>  
+    <h2>Reset Your Password</h2>
+    <form id="resetForm">
+      <label for="newPassword">New Password:</label>
+      <input type="password" id="newPassword" required />
+      <button type="submit">Reset Password</button>
+    </form>
 
     <script>
-      const API_URL = "http://127.0.0.1:9007"; // Thay đổi nếu FastAPI chạy ở URL khác
+      async function getTokenFromServer() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const resetId = urlParams.get('reset_id');
 
-      async function register() {
-        const username = document.getElementById("reg_username").value;
-        const nickname = document.getElementById("reg_nickname").value;
-        const email = document.getElementById("reg_email").value;
-        const password = document.getElementById("reg_password").value;
-
-        const response = await fetch(`${API_URL}/auth/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, email, password, nickname })
-        });
-
-        const data = await response.json();
-        alert(data.message || JSON.stringify(data));
-      }
-
-      async function login() {
-        const username = document.getElementById("login_username").value;
-        const password = document.getElementById("login_password").value;
-
-        const formData = new URLSearchParams();
-        formData.append("username", username);
-        formData.append("password", password);
-
-        const response = await fetch(`${API_URL}/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: formData,
-        });
-
-        const data = await response.json();
-
-        if (data.access_token) {
-          localStorage.setItem("token", data.access_token);
-          alert("Đăng nhập thành công!");
-        } else {
-          alert("Lỗi: " + JSON.stringify(data));
-        }
-      }
-
-      async function getUserInfo() {
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          alert("Bạn chưa đăng nhập!");
+        if (!resetId) {
+          alert('Reset link không hợp lệ!');
           return;
         }
 
-        const response = await fetch(`${API_URL}/users/me`, {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        try {
+          const response = await fetch(
+            `http://127.0.0.1:6520/auth/validate-reset?reset_id=${resetId}`
+          );
+          const data = await response.json();
 
-        const data = await response.json();
-
-        if (response.ok) {
-          document.getElementById("user_info").textContent = JSON.stringify(data, null, 2);
-
-          // Nếu có avatar, hiển thị nó
-          const avatarImg = document.getElementById("user_avatar");
-          if (data.avatar) {
-            avatarImg.src = `${API_URL}/${data.avatar}`;
-            avatarImg.style.display = "block";
+          if (response.ok) {
+            localStorage.setItem('reset_token', data.token);
+            console.log('Token lưu vào localStorage:', data.token);
           } else {
-            avatarImg.style.display = "none"; // Ẩn nếu không có avatar
+            alert(data.detail);
           }
-        } else {
-          alert("Lỗi: " + JSON.stringify(data));
+        } catch (error) {
+          console.error('Lỗi:', error);
+          alert('Đã xảy ra lỗi!');
         }
       }
+
+      getTokenFromServer();
+
+      document
+        .getElementById('resetForm')
+        .addEventListener('submit', async function (event) {
+          event.preventDefault();
+
+          const token = localStorage.getItem('reset_token');
+          const newPassword = document.getElementById('newPassword').value;
+
+          if (!token) {
+            alert('Không tìm thấy token!');
+            return;
+          }
+
+          try {
+            const response = await fetch(
+              'http://127.0.0.1:6520/auth/reset-password',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ token, new_password: newPassword }),
+              }
+            );
+
+            const data = await response.json();
+            if (response.ok) {
+              alert('Mật khẩu đã được đặt lại thành công!');
+              localStorage.removeItem('reset_token');
+            } else {
+              alert('Lỗi: ' + data.detail);
+            }
+          } catch (error) {
+            console.error('Error:', error);
+            alert('Đã xảy ra lỗi!');
+          }
+        });
     </script>
   </body>
 </html>
