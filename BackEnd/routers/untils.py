@@ -11,7 +11,18 @@ from fastapi.security import OAuth2PasswordBearer
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from models import User
+from models import User, ResetToken
+import secrets
+import uuid
+import pytz
+from datetime import datetime
+
+# Múi giờ Việt Nam
+VN_TZ = pytz.timezone("Asia/Ho_Chi_Minh")
+
+def get_vn_time():
+    """Lấy thời gian hiện tại theo múi giờ Việt Nam"""
+    return datetime.now(VN_TZ)
 
 # Load biến môi trường từ .env
 load_dotenv()
@@ -29,7 +40,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 # Mã hóa mật khẩu
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
 def hash_password(password: str) -> str:
     """Mã hóa mật khẩu bằng bcrypt"""
     return pwd_context.hash(password)
@@ -43,14 +53,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Tạo access token với thời gian hết hạn"""
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = get_vn_time() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def create_refresh_token(data: dict) -> str:
     """Tạo refresh token có thời gian dài hơn"""
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = get_vn_time() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode = data.copy()
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -142,6 +152,50 @@ def admin_required(token: str = Security(oauth2_scheme), db: Session = Depends(g
         raise HTTPException(status_code=401, detail="Token đã hết hạn!")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token không hợp lệ!")
+
+def create_reset_token(db: Session, user_id: int):
+    """Tạo reset_uuid ngẫu nhiên và lưu token mã hóa"""
+    reset_uuid = str(uuid.uuid4())
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = ResetToken.hash_token(raw_token)
+
+    reset_entry = ResetToken(
+        user_id=user_id,
+        reset_uuid=reset_uuid,
+        token_hash=token_hash,
+        expires_at=get_vn_time() + timedelta(minutes=30)
+    )
+
+    db.add(reset_entry)
+    db.commit()
+    return reset_uuid
+
+def send_reset_email(to_email: str, reset_uuid: str):
+    """Gửi email đặt lại mật khẩu với reset_uuid"""
+    reset_link = f"http://your-frontend.com/reset-password?uuid={reset_uuid}"
+    
+    subject = "Reset your password"
+    msg = MIMEMultipart()
+    msg["From"] = EMAIL_SENDER
+    msg["To"] = to_email
+    msg["Subject"] = subject
+
+    email_content = f"""
+    <html>
+    <body>
+        <h2>Password Reset</h2>
+        <p>Click the link below to reset your password:</p>
+        <a href="{reset_link}">{reset_link}</a>
+        <p>This link will expire in 30 minutes.</p>
+    </body>
+    </html>
+    """
+    msg.attach(MIMEText(email_content, "html"))
+
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        server.starttls()
+        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+        server.sendmail(EMAIL_SENDER, to_email, msg.as_string())
 
 # Thư mục lưu avatar
 UPLOAD_DIR = "uploads/avatars"

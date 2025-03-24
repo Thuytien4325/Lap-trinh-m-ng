@@ -1,18 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime
 import jwt
-import uuid
 from database import get_db
 import models
-from schemas import UserCreate, TokenSchema, ResetPasswordConfirm, UserResponse
+from schemas import UserCreate, TokenSchema, ResetPasswordConfirm, UserResponse,ResetPasswordRequest
 from routers.untils import (
-    pwd_context, ACCESS_TOKEN_EXPIRE_MINUTES, 
-    create_access_token, create_refresh_token, 
-    SECRET_KEY, ALGORITHM, send_reset_email, hash_password
+    pwd_context, create_access_token, create_refresh_token, 
+    SECRET_KEY, ALGORITHM, send_reset_email, hash_password, 
+    create_reset_token, get_vn_time
 )
+import pytz
 
+VN_TZ = pytz.timezone("Asia/Ho_Chi_Minh")
 # Tạo router
 auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -44,7 +45,8 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         nickname=user.nickname,
         email=user.email,
         password_hash=hashed_password,
-        created_at=datetime.utcnow()
+        last_active=get_vn_time(),
+        created_at=get_vn_time(),
     )
 
     db.add(new_user)
@@ -101,15 +103,13 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         )
     )
 
-
 # API refresh token
 @auth_router.post("/refresh-token", response_model=TokenSchema)
 def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
-    db_refresh_token = db.query(models.RefreshToken).filter(models.RefreshToken.token == refresh_token).first()
-    if not db_refresh_token:
-        raise HTTPException(status_code=401, detail="Refresh token không hợp lệ hoặc đã bị thu hồi!")
-
     payload = decode_jwt_token(refresh_token)
+    if not payload: 
+        raise HTTPException(status_code=401, detail="Refresh token không hợp lệ!")
+
     username = payload.get("sub")
 
     user = db.query(models.User).filter(models.User.username == username).first()
@@ -134,61 +134,42 @@ def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
         )
     )
 
-
-# API quên mật khẩu
-@auth_router.post("/forgot-password")
-def forgot_password(email: str = Body(..., embed=True), db: Session = Depends(get_db)):
-    email = email.lower()
-    user = db.query(models.User).filter(models.User.email == email).first()
-
+@auth_router.post("/reset-password-request")
+def reset_password_request(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == request.email).first()
     if not user:
-        raise HTTPException(status_code=404, detail="Email không tồn tại!")
+        raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
 
-    if user.last_reset_request and datetime.utcnow() - user.last_reset_request < timedelta(minutes=5):
-        raise HTTPException(status_code=429, detail="Vui lòng chờ 5 phút trước khi gửi lại yêu cầu!")
+    reset_code = create_reset_token(db, user.user_id)
+    send_reset_email(user.email, reset_code)
+    
+    return {"message": "Email đặt lại mật khẩu đã được gửi."}
 
-    user.last_reset_request = datetime.utcnow()
-    db.commit()
+@auth_router.post("/reset-password-confirm")
+def reset_password_confirm(request: ResetPasswordConfirm, db: Session = Depends(get_db)):
+    try:
+        reset_uuid = request.reset_uuid
+    except ValueError:
+        raise HTTPException(status_code=400, detail="UUID không hợp lệ.")
+    
+    reset_entry = db.query(models.ResetToken).filter(
+        models.ResetToken.reset_uuid == str(reset_uuid)
+    ).first()
 
-    db.query(models.ResetToken).filter(models.ResetToken.user_id == user.user_id).delete()
-    db.commit()
-
-    reset_token = create_access_token(data={"user_id": user.user_id}, expires_delta=timedelta(minutes=5))
-    reset_id = str(uuid.uuid4())
-
-    new_reset = models.ResetToken(id=reset_id, user_id=user.user_id, token=reset_token)
-    db.add(new_reset)
-    db.commit()
-
-    reset_link = f"http://127.0.0.1:5500/BackEnd/index.html?reset_id={reset_id}"
-    send_reset_email(email, reset_link)
-
-    return {"message": "Đã gửi email thay đổi mật khẩu!"}
-
-# API xác nhận reset mật khẩu
-@auth_router.post("/reset-password")
-def reset_password(request: ResetPasswordConfirm, db: Session = Depends(get_db)):
-    reset_entry = db.query(models.ResetToken).filter(models.ResetToken.token == request.token).first()
     if not reset_entry:
-        raise HTTPException(status_code=400, detail="Token không hợp lệ hoặc đã sử dụng!")
-
-    payload = decode_jwt_token(request.token)
-    user_id = payload.get("user_id")
-
-    user = db.query(models.User).filter(models.User.user_id == user_id).first()
+        raise HTTPException(status_code=400, detail="Liên kết đặt lại mật khẩu không hợp lệ.")
+    if reset_entry.expires_at.replace(tzinfo=VN_TZ) < get_vn_time():
+        raise HTTPException(status_code=400, detail="Liên kết đặt lại mật khẩu đã hết hạn.")
+    
+    user = db.query(models.User).filter(models.User.user_id == reset_entry.user_id).first()
+    
     if not user:
-        raise HTTPException(status_code=404, detail="Người dùng không tồn tại!")
-
-    if pwd_context.verify(request.new_password, user.password_hash):
-        raise HTTPException(status_code=400, detail="Mật khẩu mới không được trùng với mật khẩu cũ!")
-
-    if len(request.new_password) < 6:
-        raise HTTPException(status_code=400, detail="Mật khẩu mới phải có ít nhất 6 ký tự!")
+        raise HTTPException(status_code=404, detail="Người dùng không tồn tại.")
 
     user.password_hash = hash_password(request.new_password)
     db.commit()
-
-    db.query(models.ResetToken).filter(models.ResetToken.user_id == user_id).delete()
+    db.refresh(user)
+    db.delete(reset_entry)
     db.commit()
 
-    return {"message": "Mật khẩu đã được đặt lại thành công!"}
+    return {"message": "Mật khẩu đã được đặt lại thành công."}

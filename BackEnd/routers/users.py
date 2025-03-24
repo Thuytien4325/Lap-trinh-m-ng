@@ -19,6 +19,7 @@ def get_user_info(current_user: models.User = Depends(get_current_user)):
         nickname=current_user.nickname,
         email=current_user.email,
         avatar=current_user.avatar,
+        last_active=current_user.last_active,
         created_at=current_user.created_at
     )
 

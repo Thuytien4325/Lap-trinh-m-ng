@@ -2,6 +2,9 @@ from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Text, TIMESTAM
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database import Base
+from sqlalchemy.dialects.mysql import CHAR
+import hashlib
+import uuid
 class User(Base):
     __tablename__ = "users"
 
@@ -13,7 +16,7 @@ class User(Base):
     avatar = Column(String(255), nullable=True)
     is_admin = Column(Boolean, default=False)
     last_active = Column(DateTime, default=None)
-    created_at = Column(TIMESTAMP, default=func.now(), nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     sent_messages = relationship("Message", foreign_keys="[Message.sender_id]", back_populates="sender")
     received_messages = relationship("Message", foreign_keys="[Message.receiver_id]", back_populates="receiver")
@@ -110,10 +113,14 @@ class Notification(Base):
 class ResetToken(Base):
     __tablename__ = "reset_tokens"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
-    token = Column(String(255), nullable=False)
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    reset_uuid = Column(CHAR(36), default=lambda: str(uuid.uuid4()), unique=True, nullable=False)
+    token_hash = Column(String(255), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
 
     user = relationship("User", back_populates="reset_tokens")
 
+    @staticmethod
+    def hash_token(token: str) -> str:
+        return hashlib.sha256(token.encode()).hexdigest()

@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from datetime import datetime
 from database import SessionLocal
 from models import User
-from routers.untils import pwd_context
+from routers.untils import pwd_context, get_vn_time
 from routers.auth import auth_router
 from routers.users import users_router
 from routers.messages import message_router
@@ -27,7 +27,7 @@ def create_default_admin():
                 email="appchat.noreply@gmail.com",
                 password_hash=hashed_password,
                 is_admin=True,
-                created_at=datetime.utcnow()
+                created_at=get_vn_time()
             )
             db.add(new_admin)
             db.commit()

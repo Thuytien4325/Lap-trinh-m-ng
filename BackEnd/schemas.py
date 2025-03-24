@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, validator, UUID4
 from datetime import datetime
 
 # Schema xác thực người dùng
@@ -22,7 +22,7 @@ class ResetPasswordRequest(BaseModel):
     email: EmailStr
 
 class ResetPasswordConfirm(BaseModel):
-    token: str
+    reset_uuid: UUID4 
     new_password: str
 
     @validator("new_password")
@@ -42,7 +42,7 @@ class UserResponse(BaseModel):
     nickname: str | None
     email: EmailStr
     avatar: str | None
-    last_active: datetime | None 
+    last_active: datetime | None
     created_at: datetime
 
     class Config:
@@ -53,7 +53,7 @@ class UserProfile(BaseModel):
     nickname: str | None
     email: EmailStr
     avatar: str | None
-    last_active: datetime | None 
+    last_active: datetime | None
     created_at: datetime
 
     class Config:
