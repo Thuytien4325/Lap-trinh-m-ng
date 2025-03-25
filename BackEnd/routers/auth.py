@@ -4,18 +4,16 @@ from sqlalchemy.orm import Session
 from datetime import timedelta,timezone
 from database import get_db
 import models
-from schemas import UserCreate, TokenSchema, ResetPasswordConfirm, UserResponse,ResetPasswordRequest
+from datetime import datetime
+from schemas import UserCreate, TokenSchema, ResetPasswordConfirm, UserResponse,ResetPasswordRequest, UserProfile
 from routers.untils import (
     pwd_context, create_access_token, create_refresh_token, 
     SECRET_KEY, ALGORITHM, send_reset_email, hash_password, 
-    create_reset_token, get_vn_time, decode_jwt_token,
-    update_last_active_dependency
+    create_reset_token, decode_jwt_token,
 )
-import pytz
 import os
 from dotenv import load_dotenv
 
-VN_TZ = pytz.timezone("Asia/Ho_Chi_Minh")
 
 # Load biến môi trường từ .env
 load_dotenv()
@@ -50,8 +48,8 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         nickname=user.nickname,
         email=user.email,
         password_hash=hashed_password,
-        last_active=get_vn_time(),
-        created_at=get_vn_time(),
+        last_active_UTC=datetime.now(timezone.utc),
+        created_at_UTC=datetime.now(timezone.utc),
     )
 
     db.add(new_user)
@@ -74,8 +72,8 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
             nickname=new_user.nickname,
             email=new_user.email,
             avatar=new_user.avatar,
-            last_active=new_user.last_active,
-            created_at=new_user.created_at
+            last_active_UTC=new_user.last_active_UTC,
+            created_at_UTC=new_user.created_at_UTC
         )
     )
 
@@ -91,7 +89,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=401, detail="Tên đăng nhập, email hoặc mật khẩu không đúng!")
 
     # Cập nhật thời gian online
-    db_user.last_active = get_vn_time()
+    db_user.last_active_UTC = datetime.now(timezone.utc)
     db.commit()
     db.refresh(db_user)
 
@@ -112,8 +110,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             nickname=db_user.nickname,
             email=db_user.email,
             avatar=db_user.avatar,
-            last_active=db_user.last_active,
-            created_at=db_user.created_at
+            last_active_UTC=db_user.last_active_UTC,
+            created_at_UTC=db_user.created_at_UTC
         )
     )
 
@@ -124,6 +122,11 @@ def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
     if not payload: 
         raise HTTPException(status_code=401, detail="Refresh token không hợp lệ!")
 
+    exp = payload.get("exp")
+    if exp and datetime.fromtimestamp(exp, tz=timezone.utc) < datetime.now(timezone.utc):
+        raise HTTPException(status_code=401, detail="Refresh token đã hết hạn!")
+
+
     username = payload.get("sub")
 
     user = db.query(models.User).filter(models.User.username == username).first()
@@ -131,7 +134,7 @@ def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Người dùng không tồn tại!")
 
     # Cập nhật thời gian online
-    user.last_active = get_vn_time()
+    user.last_active_UTC = datetime.now(timezone.utc)
     db.commit()
     db.refresh(user)
 
@@ -150,8 +153,8 @@ def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
             nickname=user.nickname,
             email=user.email,
             avatar=user.avatar,
-            last_active=user.last_active,
-            created_at=user.created_at
+            last_active_UTC=user.last_active_UTC,
+            created_at_UTC=user.created_at_UTC
         )
     )
 
@@ -160,9 +163,14 @@ def reset_password_request(request: ResetPasswordRequest, db: Session = Depends(
     user = db.query(models.User).filter(models.User.email == request.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="Không tìm thấy người dùng!")
-
+    if user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin không thể sử dụng chức năng này!")
+    
     reset_code = create_reset_token(db, user.user_id)
-    send_reset_email(user.email, reset_code)
+    try:
+        send_reset_email(user.email, reset_code)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Không thể gửi email, vui lòng thử lại sau!")
     
     return {"message": "Email đặt lại mật khẩu đã được gửi."}
 
@@ -175,15 +183,19 @@ def reset_password_confirm(request: ResetPasswordConfirm, db: Session = Depends(
     if not reset_entry:
         raise HTTPException(status_code=400, detail="Liên kết đặt lại mật khẩu không hợp lệ!")
 
-    if reset_entry.expires_at.replace(tzinfo=timezone.utc) < get_vn_time():
+    if reset_entry.expires_at_UTC.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Liên kết đặt lại mật khẩu đã hết hạn!")
 
     user = db.query(models.User).filter(models.User.user_id == reset_entry.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Người dùng không tồn tại!")
-
+    
+    if user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin không thể sử dụng chức năng này!")
+    
     # Cập nhật thời gian online
-    user.last_active = get_vn_time()
+    user.last_active_UTC = datetime.now(timezone.utc)
+    
     # Cập nhật mật khẩu mới
     user.password_hash = hash_password(request.new_password)
 
@@ -212,20 +224,10 @@ def reset_password_confirm(request: ResetPasswordConfirm, db: Session = Depends(
     except Exception:
         db.rollback()  # Hủy bỏ nếu có lỗi
         raise HTTPException(status_code=500, detail="Có lỗi xảy ra, vui lòng thử lại sau!")
-
-@auth_router.get("/is-online/{username}")
-def is_user_online(username: str, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.username == username).first()
+    
+@auth_router.get("/{username}", response_model=UserProfile)
+def get_user_profile(username: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == username, models.User.is_admin == False).first()
     if not user:
-        raise HTTPException(status_code=404, detail="Người dùng không tồn tại.")
-    if user.is_admin == 1:
-        raise HTTPException(status_code=403, detail="Không thể kiểm tra trạng thái online của admin.")
-    now = get_vn_time()
-    online_threshold = now - timedelta(minutes=5)
-    is_online = user.last_active.replace(tzinfo=VN_TZ) >= online_threshold
-
-    return {
-        "username": username,
-        "is_online": is_online,
-        "last_active": user.last_active
-    }
+        raise HTTPException(status_code=404, detail="Người dùng không tồn tại hoặc là admin")
+    return user

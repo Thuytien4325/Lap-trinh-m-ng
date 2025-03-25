@@ -43,8 +43,8 @@ class UserResponse(BaseModel):
     nickname: str | None
     email: EmailStr
     avatar: str | None
-    last_active: datetime | None
-    created_at: datetime
+    last_active_UTC: datetime | None
+    created_at_UTC: datetime | None
 
     class Config:
         from_attributes = True 
@@ -54,8 +54,8 @@ class UserProfile(BaseModel):
     nickname: str | None
     email: EmailStr
     avatar: str | None
-    last_active: datetime | None
-    created_at: datetime
+    last_active_UTC: datetime | None
+    created_at_UTC: datetime | None
 
     class Config:
         from_attributes = True 
@@ -67,8 +67,8 @@ class AdminUserResponse(BaseModel):
     nickname: str | None
     email: EmailStr
     avatar: str | None
-    last_active: datetime | None
-    created_at: datetime
+    last_active_UTC: datetime | None
+    created_at_UTC: datetime | None
 
     class Config:
         from_attributes = True
@@ -96,7 +96,7 @@ class MessageResponse(BaseModel):
     conversation_id: int
     sender_id: int
     content: str
-    sent_at: datetime
+    sent_at_UTC: datetime
 
     class Config:
         from_attributes = True
@@ -114,7 +114,7 @@ class FriendRequestResponse(BaseModel):
     receiver_nickname: str | None  
     receiver_avatar: str | None 
     status: str
-    created_at: datetime
+    created_at_UTC: datetime | None
 
     class Config:
         from_attributes = True
@@ -145,7 +145,7 @@ class NotificationResponse(NotificationBase):
     id: int 
     type: str 
     is_read: bool 
-    created_at: datetime 
+    created_at_UTC: datetime | None
     related_id: int
     related_table: str
 

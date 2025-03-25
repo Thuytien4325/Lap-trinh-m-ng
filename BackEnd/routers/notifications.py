@@ -4,10 +4,10 @@ from database import get_db
 import models
 from routers.users import get_current_user
 import schemas
-
+from routers.untils import update_last_active_dependency
 notifications_router = APIRouter(prefix="/noti", tags=["Notifications"])
 
-@notifications_router.get("/", response_model=list[schemas.NotificationResponse])
+@notifications_router.get("/", response_model=list[schemas.NotificationResponse],dependencies=[Depends(update_last_active_dependency)])
 def get_notifications(
     unread_only: bool = Query(False, description="Chỉ lấy thông báo chưa đọc"),
     current_user: models.User = Depends(get_current_user),
@@ -21,7 +21,7 @@ def get_notifications(
     notifications = query.all()
     return notifications
 
-@notifications_router.post("/{notification_id}/mark-as-read", response_model=schemas.NotificationResponse)
+@notifications_router.post("/{notification_id}/mark-as-read", response_model=schemas.NotificationResponse,dependencies=[Depends(update_last_active_dependency)])
 def mark_notification_as_read(
     notification_id: int,
     current_user: models.User = Depends(get_current_user),
@@ -44,7 +44,7 @@ def mark_notification_as_read(
 
     return schemas.NotificationResponse.from_orm(notification)
 
-@notifications_router.post("/mark-all-as-read", response_model=list[schemas.NotificationResponse])
+@notifications_router.post("/mark-all-as-read", response_model=list[schemas.NotificationResponse],dependencies=[Depends(update_last_active_dependency)])
 def mark_all_notifications_as_read(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -69,7 +69,7 @@ def mark_all_notifications_as_read(
     # Trả về danh sách thông báo đã được cập nhật
     return [schemas.NotificationResponse.from_orm(notification) for notification in notifications]
 
-@notifications_router.post("/{notification_id}/mark-as-unread", response_model=schemas.NotificationResponse)
+@notifications_router.post("/{notification_id}/mark-as-unread", response_model=schemas.NotificationResponse,dependencies=[Depends(update_last_active_dependency)])
 def mark_notification_as_unread(
     notification_id: int,
     current_user: models.User = Depends(get_current_user),
@@ -94,7 +94,7 @@ def mark_notification_as_unread(
     # Trả về thông báo đã được cập nhật
     return schemas.NotificationResponse.from_orm(notification)
 
-@notifications_router.post("/mark-all-as-unread", response_model=list[schemas.NotificationResponse])
+@notifications_router.post("/mark-all-as-unread", response_model=list[schemas.NotificationResponse],dependencies=[Depends(update_last_active_dependency)])
 def mark_all_notifications_as_unread(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -119,7 +119,7 @@ def mark_all_notifications_as_unread(
     # Trả về danh sách thông báo đã được cập nhật
     return [schemas.NotificationResponse.from_orm(notification) for notification in notifications]
 
-@notifications_router.delete("/{notification_id}", response_model=schemas.NotificationBase)
+@notifications_router.delete("/{notification_id}", response_model=schemas.NotificationBase,dependencies=[Depends(update_last_active_dependency)])
 def delete_notification(
     notification_id: int,
     db: Session = Depends(get_db),

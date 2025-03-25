@@ -4,10 +4,10 @@ from database import get_db
 import models
 from routers.users import get_current_user
 import schemas
-
+from routers.untils import update_last_active_dependency
 friends_router = APIRouter(prefix="/api/friends", tags=["Friends"])
 
-@friends_router.get("/Get-friends", response_model=list[schemas.FriendResponse])
+@friends_router.get("/Get-friends", response_model=list[schemas.FriendResponse],dependencies=[Depends(update_last_active_dependency)])
 def get_friends(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -32,7 +32,7 @@ def get_friends(
         ) for friend in friends
     ]
 
-@friends_router.post("/unfriend")
+@friends_router.post("/unfriend",dependencies=[Depends(update_last_active_dependency)])
 def unfriend(
     request: schemas.FriendRemoveRequest,
     current_user: models.User = Depends(get_current_user),
@@ -63,7 +63,7 @@ def unfriend(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Lỗi server: {str(e)}")
     
-@friends_router.get("/mutual/{username}")
+@friends_router.get("/mutual/{username}",dependencies=[Depends(update_last_active_dependency)])
 def get_mutual_friends(username: str, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Lấy danh sách bạn chung giữa người dùng hiện tại và {username} (hỗ trợ truy vấn 2 chiều)"""
     

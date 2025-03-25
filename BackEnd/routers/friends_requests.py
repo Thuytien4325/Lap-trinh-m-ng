@@ -4,10 +4,10 @@ from database import get_db
 import models
 import schemas
 from routers.users import get_current_user
-
+from routers.untils import update_last_active_dependency
 friend_request_router = APIRouter(prefix="/friend-requests", tags=["Friend Requests"])
 
-@friend_request_router.get("/status/{username}")
+@friend_request_router.get("/status/{username}",dependencies=[Depends(update_last_active_dependency)])
 def get_friend_status(
     username: str,
     current_user: models.User = Depends(get_current_user),
@@ -49,7 +49,7 @@ def get_friend_status(
 
     return {"status": "Chưa kết bạn", "nickname": user.nickname, "avatar": user.avatar}
 
-@friend_request_router.post("/send-request", response_model=schemas.FriendRequestResponse)
+@friend_request_router.post("/send-request", response_model=schemas.FriendRequestResponse,dependencies=[Depends(update_last_active_dependency)])
 def send_friend_request(
     request: schemas.FriendRequestCreate,
     db: Session = Depends(get_db),
@@ -93,7 +93,7 @@ def send_friend_request(
                 sender_username=existing_request.sender_username,
                 receiver_username=existing_request.receiver_username,
                 status=existing_request.status,
-                created_at=existing_request.created_at,
+                created_at_UTC=existing_request.created_at_UTC,
                 sender_nickname=sender_info.nickname,
                 sender_avatar=sender_info.avatar,
                 receiver_nickname=receiver_info.nickname,
@@ -132,7 +132,7 @@ def send_friend_request(
         sender_username=new_request.sender_username,
         receiver_username=new_request.receiver_username,
         status=new_request.status,
-        created_at=new_request.created_at,
+        created_at_UTC=new_request.created_at_UTC,
         sender_nickname=sender_info.nickname,
         sender_avatar=sender_info.avatar,
         receiver_nickname=receiver_info.nickname,
@@ -140,7 +140,7 @@ def send_friend_request(
     )
 
 
-@friend_request_router.get("/received", response_model=list[schemas.FriendRequestResponse])
+@friend_request_router.get("/received", response_model=list[schemas.FriendRequestResponse],dependencies=[Depends(update_last_active_dependency)])
 def get_received_friend_requests(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -152,7 +152,7 @@ def get_received_friend_requests(
             models.FriendRequest.sender_username,
             models.FriendRequest.receiver_username,
             models.FriendRequest.status,
-            models.FriendRequest.created_at,
+            models.FriendRequest.created_at_UTC,
             models.User.nickname.label("sender_nickname"),
             models.User.avatar.label("sender_avatar")
         )
@@ -170,7 +170,7 @@ def get_received_friend_requests(
             sender_username=req.sender_username,
             receiver_username=req.receiver_username,
             status=req.status,
-            created_at=req.created_at,
+            created_at_UTC=req.created_at_UTC,
             sender_nickname=req.sender_nickname,
             sender_avatar=req.sender_avatar,
             receiver_nickname=current_user.nickname, 
@@ -178,7 +178,7 @@ def get_received_friend_requests(
         ) for req in received_requests
     ]
 
-@friend_request_router.get("/sent", response_model=list[schemas.FriendRequestResponse])
+@friend_request_router.get("/sent", response_model=list[schemas.FriendRequestResponse],dependencies=[Depends(update_last_active_dependency)])
 def get_sent_friend_requests(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -192,7 +192,7 @@ def get_sent_friend_requests(
             models.FriendRequest.sender_username,
             models.FriendRequest.receiver_username,
             models.FriendRequest.status,
-            models.FriendRequest.created_at,
+            models.FriendRequest.created_at_UTC,
             models.User.nickname.label("sender_nickname"),
             models.User.avatar.label("sender_avatar"),
             Receiver.nickname.label("receiver_nickname"),
@@ -213,7 +213,7 @@ def get_sent_friend_requests(
         sender_username=req.sender_username,
         receiver_username=req.receiver_username,
         status=req.status,
-        created_at=req.created_at,
+        created_at_UTC=req.created_at_UTC,
         sender_nickname=req.sender_nickname,
         sender_avatar=req.sender_avatar,
         receiver_nickname=req.receiver_nickname,
@@ -221,7 +221,7 @@ def get_sent_friend_requests(
     ) for req in sent_requests
     ]   
 
-@friend_request_router.post("/{request_id}/accept")
+@friend_request_router.post("/{request_id}/accept",dependencies=[Depends(update_last_active_dependency)])
 def accept_friend_request(
     request_id: int,
     current_user: models.User = Depends(get_current_user),
@@ -266,7 +266,7 @@ def accept_friend_request(
     return {"message": "Đã chấp nhận lời mời kết bạn"}
 
 
-@friend_request_router.post("/{request_id}/reject")
+@friend_request_router.post("/{request_id}/reject",dependencies=[Depends(update_last_active_dependency)])
 def reject_friend_request(
     request_id: int,
     current_user: models.User = Depends(get_current_user),
@@ -303,7 +303,7 @@ def reject_friend_request(
     db.commit()
     return {"message": "Đã từ chối lời mời kết bạn"}
 
-@friend_request_router.delete("/{request_id}")
+@friend_request_router.delete("/{request_id}",dependencies=[Depends(update_last_active_dependency)])
 def delete_friend_request(
     request_id: int,
     current_user: models.User = Depends(get_current_user),

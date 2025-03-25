@@ -7,6 +7,7 @@ import models
 from routers.auth import oauth2_scheme, SECRET_KEY, ALGORITHM
 from schemas import UserResponse, UserUpdate, UserProfile
 from routers.untils import get_current_user,UPLOAD_DIR,update_last_active_dependency
+from typing import List
 # Tạo router
 users_router = APIRouter(prefix="/users", tags=["User"])
 
@@ -19,8 +20,8 @@ def get_user_info(current_user: models.User = Depends(get_current_user)):
         nickname=current_user.nickname,
         email=current_user.email,
         avatar=current_user.avatar,
-        last_active=current_user.last_active,
-        created_at=current_user.created_at
+        last_active_UTC=current_user.last_active_UTC,
+        created_at_UTC=current_user.created_at_UTC
     )
 
 # Upload Avatar
@@ -87,12 +88,32 @@ def update_user(
 
     return {"message": "Cập nhật thông tin thành công", "nickname": current_user.nickname, "email": current_user.email}
 
-@users_router.get("/{username}", response_model=UserProfile,dependencies=[Depends(update_last_active_dependency)])
-def get_user_profile(username: str, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Người dùng không tồn tại")
-    return user
+@users_router.get("/search-username", response_model=List[UserProfile], dependencies=[Depends(update_last_active_dependency)])
+def search_username_users(
+    username: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    users = db.query(models.User).filter(
+        models.User.username.ilike(f"%{username}%"),
+        models.User.is_admin == False
+    ).all()
+
+    return [UserProfile.model_validate(user) for user in users]
+
+@users_router.get("/search-nickname", response_model=List[UserProfile], dependencies=[Depends(update_last_active_dependency)])
+def search_nickname_users(
+    nickname: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    users = db.query(models.User).filter(
+        models.User.nickname.ilike(f"%{nickname}%"),
+        models.User.is_admin == False
+    ).all()
+
+    return [UserProfile.model_validate(user) for user in users]
+
 
 @users_router.delete("/delete")
 def delete_user(
@@ -129,3 +150,4 @@ def delete_user(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Lỗi server: {str(e)}")
+    
