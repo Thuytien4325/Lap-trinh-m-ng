@@ -3,7 +3,7 @@ import jwt
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
-from fastapi import HTTPException, Depends, Security, status
+from fastapi import HTTPException, Depends, Security, status, Request
 from sqlalchemy.orm import Session
 import models
 from database import get_db
@@ -65,7 +65,18 @@ def create_refresh_token(data: dict) -> str:
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-
+def decode_jwt_token(token: str):
+    """
+    Giải mã JWT token và trả về payload nếu hợp lệ.
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token đã hết hạn!")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token không hợp lệ!")
+    
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """Lấy thông tin user từ JWT token"""
     try:
@@ -154,7 +165,11 @@ def admin_required(token: str = Security(oauth2_scheme), db: Session = Depends(g
         raise HTTPException(status_code=401, detail="Token không hợp lệ!")
 
 def create_reset_token(db: Session, user_id: int):
-    """Tạo reset_uuid ngẫu nhiên và lưu token mã hóa"""
+    """Xóa token cũ và tạo reset token mới"""
+    
+    # Xóa tất cả token cũ của user trước khi tạo mới
+    db.query(ResetToken).filter(ResetToken.user_id == user_id).delete()
+    
     reset_uuid = str(uuid.uuid4())
     raw_token = secrets.token_urlsafe(32)
     token_hash = ResetToken.hash_token(raw_token)
@@ -163,7 +178,7 @@ def create_reset_token(db: Session, user_id: int):
         user_id=user_id,
         reset_uuid=reset_uuid,
         token_hash=token_hash,
-        expires_at=get_vn_time() + timedelta(minutes=30)
+        expires_at=get_vn_time() + timedelta(minutes=5)
     )
 
     db.add(reset_entry)
@@ -186,7 +201,7 @@ def send_reset_email(to_email: str, reset_uuid: str):
         <h2>Password Reset</h2>
         <p>Click the link below to reset your password:</p>
         <a href="{reset_link}">{reset_link}</a>
-        <p>This link will expire in 30 minutes.</p>
+        <p>This link will expire in 5 minutes.</p>
     </body>
     </html>
     """
@@ -196,6 +211,21 @@ def send_reset_email(to_email: str, reset_uuid: str):
         server.starttls()
         server.login(EMAIL_SENDER, EMAIL_PASSWORD)
         server.sendmail(EMAIL_SENDER, to_email, msg.as_string())
+
+# Update thời gian online mỗi khi gọi api
+def update_last_active_dependency(request: Request, db: Session = Depends(get_db)):
+    token = request.headers.get("Authorization")
+    if token:
+        token = token.replace("Bearer ", "")
+        try:
+            payload = decode_jwt_token(token)
+            username = payload.get("sub")
+            user = db.query(models.User).filter(models.User.username == username).first()
+            if user:
+                user.last_active = get_vn_time()
+                db.commit()
+        except:
+            pass
 
 # Thư mục lưu avatar
 UPLOAD_DIR = "uploads/avatars"

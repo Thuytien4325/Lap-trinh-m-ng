@@ -6,12 +6,12 @@ from database import get_db
 import models
 from routers.auth import oauth2_scheme, SECRET_KEY, ALGORITHM
 from schemas import UserResponse, UserUpdate, UserProfile
-from routers.untils import get_current_user,UPLOAD_DIR
+from routers.untils import get_current_user,UPLOAD_DIR,update_last_active_dependency
 # Tạo router
 users_router = APIRouter(prefix="/users", tags=["User"])
 
 # Lấy thông tin user hiện tại
-@users_router.get("/me", response_model=UserResponse)
+@users_router.get("/me", response_model=UserResponse,dependencies=[Depends(update_last_active_dependency)])
 def get_user_info(current_user: models.User = Depends(get_current_user)):
     return UserResponse(
         user_id=current_user.user_id,
@@ -24,12 +24,16 @@ def get_user_info(current_user: models.User = Depends(get_current_user)):
     )
 
 # Upload Avatar
-@users_router.post("/upload-avatar")
+@users_router.post("/upload-avatar",dependencies=[Depends(update_last_active_dependency)])
 def upload_avatar(
     file: UploadFile = File(...),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Chặn admin thay đổi avatar
+    if current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin không được thay đổi avatar.")
+
     file_extension = file.filename.split(".")[-1].lower()
     if file_extension not in ["jpg", "jpeg", "png"]:
         raise HTTPException(status_code=400, detail="Định dạng ảnh không hợp lệ! (Chỉ chấp nhận jpg, jpeg, png)")
@@ -58,12 +62,16 @@ def upload_avatar(
     return {"message": "Tải ảnh đại diện thành công", "avatar_url": file_path}
 
 # Cập nhật thông tin user
-@users_router.put("/update")
+@users_router.put("/update",dependencies=[Depends(update_last_active_dependency)])
 def update_user(
     user_update: UserUpdate,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+     # Chặn admin cập nhật thông tin cá nhân
+    if current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin không được cập nhật thông tin cá nhân.")
+
     if user_update.email and user_update.email != current_user.email:
         existing_user = db.query(models.User).filter(models.User.email == user_update.email).first()
         if existing_user:
@@ -79,7 +87,7 @@ def update_user(
 
     return {"message": "Cập nhật thông tin thành công", "nickname": current_user.nickname, "email": current_user.email}
 
-@users_router.get("/{username}", response_model=UserProfile)
+@users_router.get("/{username}", response_model=UserProfile,dependencies=[Depends(update_last_active_dependency)])
 def get_user_profile(username: str, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.username == username).first()
     if not user:
@@ -92,6 +100,9 @@ def delete_user(
     current_user: models.User = Depends(get_current_user)
 ):
     """Xóa tài khoản"""
+    # Chặn admin tự xóa tài khoản
+    if current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin không thể tự xóa tài khoản.")
 
     # Xóa avatar nếu có
     if current_user.avatar:

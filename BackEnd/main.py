@@ -27,6 +27,7 @@ def create_default_admin():
                 email="appchat.noreply@gmail.com",
                 password_hash=hashed_password,
                 is_admin=True,
+                last_active=get_vn_time(),
                 created_at=get_vn_time()
             )
             db.add(new_admin)

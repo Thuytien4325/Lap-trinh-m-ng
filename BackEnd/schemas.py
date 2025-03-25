@@ -17,7 +17,8 @@ class UserCreate(BaseModel):
         if not any(c in "@$!%*?&" for c in value):
             raise ValueError("Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@$!%*?&).")
         return value
-    
+
+# Schema reset mật khẩu
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
 
@@ -59,11 +60,26 @@ class UserProfile(BaseModel):
     class Config:
         from_attributes = True 
 
+# Schema admin trả về thông tin người dùng
+class AdminUserResponse(BaseModel):
+    user_id: int
+    username: str
+    nickname: str | None
+    email: EmailStr
+    avatar: str | None
+    last_active: datetime | None
+    created_at: datetime
 
+    class Config:
+        from_attributes = True
+        
+# Schema token
 class TokenSchema(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
+    access_token_time: str
+    refresh_token_time: str
     user: UserResponse | None
 
 class UserUpdate(BaseModel):
