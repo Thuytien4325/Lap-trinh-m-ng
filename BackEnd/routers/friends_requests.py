@@ -137,8 +137,88 @@ def send_friend_request(
         sender_avatar=sender_info.avatar,
         receiver_nickname=receiver_info.nickname,
         receiver_avatar=receiver_info.avatar
+    )   
+
+@friend_request_router.post("/{request_id}/accept",dependencies=[Depends(update_last_active_dependency)])
+def accept_friend_request(
+    request_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Chấp nhận lời mời kết bạn"""
+    friend_request = db.query(models.FriendRequest).filter(
+        models.FriendRequest.id == request_id,
+        models.FriendRequest.receiver_username == current_user.username,
+        models.FriendRequest.status == "Đợi"
+    ).first()
+
+    if not friend_request:
+        raise HTTPException(status_code=404, detail="Lời mời kết bạn không tồn tại hoặc đã xử lý")
+
+    sender_username = friend_request.sender_username
+    receiver_username = friend_request.receiver_username
+
+    existing_friendship = db.query(models.Friend).filter(
+        ((models.Friend.user_username == sender_username) & (models.Friend.friend_username == receiver_username)) |
+        ((models.Friend.user_username == receiver_username) & (models.Friend.friend_username == sender_username))
+    ).first()
+
+    if existing_friendship:
+        raise HTTPException(status_code=400, detail="Hai người đã là bạn bè")
+
+    new_friend = models.Friend(user_username=sender_username, friend_username=receiver_username)
+
+    new_notification = models.Notification(
+        user_username=sender_username,
+        sender_username=current_user.username,
+        message=f"{current_user.nickname} đã chấp nhận lời mời kết bạn của bạn.",
+        type="friend_accept",
+        related_id=friend_request.id,
+        related_table="friend_requests"
     )
 
+    db.add(new_friend)
+    db.add(new_notification)
+    db.delete(friend_request)  # Xóa lời mời sau khi chấp nhận
+    db.commit()
+    return {"message": "Đã chấp nhận lời mời kết bạn"}
+
+@friend_request_router.post("/{request_id}/reject",dependencies=[Depends(update_last_active_dependency)])
+def reject_friend_request(
+    request_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Từ chối lời mời kết bạn"""
+    friend_request = db.query(models.FriendRequest).filter(
+        models.FriendRequest.id == request_id,
+        models.FriendRequest.receiver_username == current_user.username,
+        models.FriendRequest.status == "Đợi"
+    ).first()
+
+    if not friend_request:
+        raise HTTPException(status_code=404, detail="Lời mời kết bạn không tồn tại hoặc đã xử lý")
+
+    sender = db.query(models.User).filter(models.User.username == friend_request.sender_username).first()
+
+    if not sender:
+        db.delete(friend_request)
+        db.commit()
+        return {"message": "Lời mời đã bị xóa vì người gửi không còn tồn tại"}
+
+    new_notification = models.Notification(
+        user_username=sender.username,
+        sender_username=current_user.username,
+        message=f"{current_user.nickname} đã từ chối lời mời kết bạn của bạn.",
+        type="friend_reject",
+        related_id=friend_request.id,
+        related_table="friend_requests"
+    )
+
+    db.delete(friend_request)
+    db.add(new_notification)
+    db.commit()
+    return {"message": "Đã từ chối lời mời kết bạn"}
 
 @friend_request_router.get("/received", response_model=list[schemas.FriendRequestResponse],dependencies=[Depends(update_last_active_dependency)])
 def get_received_friend_requests(
@@ -219,89 +299,7 @@ def get_sent_friend_requests(
         receiver_nickname=req.receiver_nickname,
         receiver_avatar=req.receiver_avatar
     ) for req in sent_requests
-    ]   
-
-@friend_request_router.post("/{request_id}/accept",dependencies=[Depends(update_last_active_dependency)])
-def accept_friend_request(
-    request_id: int,
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Chấp nhận lời mời kết bạn"""
-    friend_request = db.query(models.FriendRequest).filter(
-        models.FriendRequest.id == request_id,
-        models.FriendRequest.receiver_username == current_user.username,
-        models.FriendRequest.status == "Đợi"
-    ).first()
-
-    if not friend_request:
-        raise HTTPException(status_code=404, detail="Lời mời kết bạn không tồn tại hoặc đã xử lý")
-
-    sender_username = friend_request.sender_username
-    receiver_username = friend_request.receiver_username
-
-    existing_friendship = db.query(models.Friend).filter(
-        ((models.Friend.user_username == sender_username) & (models.Friend.friend_username == receiver_username)) |
-        ((models.Friend.user_username == receiver_username) & (models.Friend.friend_username == sender_username))
-    ).first()
-
-    if existing_friendship:
-        raise HTTPException(status_code=400, detail="Hai người đã là bạn bè")
-
-    new_friend = models.Friend(user_username=sender_username, friend_username=receiver_username)
-
-    new_notification = models.Notification(
-        user_username=sender_username,
-        sender_username=current_user.username,
-        message=f"{current_user.nickname} đã chấp nhận lời mời kết bạn của bạn.",
-        type="friend_accept",
-        related_id=friend_request.id,
-        related_table="friend_requests"
-    )
-
-    db.add(new_friend)
-    db.add(new_notification)
-    db.delete(friend_request)  # Xóa lời mời sau khi chấp nhận
-    db.commit()
-    return {"message": "Đã chấp nhận lời mời kết bạn"}
-
-
-@friend_request_router.post("/{request_id}/reject",dependencies=[Depends(update_last_active_dependency)])
-def reject_friend_request(
-    request_id: int,
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Từ chối lời mời kết bạn"""
-    friend_request = db.query(models.FriendRequest).filter(
-        models.FriendRequest.id == request_id,
-        models.FriendRequest.receiver_username == current_user.username,
-        models.FriendRequest.status == "Đợi"
-    ).first()
-
-    if not friend_request:
-        raise HTTPException(status_code=404, detail="Lời mời kết bạn không tồn tại hoặc đã xử lý")
-
-    sender = db.query(models.User).filter(models.User.username == friend_request.sender_username).first()
-
-    if not sender:
-        db.delete(friend_request)
-        db.commit()
-        return {"message": "Lời mời đã bị xóa vì người gửi không còn tồn tại"}
-
-    new_notification = models.Notification(
-        user_username=sender.username,
-        sender_username=current_user.username,
-        message=f"{current_user.nickname} đã từ chối lời mời kết bạn của bạn.",
-        type="friend_reject",
-        related_id=friend_request.id,
-        related_table="friend_requests"
-    )
-
-    db.delete(friend_request)
-    db.add(new_notification)
-    db.commit()
-    return {"message": "Đã từ chối lời mời kết bạn"}
+    ]
 
 @friend_request_router.delete("/{request_id}",dependencies=[Depends(update_last_active_dependency)])
 def delete_friend_request(

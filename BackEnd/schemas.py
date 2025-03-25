@@ -141,14 +141,16 @@ class NotificationCreate(NotificationBase):
     related_id: int
     related_table: str
 
-class NotificationResponse(NotificationBase):
-    id: int 
-    type: str 
-    is_read: bool 
-    created_at_UTC: datetime | None
+class NotificationResponse(BaseModel):
+    id: int
+    user_username: str
+    sender_username: str | None
+    message: str
+    type: str
     related_id: int
-    related_table: str
-
+    related_table: str | None
+    is_read: bool
+    created_at_UTC: datetime | None
 
     class Config:
         from_attributes = True
