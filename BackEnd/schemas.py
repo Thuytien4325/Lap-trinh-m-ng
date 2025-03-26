@@ -1,5 +1,8 @@
 from pydantic import BaseModel, EmailStr, Field, validator, UUID4
 from datetime import datetime
+from pydantic import BaseModel
+from typing import Optional
+from typing import List, Optional, Union
 
 
 # Schema xác thực người dùng
@@ -169,6 +172,35 @@ class NotificationResponse(BaseModel):
     related_table: str | None
     is_read: bool
     created_at_UTC: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
+# Schema cho tạo cuộc hội thoại
+class ConversationCreate(BaseModel):
+    type: str  # "private" hoặc "group"
+    username: Optional[Union[str, List[str]]] = Field(
+        default=None
+    )  # Chuỗi nếu private, danh sách nếu group
+    name: Optional[str] = None  # Tên nhóm, chỉ dùng cho group
+
+    class Config:
+        from_attributes = True
+
+
+# Schema cho thành viên nhóm
+class GroupMemberResponse(BaseModel):
+    username: str
+    role: str
+
+
+# Schema cho phản hồi cuộc hội thoại
+class ConversationResponse(BaseModel):
+    conversation_id: int
+    type: str
+    name: Optional[str] = None
+    group_members: Optional[List[GroupMemberResponse]] = []
 
     class Config:
         from_attributes = True
