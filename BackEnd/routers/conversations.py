@@ -8,11 +8,9 @@ from routers.untils import get_current_user
 from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException
 from sqlalchemy import func, case
-from models import User, Conversation, GroupMember
+from models import User, Conversation, GroupMember, Notification
 
 conversation_router = APIRouter(prefix="/conversations", tags=["Conversations"])
-
-conversation_router = APIRouter()
 
 
 @conversation_router.post("/create-conversation", response_model=ConversationResponse)
@@ -22,18 +20,11 @@ def create_conversation(
     current_user: User = Depends(get_current_user),
 ):
     if conversation.type == "private":
-        if not isinstance(conversation.username, str):
-            raise HTTPException(
-                status_code=400,
-                detail="Tên người dùng phải là một chuỗi.",
-            )
-
         recipient = (
             db.query(User).filter(User.username == conversation.username).first()
         )
         if not recipient:
             raise HTTPException(status_code=404, detail="Người dùng không tồn tại.")
-
         if recipient.username == current_user.username:
             raise HTTPException(
                 status_code=400, detail="Bạn không thể nhắn tin với chính mình."
@@ -42,21 +33,12 @@ def create_conversation(
         existing_conversation = (
             db.query(Conversation)
             .join(GroupMember)
-            .filter(Conversation.type == "private")
-            .group_by(Conversation.conversation_id)
-            .having(
-                func.count(
-                    case(
-                        (
-                            GroupMember.username.in_(
-                                [current_user.username, recipient.username]
-                            ),
-                            1,
-                        ),
-                    )
-                )
-                == 2
+            .filter(
+                Conversation.type == "private",
+                GroupMember.username.in_([current_user.username, recipient.username]),
             )
+            .group_by(Conversation.conversation_id)
+            .having(func.count(GroupMember.username) == 2)
             .first()
         )
 
@@ -84,6 +66,17 @@ def create_conversation(
         )
         db.commit()
 
+        # Thông báo cho người nhận về cuộc trò chuyện mới
+        notification = Notification(
+            user_username=recipient.username,
+            sender_username=current_user.username,
+            message=f"Bạn có một cuộc trò chuyện mới với {current_user.username}.",
+            type="message",
+            related_id=new_conversation.conversation_id,
+            related_table="conversations",
+        )
+        db.add(notification)
+        db.commit()
     elif conversation.type == "group":
         if isinstance(conversation.username, str) and conversation.username == "":
             conversation.username = []
@@ -100,7 +93,6 @@ def create_conversation(
             )
             .first()
         )
-
         if existing_group:
             raise HTTPException(status_code=400, detail="Nhóm với tên này đã tồn tại.")
 
@@ -116,7 +108,6 @@ def create_conversation(
                 role="admin",
             )
         ]
-
         users = db.query(User).filter(User.username.in_(conversation.username)).all()
         for user in users:
             members.append(
@@ -130,13 +121,50 @@ def create_conversation(
         db.add_all(members)
         db.commit()
 
+        # Thông báo cho các thành viên mới được thêm vào nhóm
+        notifications = [
+            Notification(
+                user_username=user.username,
+                sender_username=current_user.username,
+                message=f"Bạn đã được thêm vào nhóm '{new_conversation.name}'.",
+                type="group_invite",
+                related_id=new_conversation.conversation_id,
+                related_table="conversations",
+            )
+            for user in users
+        ]
+
+        db.add_all(notifications)
+        db.commit()
     else:
         raise HTTPException(status_code=400, detail="Loại hội thoại không hợp lệ.")
 
-    return new_conversation
+    members = (
+        db.query(User.username, User.avatar, User.nickname, GroupMember.role)
+        .join(GroupMember, User.username == GroupMember.username)
+        .filter(GroupMember.conversation_id == new_conversation.conversation_id)
+        .all()
+    )
+
+    group_members = [
+        {
+            "username": member.username,
+            "avatar": member.avatar,
+            "nickname": member.nickname,
+            "role": member.role,
+        }
+        for member in members
+    ]
+
+    return {
+        "conversation_id": new_conversation.conversation_id,
+        "type": new_conversation.type,
+        "name": new_conversation.name,
+        "group_members": group_members,
+    }
 
 
-# API lấy danh sách hội thoại của user
+# Lấy danh sách cuộc hội thoại
 @conversation_router.get(
     "/get-conversations", response_model=list[ConversationResponse]
 )
@@ -150,16 +178,30 @@ def get_conversations(
         .all()
     )
 
-    # Lấy danh sách hội thoại kèm theo danh sách thành viên nhóm
     conversation_list = []
     for convo in conversations:
         members = (
-            db.query(models.GroupMember.username, models.GroupMember.role)
+            db.query(
+                models.User.username,
+                models.User.avatar,
+                models.User.nickname,
+                models.GroupMember.role,
+            )
+            .join(
+                models.GroupMember, models.User.username == models.GroupMember.username
+            )
             .filter(models.GroupMember.conversation_id == convo.conversation_id)
             .all()
         )
+
         group_members = [
-            {"username": member.username, "role": member.role} for member in members
+            {
+                "username": member.username,
+                "avatar": member.avatar,
+                "nickname": member.nickname,
+                "role": member.role,
+            }
+            for member in members
         ]
 
         conversation_list.append(

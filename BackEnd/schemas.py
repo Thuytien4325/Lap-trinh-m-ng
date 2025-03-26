@@ -192,6 +192,8 @@ class ConversationCreate(BaseModel):
 # Schema cho thành viên nhóm
 class GroupMemberResponse(BaseModel):
     username: str
+    nickname: str | None = None
+    avatar: str | None = None
     role: str
 
 

@@ -184,7 +184,7 @@ class Notification(Base):
     )
     related_id = Column(Integer, nullable=True, index=True)
     related_table = Column(
-        Enum("friend_requests", "messages", name="related_table_type"),
+        Enum("friend_requests", "messages", "conversations", name="related_table_type"),
         nullable=True,
         index=True,
     )
