@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, validator, UUID4
 from datetime import datetime
 
+
 # Schema xác thực người dùng
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
@@ -18,12 +19,14 @@ class UserCreate(BaseModel):
             raise ValueError("Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@$!%*?&).")
         return value
 
+
 # Schema reset mật khẩu
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
 
+
 class ResetPasswordConfirm(BaseModel):
-    reset_uuid: UUID4 
+    reset_uuid: UUID4
     new_password: str
 
     @validator("new_password")
@@ -36,6 +39,7 @@ class ResetPasswordConfirm(BaseModel):
             raise ValueError("Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@$!%*?&).")
         return value
 
+
 # Schema người dùng
 class UserResponse(BaseModel):
     user_id: int
@@ -47,7 +51,8 @@ class UserResponse(BaseModel):
     created_at_UTC: datetime | None
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
 
 class UserProfile(BaseModel):
     username: str
@@ -58,7 +63,8 @@ class UserProfile(BaseModel):
     created_at_UTC: datetime | None
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
 
 # Schema admin trả về thông tin người dùng
 class AdminUserResponse(BaseModel):
@@ -72,7 +78,8 @@ class AdminUserResponse(BaseModel):
 
     class Config:
         from_attributes = True
-        
+
+
 # Schema token
 class TokenSchema(BaseModel):
     access_token: str
@@ -82,14 +89,17 @@ class TokenSchema(BaseModel):
     refresh_token_time: str
     user: UserResponse | None
 
+
 class UserUpdate(BaseModel):
     nickname: str | None = None
     email: EmailStr | None = None
+
 
 # Schema tin nhắn
 class MessageCreate(BaseModel):
     conversation_id: int
     content: str
+
 
 class MessageResponse(BaseModel):
     message_id: int
@@ -101,23 +111,27 @@ class MessageResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 # Schema gửi kết bạn
 class FriendRequestCreate(BaseModel):
     receiver_username: str
+
 
 class FriendRequestResponse(BaseModel):
     id: int
     sender_username: str
     receiver_username: str
-    sender_nickname: str | None 
-    sender_avatar: str | None 
-    receiver_nickname: str | None  
-    receiver_avatar: str | None 
+    sender_nickname: str | None
+    sender_avatar: str | None
+    receiver_nickname: str | None
+    receiver_avatar: str | None
     status: str
     created_at_UTC: datetime | None
 
     class Config:
         from_attributes = True
+
+
 #  Schema friend
 class FriendResponse(BaseModel):
     username: str
@@ -127,12 +141,15 @@ class FriendResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class FriendRemoveRequest(BaseModel):
     friend_username: str
+
 
 # Thông báo
 class NotificationBase(BaseModel):
     message: str
+
 
 class NotificationCreate(NotificationBase):
     user_username: str
@@ -140,6 +157,7 @@ class NotificationCreate(NotificationBase):
     type: str
     related_id: int
     related_table: str
+
 
 class NotificationResponse(BaseModel):
     id: int
