@@ -152,7 +152,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           window.location.href = "http://127.0.0.1:5500/Frontend/Dang%20ky%20tai%20khoan/index.html"; // Quay về index.html nếu không phải
         }
       }
-    });
+    });   
   }
   
   // 🛠 KIỂM TRA MẬT KHẨU HỢP LỆ
@@ -193,3 +193,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupPasswordValidation("registerForm", "registerPassword", "registerConfirm", "registerError");
   setupPasswordValidation("resetForm", "newPassword", "confirmPassword", "resetError");
 });
+
+
+
