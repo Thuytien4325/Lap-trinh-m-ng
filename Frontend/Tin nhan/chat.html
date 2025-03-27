@@ -66,29 +66,7 @@
             }
         }
 
-        function addUser() {
-            let userName = prompt("Nhập tên người dùng mới:");
-            if (userName) {
-                let chatList = document.querySelector('.chat-list');
-                let newUser = document.createElement('li');
-                newUser.className = 'chat-item';
-                newUser.innerText = userName;
-                newUser.onclick = function() { openChat(userName); };
-                chatList.appendChild(newUser);
-            }
-        }
 
-        function addGroupChat() {
-            let groupName = prompt("Nhập tên nhóm trò chuyện:");
-            if (groupName) {
-                let chatList = document.querySelector('.chat-list');
-                let newGroup = document.createElement('li');
-                newGroup.className = 'chat-item';
-                newGroup.innerText = groupName;
-                newGroup.onclick = function() { openChat(groupName); };
-                chatList.appendChild(newGroup);
-            }
-        }
 
         function uploadAvatar(event) {
             const file = event.target.files[0];
@@ -107,17 +85,7 @@
     <div class="container">
         <aside class="sidebar">
             <div class="profile">
-                <div class="avatar-wrapper">
-                    <img id="avatar-img" src="avatar.jpg" alt="Avatar">
-                    <input type="file" accept="image/*" onchange="uploadAvatar(event)" style="display: none;" id="avatar-upload">
-                    <i class="fa fa-camera camera-icon" onclick="document.getElementById('avatar-upload').click()"></i>
-                </div>
-                <h2>Tên</h2>
-                <p>Tiểu sử: <span id="profile-bio"></span></p>
-                <p>Ngày sinh: <span id="profile-birthdate"></span></p>
-                <p>Điện thoại: <span id="profile-phone"></span></p>
-                <p>Email: <span id="profile-email"></span></p>
-            </div>
+                               
             <input type="text" class="search" placeholder="Tìm kiếm">
             <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 10px;">
                 <button onclick="addUser()" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 6px 10px; border-radius: 15px; border: none; cursor: pointer; transition: background 0.3s ease, transform 0.2s ease;">
