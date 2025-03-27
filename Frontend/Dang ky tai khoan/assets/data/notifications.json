@@ -1,11 +1,11 @@
 [
     {
       "type": "info",
-      "message": "Bạn vừa đăng ký thành công 🎉"
+      "message": "Bạn vừa đăng ký thành công "
     },
     {
       "type": "warning",
-      "message": "Bạn có 3 tin nhắn chưa đọc 📬"
+      "message": "Bạn có 3 tin nhắn chưa đọc "
     }
   ]
   
