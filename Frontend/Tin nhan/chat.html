@@ -43,14 +43,13 @@
                 let chatContent = document.getElementById('chat-content');
                 let fileLink = document.createElement('a');
                 fileLink.href = URL.createObjectURL(file);
-                fileLink.innerText = Tệp: ${file.name};
+                fileLink.innerText = `Tệp: ${file.name}`;  // 
                 fileLink.download = file.name;
                 fileLink.target = "_blank";
                 chatContent.appendChild(fileLink);
                 chatContent.appendChild(document.createElement('br'));
             }
         }
-
         function sendImage(event) {
             const file = event.target.files[0];
             if (file && file.type.startsWith('image/')) {

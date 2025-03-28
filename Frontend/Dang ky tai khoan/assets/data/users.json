@@ -1,15 +1,10 @@
 [
-    {
-      "id": 1,
-      "username": "thanh123",
-      "email": "thanh@example.com",
-      "password": "thanh123@123"
-    },
-    {
-      "id": 2,
-      "username": "tiencute",
-      "email": "tien@example.com",
-      "password": "12345678"
-    }
-  ]
-  
+  {
+      "username": "admin",
+      "password": "123456"
+  },
+  {
+      "username": "user1",
+      "password": "password123"
+  }
+]

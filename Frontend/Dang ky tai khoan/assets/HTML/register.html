@@ -1,7 +1,8 @@
+
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
+<head>
+    <meta charset="UTF-8">
     <title>Chat</title>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
@@ -11,17 +12,27 @@
     <link rel="stylesheet" href="../styles/style.css" />
     <!-- Auth JS -->
     <script src="../../services/authservice.js" defer></script>
-  </head>
-  <body>
-      <div class="d-flex flex-column flex-md-row w-100 vh-100">
-        <!-- ❌ Icon ngoài form -->
-        <button type="button" class="btn btn-sm btn-close custom-close-outside" id="closeLogin" aria-label="Close"></button>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+     <!-- Header -->
+     <header class="bg-warning position-relative d-flex align-items-center justify-content-center px-3 py-4">
+        <div class="logo">
+            <img src="../image/logo.jpg" alt="Chat Logo" style="height: 60px;" >
+        </div>
+        
+        <h5 class="m-0 text-center">Simple talks – Strong bonds</h5>
+        <button type="button" class="custom-close-outside position-absolute end-0 me-4" id="closeLogin" aria-label="Close"></button>
+    </header>
+    
+    <main class="d-flex flex-column flex-md-row w-100 flex-grow-1">
         <div class="col-md-6 d-flex flex-column justify-content-center align-items-center p-4 bg-white">
-          <img src="../image/logo.jpg" alt="logo" class="img-fluid mb-3" style="max-height: 150px;" />
-          <h4 class="text-center fw-bold">Simple talks – Strong bonds</h4>
+            <img src="../image/logo.jpg" alt="logo" class="img-fluid mb-3" style="max-height: 150px;" />
+            <h4 class="text-center fw-bold">Simple talks – Strong bonds</h4>
         </div>
 
         <!-- Register Section -->
+        
         <div class="col-md-6 d-flex align-items-center justify-content-center p-0" style="background-color: white;">
           <div class="position-relative d-flex align-items-center justify-content-center" style="height: 100vh; width: 100%;">
             
@@ -96,9 +107,15 @@
             </div>
           </div>
         </div>
-      </div>
-
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-warning text-center py-4 mt-auto">
+        <small>© Created by Nhom 2</small>
+    </footer>
+    
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
+</body>
 </html>
+
