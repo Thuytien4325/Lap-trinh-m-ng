@@ -24,10 +24,6 @@ class UserCreate(BaseModel):
 
 
 # Schema reset mật khẩu
-class ResetPasswordRequest(BaseModel):
-    email: EmailStr
-
-
 class ResetPasswordConfirm(BaseModel):
     reset_uuid: UUID4
     new_password: str
@@ -91,11 +87,6 @@ class TokenSchema(BaseModel):
     access_token_time: str
     refresh_token_time: str
     user: UserResponse | None
-
-
-class UserUpdate(BaseModel):
-    nickname: str | None = None
-    email: EmailStr | None = None
 
 
 # Schema tin nhắn

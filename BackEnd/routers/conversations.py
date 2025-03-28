@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 import models
 from schemas import ConversationCreate, ConversationResponse
@@ -8,20 +8,32 @@ from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException
 from sqlalchemy import func, case
 from models import User, Conversation, GroupMember, Notification
+from typing import Optional, Union, List
 
 conversation_router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
 
 @conversation_router.post("/create-conversation", response_model=ConversationResponse)
 def create_conversation(
-    conversation: ConversationCreate,
+    type: str = Query(..., description="Loại cuộc hội thoại: private hoặc group"),
+    username: Optional[List[str]] = Query(
+        None, description="Danh sách thành viên (bắt buộc nếu là private)"
+    ),
+    name: Optional[str] = Query(
+        None, description="Tên nhóm (chỉ sử dụng nếu type là group)"
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if conversation.type == "private":
-        recipient = (
-            db.query(User).filter(User.username == conversation.username).first()
-        )
+    if type == "private":
+        if not username or len(username) != 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Cần cung cấp đúng một username cho cuộc trò chuyện riêng tư.",
+            )
+
+        recipient_username = username[0]
+        recipient = db.query(User).filter(User.username == recipient_username).first()
         if not recipient:
             raise HTTPException(status_code=404, detail="Người dùng không tồn tại.")
         if recipient.username == current_user.username:
@@ -44,7 +56,6 @@ def create_conversation(
             )
             .first()
         )
-
         if not are_friends:
             raise HTTPException(
                 status_code=400, detail="Bạn chỉ có thể nhắn tin với bạn bè."
@@ -86,11 +97,11 @@ def create_conversation(
         )
         db.commit()
 
-        # Thông báo cho người nhận về cuộc trò chuyện mới
+        # Thông báo cho người nhận
         notification = Notification(
             user_username=recipient.username,
             sender_username=current_user.username,
-            message=f"Bạn có một cuộc trò chuyện mới với {current_user.username}.",
+            message=f"Bạn có một cuộc trò chuyện mới với {current_user.nickname}.",
             type="message",
             related_id=new_conversation.conversation_id,
             related_table="conversations",
@@ -98,17 +109,17 @@ def create_conversation(
         db.add(notification)
         db.commit()
 
-    elif conversation.type == "group":
-        # Kiểm tra danh sách người dùng nhập vào
-        if isinstance(conversation.username, str) and conversation.username == "":
-            conversation.username = []
-
-        if not isinstance(conversation.username, list):
+    elif type == "group":
+        if not name:
             raise HTTPException(
-                status_code=400, detail="Danh sách thành viên phải là một danh sách."
+                status_code=400, detail="Tên nhóm là bắt buộc đối với nhóm."
             )
 
-        # Lấy danh sách bạn bè của người tạo nhóm
+        # Nếu không có username, nhóm chỉ có mình người tạo
+        if not username:
+            username = []
+
+        # Lấy danh sách bạn bè
         friend_usernames = set(
             db.query(models.Friend.friend_username)
             .filter(models.Friend.user_username == current_user.username)
@@ -119,16 +130,10 @@ def create_conversation(
             )
             .all()
         )
-        friend_usernames = {
-            username[0] for username in friend_usernames
-        }  # Chuyển tuple thành set
+        friend_usernames = {username[0] for username in friend_usernames}
 
-        # Kiểm tra danh sách nhập vào có hợp lệ không
-        invalid_users = [
-            username
-            for username in conversation.username
-            if username not in friend_usernames
-        ]
+        # Kiểm tra danh sách hợp lệ
+        invalid_users = [u for u in username if u not in friend_usernames]
         if invalid_users:
             raise HTTPException(
                 status_code=400,
@@ -137,20 +142,17 @@ def create_conversation(
 
         existing_group = (
             db.query(Conversation)
-            .filter(
-                Conversation.name == conversation.name, Conversation.type == "group"
-            )
+            .filter(Conversation.name == name, Conversation.type == "group")
             .first()
         )
         if existing_group:
             raise HTTPException(status_code=400, detail="Nhóm với tên này đã tồn tại.")
 
-        new_conversation = Conversation(type="group", name=conversation.name)
+        new_conversation = Conversation(type="group", name=name)
         db.add(new_conversation)
         db.commit()
         db.refresh(new_conversation)
 
-        # Danh sách thành viên hợp lệ
         members = [
             GroupMember(
                 conversation_id=new_conversation.conversation_id,
@@ -159,7 +161,7 @@ def create_conversation(
             )
         ]
 
-        users = db.query(User).filter(User.username.in_(conversation.username)).all()
+        users = db.query(User).filter(User.username.in_(username)).all()
         for user in users:
             members.append(
                 GroupMember(
@@ -172,13 +174,13 @@ def create_conversation(
         db.add_all(members)
         db.commit()
 
-        # Thông báo cho các thành viên mới được thêm vào nhóm
+        # Thông báo cho thành viên mới
         notifications = [
             Notification(
                 user_username=user.username,
                 sender_username=current_user.username,
                 message=f"Bạn đã được thêm vào nhóm '{new_conversation.name}'.",
-                type="group_invite",
+                type="message",
                 related_id=new_conversation.conversation_id,
                 related_table="conversations",
             )

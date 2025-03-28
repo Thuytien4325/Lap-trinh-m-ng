@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query
 from sqlalchemy.orm import Session
 import os
 import shutil
 from database import get_db
 import models
 from routers.auth import oauth2_scheme, SECRET_KEY, ALGORITHM
-from schemas import UserResponse, UserUpdate, UserProfile
+from schemas import UserResponse, UserProfile
 from routers.untils import get_current_user, UPLOAD_DIR, update_last_active_dependency
 from typing import List
-from datetime import datetime, timedelta, timezone
+from pydantic import EmailStr
 
 # Tạo router
 users_router = APIRouter(prefix="/users", tags=["User"])
@@ -37,39 +37,28 @@ def get_user_info(current_user: models.User = Depends(get_current_user)):
     response_model=List[UserProfile],
     dependencies=[Depends(update_last_active_dependency)],
 )
-def search_username_users(
-    username: str,
+def search_users(
+    query: str = Query(..., description="Từ khóa tìm kiếm"),
+    search_by_nickname: bool = Query(False, description="Tìm kiếm theo nickname"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    users = (
-        db.query(models.User)
-        .filter(
-            models.User.username.ilike(f"%{username}%"), models.User.is_admin == False
+    if search_by_nickname:
+        users = (
+            db.query(models.User)
+            .filter(
+                models.User.nickname.ilike(f"%{query}%"), models.User.is_admin == False
+            )
+            .all()
         )
-        .all()
-    )
-
-    return [UserProfile.model_validate(user) for user in users]
-
-
-@users_router.get(
-    "/search-nickname",
-    response_model=List[UserProfile],
-    dependencies=[Depends(update_last_active_dependency)],
-)
-def search_nickname_users(
-    nickname: str,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    users = (
-        db.query(models.User)
-        .filter(
-            models.User.nickname.ilike(f"%{nickname}%"), models.User.is_admin == False
+    else:
+        users = (
+            db.query(models.User)
+            .filter(
+                models.User.username.ilike(f"%{query}%"), models.User.is_admin == False
+            )
+            .all()
         )
-        .all()
-    )
 
     return [UserProfile.model_validate(user) for user in users]
 
@@ -121,7 +110,8 @@ def upload_avatar(
 # Cập nhật thông tin user
 @users_router.put("/update", dependencies=[Depends(update_last_active_dependency)])
 def update_user(
-    user_update: UserUpdate,
+    nickname: str | None = None,
+    email: EmailStr | None = None,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -131,19 +121,17 @@ def update_user(
             status_code=403, detail="Admin không được cập nhật thông tin cá nhân."
         )
 
-    if user_update.email and user_update.email != current_user.email:
-        existing_user = (
-            db.query(models.User).filter(models.User.email == user_update.email).first()
-        )
+    if email and email != current_user.email:
+        existing_user = db.query(models.User).filter(models.User.email == email).first()
         if existing_user:
             raise HTTPException(
                 status_code=400, detail="Email đã được sử dụng bởi người dùng khác"
             )
 
-    if user_update.nickname:
-        current_user.nickname = user_update.nickname
-    if user_update.email:
-        current_user.email = user_update.email
+    if nickname:
+        current_user.nickname = nickname
+    if email:
+        current_user.email = email
 
     db.commit()
     db.refresh(current_user)
