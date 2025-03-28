@@ -13,7 +13,7 @@ if (closeBtn) {
   });   
 }
 
-// Xử lý API 
+// Xử lý API login và register
 const API_BASE = "http://localhost:8000/auth";
 
 async function callAPI(endpoint, method = "GET", data = null) {
@@ -150,7 +150,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 const loginResult = await loginAPI(username, password);
                 if (loginResult.success) {
                     setTimeout(() => (window.location.href = "../Tin nhan/chat.html"), 1000);
-                } else {
+                } else {     
+
                     errorDiv.textContent = "Đăng ký thành công, nhưng lỗi khi tự động đăng nhập!";
                     setTimeout(() => (window.location.href = "../../assets/HTML/login.html" ), 1000);
                 }
