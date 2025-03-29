@@ -5,6 +5,7 @@ import models
 import schemas
 from routers.users import get_current_user
 from routers.untils import update_last_active_dependency
+from datetime import datetime, timezone
 
 friend_request_router = APIRouter(prefix="/friend-requests", tags=["Friend Requests"])
 
@@ -25,8 +26,12 @@ def get_friend_status(
         )
 
     user = db.query(models.User).filter(models.User.username == username).first()
+
     if not user:
         raise HTTPException(status_code=404, detail="Người dùng không tồn tại")
+
+    if user.is_admin:
+        raise HTTPException(status_code=403, detail="Người dùng là quản trị viên.")
 
     # Kiểm tra xem có phải bạn bè không
     friendship = (
@@ -102,9 +107,15 @@ def send_friend_request(
 
     if not receiver:
         raise HTTPException(status_code=404, detail="Người dùng nhận không tồn tại")
+
     if sender.username == receiver.username:
         raise HTTPException(
             status_code=400, detail="Không thể gửi yêu cầu cho chính mình"
+        )
+
+    if receiver.is_admin:
+        raise HTTPException(
+            status_code=403, detail="Không thể kết bạn với quản trị viên."
         )
 
     existing_friendship = (
@@ -146,6 +157,7 @@ def send_friend_request(
         sender_username=sender.username,
         receiver_username=receiver.username,
         status="Đợi",
+        created_at_UTC=datetime.now(timezone.utc),
     )
 
     db.add(new_request)
@@ -159,6 +171,7 @@ def send_friend_request(
         type="friend_request",
         related_id=new_request.id,
         related_table="friend_requests",
+        created_at_UTC=datetime.now(timezone.utc),
     )
 
     db.add(new_notification)
@@ -236,7 +249,9 @@ def accept_friend_request(
         raise HTTPException(status_code=400, detail="Hai người đã là bạn bè")
 
     new_friend = models.Friend(
-        user_username=sender_username, friend_username=receiver_username
+        user_username=sender_username,
+        friend_username=receiver_username,
+        created_at_UTC=datetime.now(timezone.utc),
     )
 
     new_notification = models.Notification(
@@ -246,6 +261,7 @@ def accept_friend_request(
         type="friend_accept",
         related_id=friend_request.id,
         related_table="friend_requests",
+        created_at_UTC=datetime.now(timezone.utc),
     )
 
     db.add(new_friend)
@@ -297,6 +313,7 @@ def reject_friend_request(
         type="friend_reject",
         related_id=friend_request.id,
         related_table="friend_requests",
+        created_at_UTC=datetime.now(timezone.utc),
     )
 
     db.delete(friend_request)

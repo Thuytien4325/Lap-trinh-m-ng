@@ -175,6 +175,8 @@ class Notification(Base):
             "friend_reject",
             "message",
             "system",
+            "report",
+            "warning",
             name="notification_type",
         ),
         nullable=False,
@@ -182,7 +184,15 @@ class Notification(Base):
     )
     related_id = Column(Integer, nullable=True, index=True)
     related_table = Column(
-        Enum("friend_requests", "messages", "conversations", name="related_table_type"),
+        Enum(
+            "friend_requests",
+            "messages",
+            "conversations",
+            "reports",
+            "users",
+            "warnings",
+            name="related_table_type",
+        ),
         nullable=True,
         index=True,
     )
@@ -213,3 +223,56 @@ class ResetToken(Base):
     @staticmethod
     def hash_token(token: str) -> str:
         return hashlib.sha256(token.encode()).hexdigest()
+
+
+class Report(Base):
+    __tablename__ = "reports"
+
+    report_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    reporter_username = Column(
+        String(50), ForeignKey("users.username", ondelete="CASCADE"), nullable=True
+    )
+    report_type = Column(
+        Enum("user", "group", "bug", name="report_type"), nullable=False, index=True
+    )
+    target_id = Column(Integer, nullable=True)
+    target_table = Column(
+        Enum("users", "conversations", name="report_target_table"),
+        nullable=True,
+        index=True,
+    )
+    title = Column(String(255), nullable=True)
+    severity = Column(
+        Enum("low", "medium", "high", "critical", name="bug_severity"),
+        nullable=True,
+    )
+    description = Column(Text, nullable=False)
+    status = Column(
+        Enum("pending", "resolved", name="report_status"),
+        default="pending",
+        nullable=False,
+        index=True,
+    )
+    created_at_UTC = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at_UTC = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    reporter = relationship("User", backref="reports")
+
+
+class Warning(Base):
+    __tablename__ = "warnings"
+
+    warning_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    target_type = Column(Enum("users", "groups"), nullable=False)
+    target_id = Column(Integer, nullable=True)
+    reason = Column(Text, nullable=False)
+    ban_duration = Column(Integer, default=0)
+    created_at_UTC = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        CheckConstraint(
+            "ban_duration IN (0, 5, 15, 30, 60)", name="check_valid_ban_duration"
+        ),
+    )

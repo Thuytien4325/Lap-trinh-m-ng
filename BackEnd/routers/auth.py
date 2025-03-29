@@ -263,6 +263,7 @@ def reset_password_confirm(
             type="system",
             related_id=0,
             related_table=None,
+            created_at_UTC=datetime.now(timezone.utc),
         )
 
         db.add(new_notification)

@@ -5,11 +5,11 @@ from schemas import ConversationCreate, ConversationResponse
 from database import get_db
 from routers.untils import get_current_user
 from sqlalchemy.orm import Session
-from fastapi import Depends, HTTPException
 from sqlalchemy import func, case
 from models import User, Conversation, GroupMember, Notification
 from typing import Optional, Union, List
 from routers.untils import update_last_active_dependency
+from datetime import datetime, timezone
 
 conversation_router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
@@ -82,7 +82,9 @@ def create_conversation(
             return existing_conversation
 
         new_conversation = Conversation(
-            type="private", name=f"{current_user.username} & {recipient.username}"
+            type="private",
+            name=f"{current_user.username} & {recipient.username}",
+            created_at_UTC=datetime.now(timezone.utc),
         )
         db.add(new_conversation)
         db.commit()
@@ -93,10 +95,12 @@ def create_conversation(
                 GroupMember(
                     conversation_id=new_conversation.conversation_id,
                     username=current_user.username,
+                    joined_at_UTC=datetime.now(timezone.utc),
                 ),
                 GroupMember(
                     conversation_id=new_conversation.conversation_id,
                     username=recipient.username,
+                    joined_at_UTC=datetime.now(timezone.utc),
                 ),
             ]
         )
@@ -110,6 +114,7 @@ def create_conversation(
             type="system",
             related_id=new_conversation.conversation_id,
             related_table="conversations",
+            created_at_UTC=datetime.now(timezone.utc),
         )
         db.add(notification)
         db.commit()
@@ -163,6 +168,7 @@ def create_conversation(
                 conversation_id=new_conversation.conversation_id,
                 username=current_user.username,
                 role="admin",
+                joined_at_UTC=datetime.now(timezone.utc),
             )
         ]
 
@@ -173,6 +179,7 @@ def create_conversation(
                     conversation_id=new_conversation.conversation_id,
                     username=user.username,
                     role="member",
+                    joined_at_UTC=datetime.now(timezone.utc),
                 )
             )
 
@@ -188,6 +195,7 @@ def create_conversation(
                 type="system",
                 related_id=new_conversation.conversation_id,
                 related_table="conversations",
+                created_at_UTC=datetime.now(timezone.utc),
             )
             for user in users
         ]
@@ -303,7 +311,10 @@ def add_to_group(
         )
 
     new_group_member = models.GroupMember(
-        conversation_id=group_id, username=new_member_username, role="member"
+        conversation_id=group_id,
+        username=new_member_username,
+        role="member",
+        joined_at_UTC=datetime.now(timezone.utc),
     )
     db.add(new_group_member)
     db.commit()
@@ -315,6 +326,7 @@ def add_to_group(
         type="system",
         related_id=group.conversation_id,
         related_table="conversations",
+        created_at_UTC=datetime.now(timezone.utc),
     )
     db.add(notification)
     db.commit()
@@ -468,6 +480,7 @@ def delete_conversation(
                 type="system",
                 related_id=conversation.conversation_id,
                 related_table="conversations",
+                created_at_UTC=datetime.now(timezone.utc),
             )
             for member in group_members
         ]
