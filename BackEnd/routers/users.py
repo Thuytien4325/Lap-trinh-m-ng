@@ -9,7 +9,7 @@ from schemas import UserResponse, UserProfile
 from routers.untils import get_current_user, UPLOAD_DIR, update_last_active_dependency
 from typing import List
 from pydantic import EmailStr
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 # Tạo router
 users_router = APIRouter(prefix="/users", tags=["User"])
