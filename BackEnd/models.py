@@ -136,9 +136,6 @@ class FriendRequest(Base):
         UniqueConstraint(
             "sender_username", "receiver_username", name="unique_friend_request"
         ),
-        CheckConstraint(
-            "sender_username < receiver_username", name="prevent_reverse_friend_request"
-        ),
     )
 
 
