@@ -260,7 +260,7 @@ def reset_password_confirm(
             user_username=user.username,
             sender_username=None,
             message="Mật khẩu của bạn đã được đổi thành công.",
-            type="message",
+            type="system",
             related_id=0,
             related_table=None,
         )

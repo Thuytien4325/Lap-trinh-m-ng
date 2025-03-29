@@ -9,6 +9,7 @@ from schemas import UserResponse, UserProfile
 from routers.untils import get_current_user, UPLOAD_DIR, update_last_active_dependency
 from typing import List
 from pydantic import EmailStr
+from datetime import datetime, timedelta, timezone
 
 # Tạo router
 users_router = APIRouter(prefix="/users", tags=["User"])
@@ -179,3 +180,95 @@ def delete_user(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Lỗi server: {str(e)}")
+
+
+@users_router.post("/report")
+def report(
+    report_type: str = Query(
+        ..., description="Loại báo cáo: 'user', 'group' hoặc 'bug'"
+    ),
+    target_id: int = Query(
+        None, description="ID của người dùng hoặc nhóm chat bị báo cáo (nếu có)"
+    ),
+    title: str = Query(None, description="Tiêu đề báo cáo (chỉ dùng cho bug)"),
+    description: str = Query(..., description="Mô tả chi tiết về lý do báo cáo"),
+    severity: str = Query(
+        None,
+        description="Mức độ nghiêm trọng của lỗi ('low', 'medium', 'high', 'critical') - chỉ dành cho bug",
+    ),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    API để người dùng báo cáo người dùng khác, nhóm chat hoặc báo cáo lỗi (bug).
+    """
+
+    if report_type == "user":
+        if not target_id:
+            raise HTTPException(status_code=400, detail="Cần ID người dùng để báo cáo.")
+        target_exists = (
+            db.query(models.User).filter(models.User.user_id == target_id).first()
+        )
+        if not target_exists:
+            raise HTTPException(status_code=404, detail="Người dùng không tồn tại.")
+        new_report = models.Report(
+            reporter_username=current_user.username,
+            report_type=report_type,
+            target_id=target_id,
+            target_table="users",
+            description=description,
+            status="pending",
+            created_at_UTC=datetime.now(timezone.utc),
+            updated_at_UTC=datetime.now(timezone.utc),
+        )
+
+    elif report_type == "group":
+        if not target_id:
+            raise HTTPException(status_code=400, detail="Cần ID nhóm để báo cáo.")
+        target_exists = (
+            db.query(models.Conversation)
+            .filter(models.Conversation.conversation_id == target_id)
+            .first()
+        )
+        if not target_exists:
+            raise HTTPException(status_code=404, detail="Nhóm không tồn tại.")
+        new_report = models.Report(
+            reporter_username=current_user.username,
+            report_type=report_type,
+            target_id=target_id,
+            target_table="conversations",
+            description=description,
+            status="pending",
+            created_at_UTC=datetime.now(timezone.utc),
+            updated_at_UTC=datetime.now(timezone.utc),
+        )
+
+    elif report_type == "bug":
+        if not title:
+            raise HTTPException(status_code=400, detail="Cần tiêu đề cho báo cáo bug.")
+        if severity not in ["low", "medium", "high", "critical"]:
+            raise HTTPException(
+                status_code=400, detail="Mức độ nghiêm trọng không hợp lệ."
+            )
+        new_report = models.Report(
+            reporter_username=current_user.username,
+            report_type="bug",
+            title=title,
+            description=description,
+            severity=severity,
+            status="pending",
+            created_at_UTC=datetime.now(timezone.utc),
+            updated_at_UTC=datetime.now(timezone.utc),
+        )
+
+    else:
+        raise HTTPException(status_code=400, detail="Loại báo cáo không hợp lệ!")
+
+    db.add(new_report)
+    db.commit()
+    db.refresh(new_report)
+
+    return {
+        "message": "Báo cáo đã được gửi thành công.",
+        "report_id": new_report.report_id,
+    }

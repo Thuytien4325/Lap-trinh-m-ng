@@ -9,11 +9,16 @@ from fastapi import Depends, HTTPException
 from sqlalchemy import func, case
 from models import User, Conversation, GroupMember, Notification
 from typing import Optional, Union, List
+from routers.untils import update_last_active_dependency
 
 conversation_router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
 
-@conversation_router.post("/create-conversation", response_model=ConversationResponse)
+@conversation_router.post(
+    "/create-conversation",
+    response_model=ConversationResponse,
+    dependencies=[Depends(update_last_active_dependency)],
+)
 def create_conversation(
     type: str = Query(..., description="Loại cuộc hội thoại: private hoặc group"),
     username: Optional[List[str]] = Query(
@@ -100,9 +105,9 @@ def create_conversation(
         # Thông báo cho người nhận
         notification = Notification(
             user_username=recipient.username,
-            sender_username=current_user.username,
+            sender_username=None,
             message=f"Bạn có một cuộc trò chuyện mới với {current_user.nickname}.",
-            type="message",
+            type="system",
             related_id=new_conversation.conversation_id,
             related_table="conversations",
         )
@@ -178,9 +183,9 @@ def create_conversation(
         notifications = [
             Notification(
                 user_username=user.username,
-                sender_username=current_user.username,
+                sender_username=None,
                 message=f"Bạn đã được thêm vào nhóm '{new_conversation.name}'.",
-                type="message",
+                type="system",
                 related_id=new_conversation.conversation_id,
                 related_table="conversations",
             )
@@ -218,7 +223,11 @@ def create_conversation(
     }
 
 
-@conversation_router.post("/add-to-group", response_model=list[ConversationResponse])
+@conversation_router.post(
+    "/add-to-group",
+    response_model=list[ConversationResponse],
+    dependencies=[Depends(update_last_active_dependency)],
+)
 def add_to_group(
     group_id: int,
     new_member_username: str,
@@ -301,9 +310,9 @@ def add_to_group(
 
     notification = Notification(
         user_username=new_member.username,
-        sender_username=current_user.username,
+        sender_username=None,
         message=f"Bạn đã được thêm vào nhóm {group.name} bởi {current_user.username}.",
-        type="message",
+        type="system",
         related_id=group.conversation_id,
         related_table="conversations",
     )
@@ -339,7 +348,9 @@ def add_to_group(
 
 # Lấy danh sách cuộc hội thoại
 @conversation_router.get(
-    "/get-conversations", response_model=list[ConversationResponse]
+    "/get-conversations",
+    response_model=list[ConversationResponse],
+    dependencies=[Depends(update_last_active_dependency)],
 )
 def get_conversations(
     db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)
@@ -389,7 +400,11 @@ def get_conversations(
     return conversation_list
 
 
-@conversation_router.delete("/delete-conversation/{conversation_id}", status_code=200)
+@conversation_router.delete(
+    "/delete-conversation/{conversation_id}",
+    status_code=200,
+    dependencies=[Depends(update_last_active_dependency)],
+)
 def delete_conversation(
     conversation_id: int,
     db: Session = Depends(get_db),
@@ -433,6 +448,32 @@ def delete_conversation(
             raise HTTPException(
                 status_code=403, detail="Chỉ quản trị viên mới có thể xóa nhóm."
             )
+
+        # Lấy danh sách thành viên nhóm
+        group_members = (
+            db.query(models.GroupMember.username)
+            .filter(
+                models.GroupMember.conversation_id == conversation_id,
+                models.GroupMember.role == "member",
+            )
+            .all()
+        )
+
+        # Gửi thông báo đến tất cả thành viên trong nhóm
+        notifications = [
+            models.Notification(
+                user_username=member.username,
+                sender_username=None,
+                message=f"Nhóm '{conversation.name}' đã bị xóa bởi {current_user.username}.",
+                type="system",
+                related_id=conversation.conversation_id,
+                related_table="conversations",
+            )
+            for member in group_members
+        ]
+
+        db.add_all(notifications)
+        db.commit()
 
     db.query(models.Message).filter(
         models.Message.conversation_id == conversation_id

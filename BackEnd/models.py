@@ -177,6 +177,7 @@ class Notification(Base):
             "friend_accept",
             "friend_reject",
             "message",
+            "system",
             name="notification_type",
         ),
         nullable=False,
