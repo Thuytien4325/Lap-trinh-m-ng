@@ -1,15 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query
-from sqlalchemy.orm import Session
 import os
 import shutil
-from database import get_db
-import models
-from routers.auth import oauth2_scheme, SECRET_KEY, ALGORITHM
-from schemas import UserResponse, UserProfile
-from routers.untils import get_current_user, UPLOAD_DIR, update_last_active_dependency
+from datetime import datetime, timedelta, timezone
 from typing import List
+
+import models
+from database import get_db
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pydantic import EmailStr
-from datetime import datetime, timezone
+from routers.auth import ALGORITHM, SECRET_KEY, oauth2_scheme
+from routers.untils import UPLOAD_DIR, get_current_user, update_last_active_dependency
+from schemas import UserProfile, UserResponse
+from sqlalchemy.orm import Session
 
 # Tạo router
 users_router = APIRouter(prefix="/users", tags=["User"])
@@ -398,6 +399,7 @@ def report(
         db.add(notification)
 
     db.commit()
+
     return {
         "message": "Báo cáo đã được gửi thành công.",
         "report_id": new_report.report_id,
@@ -447,3 +449,49 @@ def get_user_reports(
         }
         for report in reports
     ]
+
+
+@users_router.get("/check-ban", dependencies=[Depends(update_last_active_dependency)])
+def check_user_ban(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    API kiểm tra xem người dùng hiện tại có đang bị ban không.
+    Trả về thông tin về lệnh cấm nếu có.
+    """
+    print(f"Current user: {current_user.user_id}, Username: {current_user.username}")
+
+    # Lấy tất cả các cảnh báo liên quan đến user
+    warnings = (
+        db.query(models.Warning)
+        .filter(models.Warning.target_id == current_user.user_id)
+        .all()
+    )
+    # Lấy thời gian hiện tại UTC
+    now_utc = datetime.now(timezone.utc)
+
+    # Kiểm tra xem có lệnh cấm nào đang còn hiệu lực không
+    active_bans = []
+    for warning in warnings:
+        if warning.ban_duration > 0:  # Nếu có thời gian cấm
+            ban_end_time = (
+                warning.created_at_UTC + timedelta(minutes=warning.ban_duration)
+            ).replace(tzinfo=timezone.utc)
+
+            if now_utc < ban_end_time:
+                active_bans.append(
+                    {
+                        "reason": warning.reason,
+                        "ban_start": warning.created_at_UTC,
+                        "ban_end": ban_end_time,
+                    }
+                )
+
+    if active_bans:
+        return {
+            "is_banned": True,
+            "active_bans": active_bans,
+        }
+
+    return {"is_banned": False, "message": "Người dùng không bị ban."}

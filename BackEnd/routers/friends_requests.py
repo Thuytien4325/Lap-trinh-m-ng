@@ -1,17 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, aliased
-from database import get_db
+from datetime import datetime, timezone
+
 import models
 import schemas
-from routers.users import get_current_user
+from database import get_db
+from fastapi import APIRouter, Depends, HTTPException
 from routers.untils import update_last_active_dependency
-from datetime import datetime, timezone
+from routers.users import get_current_user
+from sqlalchemy.orm import Session, aliased
 
 friend_request_router = APIRouter(prefix="/friend-requests", tags=["Friend Requests"])
 
 
 @friend_request_router.get(
-    "/status/{username}", dependencies=[Depends(update_last_active_dependency)]
+    "/status", dependencies=[Depends(update_last_active_dependency)]
 )
 def get_friend_status(
     username: str,
@@ -93,16 +94,14 @@ def get_friend_status(
     dependencies=[Depends(update_last_active_dependency)],
 )
 def send_friend_request(
-    request: schemas.FriendRequestCreate,
+    receiver_username: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     """Gửi lời mời kết bạn"""
     sender = current_user
     receiver = (
-        db.query(models.User)
-        .filter(models.User.username == request.receiver_username)
-        .first()
+        db.query(models.User).filter(models.User.username == receiver_username).first()
     )
 
     if not receiver:
@@ -204,7 +203,7 @@ def send_friend_request(
 
 
 @friend_request_router.post(
-    "/{request_id}/accept", dependencies=[Depends(update_last_active_dependency)]
+    "/accept", dependencies=[Depends(update_last_active_dependency)]
 )
 def accept_friend_request(
     request_id: int,
@@ -272,7 +271,7 @@ def accept_friend_request(
 
 
 @friend_request_router.post(
-    "/{request_id}/reject", dependencies=[Depends(update_last_active_dependency)]
+    "/reject", dependencies=[Depends(update_last_active_dependency)]
 )
 def reject_friend_request(
     request_id: int,
@@ -414,7 +413,7 @@ def get_sent_friend_requests(
 
 
 @friend_request_router.delete(
-    "/{request_id}", dependencies=[Depends(update_last_active_dependency)]
+    "/delete", dependencies=[Depends(update_last_active_dependency)]
 )
 def delete_friend_request(
     request_id: int,

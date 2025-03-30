@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from database import get_db
 import models
-from routers.users import get_current_user
 import schemas
+from database import get_db
+from fastapi import APIRouter, Depends, HTTPException
 from routers.untils import update_last_active_dependency
+from routers.users import get_current_user
+from sqlalchemy.orm import Session
 
-friends_router = APIRouter(prefix="/api/friends", tags=["Friends"])
+friends_router = APIRouter(prefix="/friends", tags=["Friends"])
 
 
 @friends_router.get(
@@ -43,12 +43,12 @@ def get_friends(
 
 @friends_router.post("/unfriend", dependencies=[Depends(update_last_active_dependency)])
 def unfriend(
-    request: schemas.FriendRemoveRequest,
+    friend_username: str,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Xóa kết bạn"""
-    friend_username = request.friend_username
+    friend_username = friend_username
 
     friendship = (
         db.query(models.Friend)

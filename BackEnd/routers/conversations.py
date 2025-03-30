@@ -1,15 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from datetime import datetime, timedelta, timezone
+from typing import List, Optional, Union
+
 import models
-from schemas import ConversationCreate, ConversationResponse
 from database import get_db
-from routers.untils import get_current_user
+from fastapi import APIRouter, Depends, HTTPException, Query
+from models import Conversation, GroupMember, Notification, User
+from routers.untils import get_current_user, update_last_active_dependency
+from schemas import ConversationCreate, ConversationResponse
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
-from models import User, Conversation, GroupMember, Notification
-from typing import Optional, Union, List
-from routers.untils import update_last_active_dependency
-from datetime import datetime, timezone
 
 conversation_router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
@@ -413,7 +412,7 @@ def get_conversations(
 
 
 @conversation_router.delete(
-    "/delete-conversation/{conversation_id}",
+    "/delete-conversation",
     status_code=200,
     dependencies=[Depends(update_last_active_dependency)],
 )
@@ -498,3 +497,200 @@ def delete_conversation(
     db.commit()
 
     return {"message": "Xóa hội thoại thành công.", "conversation_id": conversation_id}
+
+
+@conversation_router.get(
+    "/check-ban-group", dependencies=[Depends(update_last_active_dependency)]
+)
+def check_group_ban(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    API kiểm tra xem nhóm chat có đang bị ban không.
+    Trả về thông tin về lệnh cấm nếu có.
+    """
+
+    # Kiểm tra nhóm có tồn tại không
+    conversation = (
+        db.query(models.Conversation)
+        .filter(
+            models.Conversation.conversation_id == conversation_id,
+            models.Conversation.type == "group",
+        )
+        .first()
+    )
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Nhóm không tồn tại.")
+
+    # Lấy tất cả các cảnh báo liên quan đến nhóm chat
+    warnings = (
+        db.query(models.Warning)
+        .filter(
+            models.Warning.target_id == conversation_id,
+            models.Warning.target_type == "groups",
+        )
+        .all()
+    )
+
+    # Lấy thời gian hiện tại UTC
+    now_utc = datetime.now(timezone.utc)
+
+    # Kiểm tra xem có lệnh cấm nào đang còn hiệu lực không
+    active_bans = []
+    for warning in warnings:
+        if warning.ban_duration > 0:  # Nếu có thời gian cấm
+            ban_end_time = (
+                warning.created_at_UTC + timedelta(minutes=warning.ban_duration)
+            ).replace(tzinfo=timezone.utc)
+
+            if now_utc < ban_end_time:
+                active_bans.append(
+                    {
+                        "reason": warning.reason,
+                        "ban_start": warning.created_at_UTC,
+                        "ban_end": ban_end_time,
+                    }
+                )
+
+    if active_bans:
+        return {
+            "is_banned": True,
+            "active_bans": active_bans,
+        }
+
+    return {"is_banned": False, "message": "Nhóm không bị ban."}
+
+
+@conversation_router.post(
+    "/leave-group", dependencies=[Depends(update_last_active_dependency)]
+)
+def leave_group(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    API để người dùng rời khỏi nhóm chat.
+    Nếu người dùng là admin, thành viên đầu tiên trong danh sách sẽ được chọn làm admin mới.
+    Nếu nhóm chỉ còn một thành viên, nhóm sẽ bị xóa.
+    """
+    # Kiểm tra nhóm có tồn tại không
+    group = (
+        db.query(models.Conversation)
+        .filter(
+            models.Conversation.conversation_id == conversation_id,
+            models.Conversation.type == "group",
+        )
+        .first()
+    )
+
+    if not group:
+        raise HTTPException(status_code=404, detail="Nhóm không tồn tại!")
+
+    # Kiểm tra người dùng có trong nhóm không
+    user_in_group = (
+        db.query(models.GroupMember)
+        .filter(
+            models.GroupMember.conversation_id == conversation_id,
+            models.GroupMember.username == current_user.username,
+        )
+        .first()
+    )
+
+    if not user_in_group:
+        raise HTTPException(
+            status_code=403, detail="Bạn không phải thành viên của nhóm này!"
+        )
+
+    # Lấy danh sách thành viên nhóm, sắp xếp theo thời gian tham gia
+    group_members = (
+        db.query(models.GroupMember)
+        .filter(models.GroupMember.conversation_id == conversation_id)
+        .order_by(models.GroupMember.joined_at_UTC.asc())
+        .all()
+    )
+
+    # Nếu nhóm chỉ còn 1 thành viên (người rời nhóm là thành viên cuối cùng) => Xóa nhóm
+    if len(group_members) == 1:
+        db.query(models.Message).filter(
+            models.Message.conversation_id == conversation_id
+        ).delete()
+        db.query(models.GroupMember).filter(
+            models.GroupMember.conversation_id == conversation_id
+        ).delete()
+        db.delete(group)
+        db.commit()
+        return {"message": "Nhóm đã bị xóa vì không còn thành viên nào."}
+
+    # Nếu người dùng là ADMIN, chọn thành viên đầu tiên làm admin mới
+    if user_in_group.role == "admin":
+        # Lấy thành viên đầu tiên trong danh sách (bỏ qua người đang thoát)
+        new_admin = next(
+            (
+                member
+                for member in group_members
+                if member.username != current_user.username
+            ),
+            None,
+        )
+
+        if new_admin:
+            new_admin.role = "admin"
+            db.commit()
+
+            # Thông báo cho admin mới
+            notification = models.Notification(
+                user_username=new_admin.username,
+                sender_username=None,
+                message=f"Bạn đã trở thành quản trị viên của nhóm '{group.name}' vì {current_user.username} đã rời nhóm.",
+                type="system",
+                related_id=group.conversation_id,
+                related_table="conversations",
+                created_at_UTC=datetime.now(timezone.utc),
+            )
+            db.add(notification)
+            db.commit()
+
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Không tìm thấy thành viên nào để chuyển quyền admin.",
+            )
+
+    else:  # Nếu người dùng là thành viên thường
+        # Tìm danh sách admin nhóm
+        admin_users = (
+            db.query(models.GroupMember.username)
+            .filter(
+                models.GroupMember.conversation_id == conversation_id,
+                models.GroupMember.role == "admin",
+            )
+            .all()
+        )
+
+        # Gửi thông báo cho tất cả admin rằng thành viên đã rời nhóm
+        notifications = [
+            models.Notification(
+                user_username=admin.username,
+                sender_username=None,
+                message=f"{current_user.username} đã rời khỏi nhóm '{group.name}'.",
+                type="system",
+                related_id=group.conversation_id,
+                related_table="conversations",
+                created_at_UTC=datetime.now(timezone.utc),
+            )
+            for admin in admin_users
+        ]
+        db.add_all(notifications)
+        db.commit()
+
+    # Xóa người dùng khỏi nhóm
+    db.query(models.GroupMember).filter(
+        models.GroupMember.conversation_id == conversation_id,
+        models.GroupMember.username == current_user.username,
+    ).delete()
+    db.commit()
+
+    return {"message": f"{current_user.username} đã rời khỏi nhóm '{group.name}'."}

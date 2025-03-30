@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy.orm import Session
-from database import get_db
 import models
-from routers.users import get_current_user
 import schemas
+from database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query
 from routers.untils import update_last_active_dependency
+from routers.users import get_current_user
+from sqlalchemy.orm import Session
 
 notifications_router = APIRouter(prefix="/noti", tags=["Notifications"])
 
@@ -133,7 +133,6 @@ def mark_notifications_as_unread(
 
 @notifications_router.delete(
     "/{notification_id}",
-    response_model=schemas.NotificationBase,
     dependencies=[Depends(update_last_active_dependency)],
 )
 def delete_notification(

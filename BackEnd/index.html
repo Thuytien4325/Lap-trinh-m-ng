@@ -1,85 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reset Password</title>
+    <title>Quản lý Báo cáo</title>
   </head>
   <body>
-    <h2>Reset Your Password</h2>
-    <form id="resetForm">
-      <label for="newPassword">New Password:</label>
-      <input type="password" id="newPassword" required />
-      <button type="submit">Reset Password</button>
-    </form>
+    <h2>Danh sách Báo cáo</h2>
+    <ul id="report-list"></ul>
 
     <script>
-      async function getTokenFromServer() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const resetId = urlParams.get('reset_id');
+      const reportList = document.getElementById('report-list');
 
-        if (!resetId) {
-          alert('Reset link không hợp lệ!');
-          return;
-        }
-
-        try {
-          const response = await fetch(
-            `http://127.0.0.1:6569/auth/validate-reset?reset_id=${resetId}`
-          );
-          const data = await response.json();
-
-          if (response.ok) {
-            localStorage.setItem('reset_token', data.token);
-            console.log('Token lưu vào localStorage:', data.token);
-          } else {
-            alert(data.detail);
-          }
-        } catch (error) {
-          console.error('Lỗi:', error);
-          alert('Đã xảy ra lỗi!');
-        }
+      function addReportToList(report) {
+        const item = document.createElement('li');
+        item.innerText = `[${report.status.toUpperCase()}] ${
+          report.report_type
+        } - ${report.title || 'Không có tiêu đề'}`;
+        reportList.prepend(item);
       }
 
-      getTokenFromServer();
-
-      document
-        .getElementById('resetForm')
-        .addEventListener('submit', async function (event) {
-          event.preventDefault();
-
-          const token = localStorage.getItem('reset_token');
-          const newPassword = document.getElementById('newPassword').value;
-
-          if (!token) {
-            alert('Không tìm thấy token!');
-            return;
+      async function fetchReports() {
+        const response = await fetch(
+          'http://127.0.0.1:8000/admin/get-reports?is_pending=true&is_in_progress=true&is_resolved=true',
+          {
+            method: 'GET',
+            headers: {
+              Authorization:
+                'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOjEsImV4cCI6MTc0MzMzMDE3OX0.ut2BWa_F5Q6zAEa9qgV-o9J_SVp_kUnI98660o4IY7w',
+              'Content-Type': 'application/json',
+            },
           }
+        );
+        if (!response.ok) {
+          console.error('Lỗi khi tải danh sách báo cáo!');
+          return;
+        }
+        const reports = await response.json();
+        reportList.innerHTML = '';
+        reports.forEach(addReportToList);
+      }
 
-          try {
-            const response = await fetch(
-              'http://127.0.0.1:6569/auth/reset-password',
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ token, new_password: newPassword }),
-              }
-            );
+      function connectWebSocket() {
+        const socket = new WebSocket('ws://127.0.0.1:8000/ws/reports');
 
-            const data = await response.json();
-            if (response.ok) {
-              alert('Mật khẩu đã được đặt lại thành công!');
-              localStorage.removeItem('reset_token');
-            } else {
-              alert('Lỗi: ' + data.detail);
-            }
-          } catch (error) {
-            console.error('Error:', error);
-            alert('Đã xảy ra lỗi!');
+        socket.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.message === 'new_report') {
+            addReportToList(data.report);
           }
-        });
+        };
+
+        socket.onclose = () => {
+          console.warn('WebSocket đóng. Đang thử kết nối lại...');
+          setTimeout(connectWebSocket, 3000);
+        };
+      }
+
+      fetchReports(); // Tải báo cáo ban đầu
+      connectWebSocket(); // Kết nối WebSocket
     </script>
   </body>
 </html>

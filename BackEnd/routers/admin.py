@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy.orm import Session
-from database import get_db
-from models import User, Conversation, GroupMember, Report, Notification
+import os
+from datetime import datetime, timedelta, timezone
+from typing import List
+
 import models
+from database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query
+from models import Conversation, GroupMember, Notification, Report, User
 from routers.untils import get_admin_user, update_last_active_dependency
 from schemas import AdminUserResponse, ConversationResponse
-from typing import List
-from datetime import datetime, timezone, timedelta
-import os
+from sqlalchemy.orm import Session
 
 # Tạo router cho admin
 admin_router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -371,155 +372,314 @@ BAN_DURATIONS = [0, 5, 15, 30, 60]
 
 @admin_router.post("/send-warning")
 def send_warning(
-    report_id: int = Query(..., description="ID của báo cáo"),
+    id: int = Query(..., description="ID của report, user hoặc group"),
+    id_type: str = Query(..., description="Loại ID: 'report', 'user', 'group'"),
     reason: str = Query(..., description="Lý do gửi cảnh báo"),
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
-    report = db.query(Report).filter(Report.report_id == report_id).first()
+    try:
+        is_report = False
 
-    if not report:
-        raise HTTPException(status_code=404, detail="Report không tồn tại!")
+        # 🔹 Xác định target_id và target_type
+        if id_type == "report":
+            report = (
+                db.query(models.Report).filter(models.Report.report_id == id).first()
+            )
+            if not report:
+                raise HTTPException(status_code=404, detail="Report không tồn tại!")
+            if report.report_type == "bug":
+                raise HTTPException(
+                    status_code=400, detail="Không thể cảnh báo lỗi bug!"
+                )
+            if report.status == "resolved":
+                raise HTTPException(
+                    status_code=400, detail="Báo cáo đã được xử lý trước đó!"
+                )
+            target_id = report.target_id
+            target_type = report.target_table  # "users" hoặc "groups"
+            if target_type == "conversations":
+                target_type = "groups"
+            is_report = True
 
-    if report.report_type == "bug":
-        raise HTTPException(
-            status_code=400, detail="Không thể gửi cảnh báo cho báo cáo loại 'bug'!"
+        elif id_type == "user":
+            user = db.query(models.User).filter(models.User.user_id == id).first()
+            if not user:
+                raise HTTPException(status_code=404, detail="Người dùng không tồn tại!")
+            if user.is_admin:
+                raise HTTPException(status_code=403, detail="Không thể ban admin!")
+
+            target_id = user.user_id
+            target_type = "users"
+
+        elif id_type == "group":
+            conversation = (
+                db.query(models.Conversation)
+                .filter(
+                    models.Conversation.conversation_id == id,
+                    models.Conversation.type == "group",
+                )
+                .first()
+            )
+            if not conversation:
+                raise HTTPException(status_code=404, detail="Nhóm không tồn tại!")
+            target_id = conversation.conversation_id
+            target_type = "groups"
+
+        else:
+            raise HTTPException(status_code=400, detail="Loại ID không hợp lệ!")
+
+        # 🔹 Kiểm tra xem warning đã tồn tại chưa
+        existing_warning = (
+            db.query(models.Warning)
+            .filter(
+                models.Warning.target_id == target_id,
+                models.Warning.target_type == target_type,
+            )
+            .first()
         )
+        now_utc = datetime.now(timezone.utc)
+        if existing_warning:
+            ban_end_time = existing_warning.created_at_UTC.replace(
+                tzinfo=timezone.utc
+            ) + timedelta(minutes=existing_warning.ban_duration)
+            if now_utc < ban_end_time:
+                raise HTTPException(status_code=404, detail="Lệnh cấm vẫn còn tồn tại!")
 
-    target_id = report.target_id
+            # Nếu đã có warning, tăng số lần bị ban và cập nhật thời gian
+            existing_warning.ban_count += 1
+            index = min(
+                existing_warning.ban_count - 1, len(BAN_DURATIONS) - 1
+            )  # Tránh vượt mảng
+            existing_warning.ban_duration = BAN_DURATIONS[index]  # Cập nhật mức ban mới
+            existing_warning.created_at_UTC = datetime.now(
+                timezone.utc
+            )  # Cập nhật thời gian ban mới
+            existing_warning.reason = reason  # Cập nhật lý do mới nhất
+            db.commit()
+            db.refresh(existing_warning)
+            ban_count = existing_warning.ban_count
+            ban_duration = existing_warning.ban_duration
+        else:
+            # Nếu chưa có warning, tạo mới
+            ban_count = 1
+            ban_duration = BAN_DURATIONS[0]  # Ban mức thấp nhất
 
-    db.query(models.Report).filter(
-        models.Report.target_id == target_id,
-        models.Report.status != "resolved",
-    ).update({"status": "resolved", "updated_at_UTC": datetime.now(timezone.utc)})
+            new_warning = models.Warning(
+                target_type=target_type,
+                target_id=target_id,
+                reason=reason,
+                ban_duration=ban_duration,
+                ban_count=ban_count,
+                created_at_UTC=datetime.now(timezone.utc),
+            )
+            db.add(new_warning)
+            db.commit()
+            db.refresh(new_warning)
 
-    target_id = report.target_id
-    target_type = report.target_table  # "users" hoặc "conversations"
-
-    # Chuyển đổi target_type nếu cần
-    if target_type == "conversations":
-        target_type = "groups"
-
-    # Kiểm tra nếu target là user, cần chuyển target_id từ username -> user_id
-    if target_type == "users":
-        user = db.query(User).filter(User.user_id == target_id).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="Người dùng không tồn tại!")
-
-    # Kiểm tra số lần vi phạm trước đó
-    previous_warnings = (
-        db.query(models.Warning)
-        .filter(
-            models.Warning.target_id == target_id,
-            models.Warning.target_type == target_type,
-        )
-        .count()
-    )
-
-    # Xác định thời gian ban hợp lệ
-    ban_duration = BAN_DURATIONS[min(previous_warnings, len(BAN_DURATIONS) - 1)]
-    assert ban_duration in BAN_DURATIONS, "Giá trị ban_duration không hợp lệ!"
-
-    # Tạo cảnh báo mới
-    new_warning = models.Warning(
-        target_type=target_type,
-        target_id=target_id,
-        reason=reason,
-        ban_duration=ban_duration,
-        created_at_UTC=datetime.now(timezone.utc),
-    )
-    db.add(new_warning)
-
-    # Gửi thông báo
-    notifications = []
-    if target_type == "users":
+        # 🔹 Gửi thông báo
+        notifications = []
         notification_message = (
             f"Bạn đã nhận được cảnh báo vì: {reason}."
             if ban_duration == 0
-            else f"Bạn bị cấm chat {ban_duration} phút do vi phạm!"
-        )
-        user = db.query(User).filter(User.user_id == report.target_id).first()
-        notifications.append(
-            Notification(
-                user_username=user.username,
-                sender_username=None,
-                message=notification_message,
-                type="warning",
-                related_id=new_warning.warning_id,
-                related_table="warnings",
-                created_at_UTC=datetime.now(timezone.utc),
-            )
+            else f"Bạn bị cấm chat {ban_duration} phút vì: {reason}!"
         )
 
-    elif target_type == "groups":
-        group = (
-            db.query(Conversation)
-            .filter(Conversation.conversation_id == target_id)
-            .first()
-        )
-        group_name = group.name if group else f"Nhóm {target_id}"
-
-        group_admins = (
-            db.query(GroupMember.username)
-            .filter(
-                GroupMember.conversation_id == target_id,
-                GroupMember.role == "admin",
-            )
-            .all()
-        )
-        group_admins = [admin[0] for admin in group_admins]
-
-        for admin in group_admins:
-            notification_message = (
-                f"Nhóm {group_name} đã nhận được cảnh báo vì: {reason}."
-                if ban_duration == 0
-                else f"Nhóm {group_name} có thể bị cấm chat {ban_duration} phút do vi phạm!"
+        if target_type == "users":
+            user = (
+                db.query(models.User).filter(models.User.user_id == target_id).first()
             )
             notifications.append(
-                Notification(
-                    user_username=admin,
+                models.Notification(
+                    user_username=user.username,
                     sender_username=None,
                     message=notification_message,
                     type="warning",
-                    related_id=new_warning.warning_id,
+                    related_id=(
+                        existing_warning.warning_id
+                        if existing_warning
+                        else new_warning.warning_id
+                    ),
                     related_table="warnings",
                     created_at_UTC=datetime.now(timezone.utc),
                 )
             )
 
-    db.add_all(notifications)
-    db.commit()
-
-    # Cập nhật trạng thái của report
-    db.query(models.Report).filter(
-        models.Report.target_id == target_id,
-        models.Report.status != "resolved",
-    ).update({"status": "resolved", "updated_at_UTC": datetime.now(timezone.utc)})
-    db.commit()
-
-    # Gửi thông báo đến tất cả những người đã gửi report trước đó
-    reporters = (
-        db.query(models.Report.reporter_username)
-        .filter(models.Report.target_id == target_id)
-        .distinct()
-        .all()
-    )
-    reporters = [r[0] for r in reporters]
-
-    for reporter in reporters:
-        notifications.append(
-            models.Notification(
-                user_username=reporter,
-                sender_username=None,
-                message=f"Báo cáo của bạn về '{report.report_type}' đã được xử lý.",
-                type="system",
-                related_id=report.report_id,
-                related_table="reports",
-                created_at_UTC=datetime.now(timezone.utc),
+        elif target_type == "groups":
+            group = (
+                db.query(models.Conversation)
+                .filter(models.Conversation.conversation_id == target_id)
+                .first()
             )
+            group_name = group.name if group else f"Nhóm {target_id}"
+            group_admins = (
+                db.query(models.GroupMember.username)
+                .filter(
+                    models.GroupMember.conversation_id == target_id,
+                    models.GroupMember.role == "admin",
+                )
+                .all()
+            )
+            group_admins = [admin[0] for admin in group_admins]
+
+            for admin in group_admins:
+                notifications.append(
+                    models.Notification(
+                        user_username=admin,
+                        sender_username=None,
+                        message=(
+                            f"Nhóm {group_name} bị cảnh báo: {reason}."
+                            if ban_duration == 0
+                            else f"Nhóm {group_name} bị cấm chat {ban_duration} phút vì: {reason}!"
+                        ),
+                        type="warning",
+                        related_id=(
+                            existing_warning.warning_id
+                            if existing_warning
+                            else new_warning.warning_id
+                        ),
+                        related_table="warnings",
+                        created_at_UTC=datetime.now(timezone.utc),
+                    )
+                )
+
+        db.add_all(notifications)
+        db.commit()
+
+        # 🔹 Cập nhật trạng thái report nếu có
+        if is_report:
+            db.query(models.Report).filter(
+                models.Report.target_id == target_id, models.Report.status != "resolved"
+            ).update(
+                {"status": "resolved", "updated_at_UTC": datetime.now(timezone.utc)}
+            )
+            db.commit()
+
+            # Gửi thông báo đến những người đã report
+            reporters = (
+                db.query(models.Report.reporter_username)
+                .filter(models.Report.target_id == target_id)
+                .distinct()
+                .all()
+            )
+            reporters = [r[0] for r in reporters]
+
+            report_notifications = [
+                models.Notification(
+                    user_username=reporter,
+                    sender_username=None,
+                    message=f"Báo cáo của bạn về '{report.report_type}' đã được xử lý.",
+                    type="system",
+                    related_id=report.report_id,
+                    related_table="reports",
+                    created_at_UTC=datetime.now(timezone.utc),
+                )
+                for reporter in reporters
+            ]
+            db.add_all(report_notifications)
+            db.commit()
+
+        return {
+            "message": "Cảnh báo đã được gửi thành công!",
+            "ban_duration": ban_duration,
+            "ban_count": ban_count,
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Lỗi xử lý: {str(e)}")
+
+
+@admin_router.post("/unban")
+def unban_target(
+    id: int = Query(..., description="ID của user hoặc group cần gỡ cấm"),
+    id_type: str = Query(..., description="Loại ID: 'user' hoặc 'group'"),
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    try:
+        # 🔹 Xác định loại mục tiêu
+        if id_type == "user":
+            target = db.query(models.User).filter(models.User.user_id == id).first()
+            target_type = "users"
+        elif id_type == "group":
+            target = (
+                db.query(models.Conversation)
+                .filter(
+                    models.Conversation.conversation_id == id,
+                    models.Conversation.type == "group",
+                )
+                .first()
+            )
+            target_type = "groups"
+        else:
+            raise HTTPException(status_code=400, detail="Loại ID không hợp lệ!")
+
+        if not target:
+            raise HTTPException(status_code=404, detail="Mục tiêu không tồn tại!")
+
+        # 🔹 Kiểm tra có lệnh cấm hay không
+        active_bans = (
+            db.query(models.Warning)
+            .filter(
+                models.Warning.target_id == id,
+                models.Warning.target_type == target_type,
+                models.Warning.ban_duration > 0,
+            )
+            .all()
         )
 
-    db.add_all(notifications)
-    db.commit()
+        if not active_bans:
+            raise HTTPException(status_code=400, detail="Không có lệnh cấm nào cần gỡ!")
 
-    return {"message": "Cảnh báo đã được gửi thành công!", "ban_duration": ban_duration}
+        # 🔹 Gỡ bỏ lệnh cấm (cập nhật `ban_duration = 0`)
+        for ban in active_bans:
+            ban.ban_duration = 0  # Gỡ cấm
+        db.commit()
+
+        # 🔹 Gửi thông báo về việc gỡ cấm
+        notifications = []
+        if target_type == "users":
+            notifications.append(
+                models.Notification(
+                    user_username=target.username,
+                    sender_username=None,
+                    message="Bạn đã được gỡ cấm và có thể tiếp tục chat.",
+                    type="system",
+                    related_id=target.user_id,
+                    related_table="users",
+                    created_at_UTC=datetime.now(timezone.utc),
+                )
+            )
+        elif target_type == "groups":
+            group_admins = (
+                db.query(models.GroupMember.username)
+                .filter(
+                    models.GroupMember.conversation_id == id,
+                    models.GroupMember.role == "admin",
+                )
+                .all()
+            )
+            group_admins = [admin[0] for admin in group_admins]
+
+            for admin in group_admins:
+                notifications.append(
+                    models.Notification(
+                        user_username=admin,
+                        sender_username=None,
+                        message=f"Nhóm {target.name} đã được gỡ cấm và có thể hoạt động trở lại.",
+                        type="system",
+                        related_id=target.conversation_id,
+                        related_table="groups",
+                        created_at_UTC=datetime.now(timezone.utc),
+                    )
+                )
+
+        db.add_all(notifications)
+        db.commit()
+
+        return {"message": "Đã gỡ cấm thành công!"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Lỗi xử lý: {str(e)}")

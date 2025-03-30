@@ -1,8 +1,7 @@
-from pydantic import BaseModel, EmailStr, Field, validator, UUID4
 from datetime import datetime
-from pydantic import BaseModel
-from typing import Optional
 from typing import List, Optional, Union
+
+from pydantic import UUID4, BaseModel, EmailStr, Field, validator
 
 
 # Schema xác thực người dùng
@@ -107,8 +106,6 @@ class MessageResponse(BaseModel):
 
 
 # Schema gửi kết bạn
-class FriendRequestCreate(BaseModel):
-    receiver_username: str
 
 
 class FriendRequestResponse(BaseModel):
@@ -134,10 +131,6 @@ class FriendResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-class FriendRemoveRequest(BaseModel):
-    friend_username: str
 
 
 # Thông báo

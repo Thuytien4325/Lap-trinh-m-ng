@@ -1,18 +1,19 @@
+from datetime import datetime
+
+from database import SessionLocal
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from datetime import datetime
-from database import SessionLocal
 from models import User
-from routers.untils import pwd_context
-from routers.auth import auth_router
-from routers.users import users_router
-from routers.messages import message_router
-from routers.friends_requests import friend_request_router
-from routers.friends import friends_router
-from routers.notifications import notifications_router
 from routers.admin import admin_router
+from routers.auth import auth_router
 from routers.conversations import conversation_router
+from routers.friends import friends_router
+from routers.friends_requests import friend_request_router
+from routers.messages import message_router
+from routers.notifications import notifications_router
+from routers.untils import pwd_context
+from routers.users import users_router
 
 
 def create_default_admin():

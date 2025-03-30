@@ -1,31 +1,31 @@
+import os
+from datetime import datetime, timedelta, timezone
+
+import models
+from database import get_db
+from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta, timezone
-from database import get_db
 from pydantic import EmailStr
-import models
-from schemas import (
-    UserCreate,
-    TokenSchema,
-    ResetPasswordConfirm,
-    UserResponse,
-    UserProfile,
-)
 from routers.untils import (
-    pwd_context,
+    ALGORITHM,
+    SECRET_KEY,
     create_access_token,
     create_refresh_token,
-    SECRET_KEY,
-    ALGORITHM,
-    send_reset_email,
-    hash_password,
     create_reset_token,
     decode_jwt_token,
+    hash_password,
+    pwd_context,
+    send_reset_email,
 )
-import os
-from dotenv import load_dotenv
-
+from schemas import (
+    ResetPasswordConfirm,
+    TokenSchema,
+    UserCreate,
+    UserProfile,
+    UserResponse,
+)
+from sqlalchemy.orm import Session
 
 # Load biến môi trường từ .env
 load_dotenv()
@@ -279,17 +279,3 @@ def reset_password_confirm(
         raise HTTPException(
             status_code=500, detail="Có lỗi xảy ra, vui lòng thử lại sau!"
         )
-
-
-@auth_router.get("/get-profile", response_model=UserProfile)
-def get_user_profile(username: str, db: Session = Depends(get_db)):
-    user = (
-        db.query(models.User)
-        .filter(models.User.username == username, models.User.is_admin == False)
-        .first()
-    )
-    if not user:
-        raise HTTPException(
-            status_code=404, detail="Người dùng không tồn tại hoặc là admin"
-        )
-    return user

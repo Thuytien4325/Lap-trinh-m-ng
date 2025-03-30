@@ -1,22 +1,23 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Enum,
-    ForeignKey,
-    Text,
-    TIMESTAMP,
-    UniqueConstraint,
-    CheckConstraint,
-    Boolean,
-    DateTime,
-)
-from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
-from database import Base
-from sqlalchemy.dialects.mysql import CHAR
 import hashlib
 import uuid
+
+from database import Base
+from sqlalchemy import (
+    TIMESTAMP,
+    Boolean,
+    CheckConstraint,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.mysql import CHAR
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 
 class User(Base):
@@ -269,6 +270,7 @@ class Warning(Base):
     target_id = Column(Integer, nullable=True)
     reason = Column(Text, nullable=False)
     ban_duration = Column(Integer, default=0)
+    ban_count = Column(Integer, default=1)
     created_at_UTC = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
