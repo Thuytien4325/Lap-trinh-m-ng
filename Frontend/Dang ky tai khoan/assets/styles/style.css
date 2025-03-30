@@ -14,7 +14,7 @@ body {
   padding-top: 100px;
   }
 
-/* Header */
+/* Header*/
 header {
   position: relative; 
   top: 0;
@@ -27,9 +27,10 @@ header {
   font-size: 2rem;
   min-height: 80px; 
   z-index: 1000;
+  border-radius: 10px;
 }
 .main-content {
-  margin-top: 20px; /* Tăng khoảng cách để logo và nội dung không dính nhau */
+  margin-top: 20px;
 }
 
 /* Logo căn trái */
@@ -48,7 +49,7 @@ header {
 /* Nút đăng nhập bên phải */
 #loginicon {
   position: absolute;
-  right: 40px; /* Đặt cách logo một khoảng */
+  right: 40px; 
   top: 50%;
   transform: translateY(-50%);
   font-size: 28px;
