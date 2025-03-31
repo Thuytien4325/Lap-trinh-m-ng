@@ -14,9 +14,13 @@ notifications_router = APIRouter(prefix="/noti", tags=["Notifications"])
     response_model=list[schemas.NotificationResponse],
     dependencies=[Depends(update_last_active_dependency)],
 )
-def get_notifications(
+async def get_notifications(
     unread_only: bool = Query(False, description="Chỉ lấy thông báo chưa đọc"),
     from_system: bool = Query(False, description="Chỉ lấy thông báo từ hệ thống"),
+    newest_first: bool = Query(
+        True,
+        description="Sắp xếp theo thời gian (True = mới nhất trước, False = cũ nhất trước)",
+    ),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -33,7 +37,11 @@ def get_notifications(
 
     if unread_only:
         query = query.filter(models.Notification.is_read == False)
-
+    query = query.order_by(
+        models.Notification.created_at_UTC.desc()
+        if newest_first
+        else models.Notification.created_at_UTC.asc()
+    )
     notifications = query.all()
     return notifications
 
@@ -43,7 +51,7 @@ def get_notifications(
     response_model=list[schemas.NotificationResponse],
     dependencies=[Depends(update_last_active_dependency)],
 )
-def mark_notifications_as_read(
+async def mark_notifications_as_read(
     notification_id: int | None = None,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -99,7 +107,7 @@ def mark_notifications_as_read(
     response_model=list[schemas.NotificationResponse],
     dependencies=[Depends(update_last_active_dependency)],
 )
-def mark_notifications_as_unread(
+async def mark_notifications_as_unread(
     notification_id: int | None = None,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -135,7 +143,7 @@ def mark_notifications_as_unread(
     "/{notification_id}",
     dependencies=[Depends(update_last_active_dependency)],
 )
-def delete_notification(
+async def delete_notification(
     notification_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(

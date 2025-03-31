@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pydantic import EmailStr
 from routers.auth import ALGORITHM, SECRET_KEY, oauth2_scheme
 from routers.untils import UPLOAD_DIR, get_current_user, update_last_active_dependency
+from routers.websocket import websocket_manager  # test
 from schemas import UserProfile, UserResponse
 from sqlalchemy.orm import Session
 
@@ -22,7 +23,7 @@ users_router = APIRouter(prefix="/users", tags=["User"])
     response_model=UserResponse,
     dependencies=[Depends(update_last_active_dependency)],
 )
-def get_user_info(current_user: models.User = Depends(get_current_user)):
+async def get_user_info(current_user: models.User = Depends(get_current_user)):
     return UserResponse(
         user_id=current_user.user_id,
         username=current_user.username,
@@ -39,7 +40,7 @@ def get_user_info(current_user: models.User = Depends(get_current_user)):
     response_model=List[UserProfile],
     dependencies=[Depends(update_last_active_dependency)],
 )
-def search_users(
+async def search_users(
     query: str = Query(..., description="Từ khóa tìm kiếm"),
     search_by_nickname: bool = Query(False, description="Tìm kiếm theo nickname"),
     db: Session = Depends(get_db),
@@ -69,7 +70,7 @@ def search_users(
 @users_router.post(
     "/upload-avatar", dependencies=[Depends(update_last_active_dependency)]
 )
-def upload_avatar(
+async def upload_avatar(
     file: UploadFile = File(...),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -111,7 +112,7 @@ def upload_avatar(
 
 # Cập nhật thông tin user
 @users_router.put("/update", dependencies=[Depends(update_last_active_dependency)])
-def update_user(
+async def update_user(
     nickname: str | None = None,
     email: EmailStr | None = None,
     current_user: models.User = Depends(get_current_user),
@@ -146,7 +147,7 @@ def update_user(
 
 
 @users_router.delete("/delete")
-def delete_user(
+async def delete_user(
     db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)
 ):
     """Xóa tài khoản"""
@@ -293,7 +294,7 @@ def delete_user(
 
 
 @users_router.post("/report", dependencies=[Depends(update_last_active_dependency)])
-def report(
+async def report(
     report_type: str = Query(
         ..., description="Loại báo cáo: 'user', 'group' hoặc 'bug'"
     ),
@@ -384,8 +385,27 @@ def report(
     db.commit()
     db.refresh(new_report)
 
+    await websocket_manager.notify_new_report(
+        report_id=new_report.report_id,  # ➜ Truyền ID của report
+        reporter_username=current_user.username,
+        report_type=report_type,
+        target_id=target_id if report_type in ["user", "group"] else None,
+        target_table=(
+            "users"
+            if report_type == "user"
+            else "conversations" if report_type == "group" else None
+        ),
+        description=description,
+        title=title if report_type == "bug" else None,  # ➜ Truyền title nếu là bug
+        severity=(
+            severity if report_type == "bug" else None
+        ),  # ➜ Truyền severity nếu là bug
+    )
+
     # Thông báo cho admin
     admin_users = db.query(models.User).filter(models.User.is_admin == True).all()
+    notifications = []
+
     for admin in admin_users:
         notification = models.Notification(
             user_username=admin.username,
@@ -397,8 +417,22 @@ def report(
             created_at_UTC=datetime.now(timezone.utc),
         )
         db.add(notification)
+        notifications.append(notification)
 
     db.commit()
+
+    # Gửi thông báo qua WebSocket
+    for notification in notifications:
+        db.refresh(notification)
+        await websocket_manager.send_notification(
+            noti_id=notification.id,
+            user_username=notification.user_username,
+            sender_username=notification.sender_username,
+            message=notification.message,
+            notification_type=notification.type,
+            related_id=notification.related_id,
+            related_table=notification.related_table,
+        )
 
     return {
         "message": "Báo cáo đã được gửi thành công.",
@@ -407,7 +441,7 @@ def report(
 
 
 @users_router.get("/my-reports", dependencies=[Depends(update_last_active_dependency)])
-def get_user_reports(
+async def get_user_reports(
     db: Session = Depends(get_db),
     is_pending: bool = Query(False, description="Xem các báo cáo chưa xử lý!"),
     is_in_progress: bool = Query(False, description="Xem các báo cáo đang xử lý!"),
@@ -452,7 +486,7 @@ def get_user_reports(
 
 
 @users_router.get("/check-ban", dependencies=[Depends(update_last_active_dependency)])
-def check_user_ban(
+async def check_user_ban(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

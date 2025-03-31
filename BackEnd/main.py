@@ -1,8 +1,9 @@
 from datetime import datetime
 
 from database import SessionLocal
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from models import User
 from routers.admin import admin_router
@@ -14,6 +15,7 @@ from routers.messages import message_router
 from routers.notifications import notifications_router
 from routers.untils import pwd_context
 from routers.users import users_router
+from routers.websocket import websocket_manager
 
 
 def create_default_admin():
@@ -69,6 +71,33 @@ app.include_router(friend_request_router)
 app.include_router(friends_router)
 app.include_router(notifications_router)
 app.include_router(admin_router)
+
+
+# WebSocket Endpoint
+@app.websocket("/ws/{user_type}/{username}")
+async def websocket_endpoint(websocket: WebSocket, user_type: str, username: str):
+    """Endpoint WebSocket để kết nối user hoặc admin"""
+    await websocket_manager.connect(websocket, user_type, username)
+    try:
+        while True:
+            await websocket.receive_text()  # Lắng nghe tin nhắn (không làm gì)
+    except WebSocketDisconnect:
+        websocket_manager.disconnect(websocket, user_type, username)
+
+
+@app.get("/ws/active-connections")
+async def get_active_connections():
+    """Trả về danh sách các kết nối WebSocket đang hoạt động"""
+    active_users = list(websocket_manager.active_connections["user"].keys())
+    active_admins = len(websocket_manager.active_connections["admin"])  # Đếm số admin
+
+    return JSONResponse(
+        content={
+            "active_users": active_users,
+            "active_admins": active_admins,
+        }
+    )
+
 
 # Cho phép truy cập file tĩnh (uploads)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

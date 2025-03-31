@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thông báo của tôi</title>
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f4f4f4;
+      }
+      tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>🔔 Thông báo của bạn</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nội dung</th>
+          <th>Ngày tạo</th>
+        </tr>
+      </thead>
+      <tbody id="notifications-table-body"></tbody>
+    </table>
+
+    <script>
+      const API_URL_ME = 'http://127.0.0.1:8000/users/me';
+      const API_URL_NOTIFICATIONS =
+        'http://127.0.0.1:8000/noti/?unread_only=false&from_system=false&newest_first=false';
+      const ACCESS_TOKEN =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwidXNlcl9pZCI6NiwiZXhwIjoxNzQzMzk0NzI4fQ.ZsiH8Fhtul-yDqCDkyuqmaV9shNajmniQH6HpIZoGS8';
+      let username = '';
+
+      function formatDate(isoString) {
+        if (!isoString) return 'N/A';
+        const date = new Date(isoString);
+        return date.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+      }
+
+      function updateNotificationsTable(notification) {
+        const tableBody = document.getElementById('notifications-table-body');
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${notification.id}</td>
+          <td>${notification.message}</td>
+          <td>${formatDate(notification.created_at_UTC)}</td>`;
+        tableBody.prepend(row);
+      }
+
+      async function fetchUserAndConnectWS() {
+        try {
+          const response = await fetch(API_URL_ME, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
+          });
+          if (!response.ok) throw new Error('Lỗi khi lấy thông tin user');
+          const userData = await response.json();
+          username = userData.username;
+          connectWebSocket(username);
+        } catch (error) {
+          console.error('❌ Lỗi API users/me:', error.message);
+        }
+      }
+
+      function connectWebSocket(username) {
+        const ws = new WebSocket(
+          `ws://localhost:8000/ws/user/${username}?token=${ACCESS_TOKEN}`
+        );
+        ws.onopen = () => console.log('✅ WebSocket connected');
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          alert('🔔 Bạn có thông báo mới!');
+          updateNotificationsTable(data);
+        };
+        ws.onclose = () => setTimeout(() => connectWebSocket(username), 5000);
+      }
+
+      async function fetchNotifications() {
+        try {
+          const response = await fetch(API_URL_NOTIFICATIONS, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
+          });
+          if (!response.ok) throw new Error('Lỗi tải thông báo');
+          const data = await response.json();
+          data.forEach(updateNotificationsTable);
+        } catch (error) {
+          console.error('❌ Lỗi khi gọi API thông báo:', error.message);
+        }
+      }
+
+      fetchUserAndConnectWS();
+      fetchNotifications();
+    </script>
+  </body>
+</html>

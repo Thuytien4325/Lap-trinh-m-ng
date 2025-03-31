@@ -1,64 +1,168 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quản lý Báo cáo</title>
+    <title>Danh sách báo cáo & Thông báo</title>
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f4f4f4;
+      }
+      tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+    </style>
   </head>
   <body>
-    <h2>Danh sách Báo cáo</h2>
-    <ul id="report-list"></ul>
+    <h2>📢 Danh sách Báo cáo</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Loại</th>
+          <th>Người báo cáo</th>
+          <th>Mô tả</th>
+          <th>Tiêu đề</th>
+          <th>Mức độ</th>
+          <th>Ngày tạo</th>
+        </tr>
+      </thead>
+      <tbody id="reports-table-body"></tbody>
+    </table>
+
+    <h2>🔔 Danh sách Thông báo</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nội dung</th>
+          <th>Ngày tạo</th>
+        </tr>
+      </thead>
+      <tbody id="notifications-table-body"></tbody>
+    </table>
 
     <script>
-      const reportList = document.getElementById('report-list');
+      const API_URL_REPORTS =
+        'http://127.0.0.1:8000/admin/get-reports?is_pending=false&is_in_progress=false&is_resolved=false&newest_first=false';
+      const API_URL_NOTIFICATIONS =
+        'http://127.0.0.1:8000/noti/?unread_only=false&from_system=false&newest_first=false';
+      const ACCESS_TOKEN =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOjEsImV4cCI6MTc0MzM5Mzk5OX0.GZrWBA9oN-MKH9UUY6hNsa4x8mq90ooMz74vAzKXDig';
 
-      function addReportToList(report) {
-        const item = document.createElement('li');
-        item.innerText = `[${report.status.toUpperCase()}] ${
-          report.report_type
-        } - ${report.title || 'Không có tiêu đề'}`;
-        reportList.prepend(item);
+      function formatDate(isoString) {
+        if (!isoString) return 'N/A';
+        const date = new Date(isoString);
+        return date.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
       }
 
-      async function fetchReports() {
-        const response = await fetch(
-          'http://127.0.0.1:8000/admin/get-reports?is_pending=true&is_in_progress=true&is_resolved=true',
-          {
+      async function fetchData(apiUrl, tableBodyId, processData) {
+        try {
+          const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
-              Authorization:
-                'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOjEsImV4cCI6MTc0MzMzMDE3OX0.ut2BWa_F5Q6zAEa9qgV-o9J_SVp_kUnI98660o4IY7w',
+              Authorization: `Bearer ${ACCESS_TOKEN}`,
               'Content-Type': 'application/json',
             },
-          }
-        );
-        if (!response.ok) {
-          console.error('Lỗi khi tải danh sách báo cáo!');
-          return;
+          });
+          if (!response.ok) throw new Error('Lỗi tải dữ liệu');
+          const data = await response.json();
+          document.getElementById(tableBodyId).innerHTML = '';
+          data.forEach((item) => processData(item));
+        } catch (error) {
+          console.error(`❌ Lỗi khi gọi API: ${error.message}`);
         }
-        const reports = await response.json();
-        reportList.innerHTML = '';
-        reports.forEach(addReportToList);
       }
 
-      function connectWebSocket() {
-        const socket = new WebSocket('ws://127.0.0.1:8000/ws/reports');
+      function updateTable(tableBodyId, content) {
+        const tableBody = document.getElementById(tableBodyId);
+        const row = document.createElement('tr');
+        row.innerHTML = content;
+        tableBody.prepend(row);
+        while (tableBody.rows.length > 5) {
+          tableBody.deleteRow(5);
+        }
+      }
 
-        socket.onmessage = (event) => {
+      function updateReportsTable(report) {
+        updateTable(
+          'reports-table-body',
+          `
+          <td>${report.report_id}</td>
+          <td>${report.report_type.toUpperCase()}</td>
+          <td>${report.reporter_username}</td>
+          <td>${report.description}</td>
+          <td>${report.title || 'N/A'}</td>
+          <td>${report.severity || 'N/A'}</td>
+          <td>${formatDate(report.created_at)}</td>`
+        );
+      }
+
+      function updateNotificationsTable(notification) {
+        updateTable(
+          'notifications-table-body',
+          `
+          <td>${notification.id}</td>
+          <td>${notification.message}</td>
+          <td>${formatDate(notification.created_at_UTC)}</td>`
+        );
+      }
+
+      async function getUsername() {
+        try {
+          const response = await fetch('http://127.0.0.1:8000/users/me', {
+            headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
+          });
+          if (!response.ok) throw new Error('Không thể lấy thông tin user');
+          const user = await response.json();
+          return user.username;
+        } catch (error) {
+          console.error('❌ Lỗi khi lấy username:', error);
+          return null;
+        }
+      }
+
+      function connectWebSocket(username) {
+        const ws = new WebSocket(
+          `ws://localhost:8000/ws/admin/${username}?token=${ACCESS_TOKEN}`
+        );
+        ws.onopen = () => console.log('✅ WebSocket connected');
+        ws.onmessage = (event) => {
           const data = JSON.parse(event.data);
-          if (data.message === 'new_report') {
-            addReportToList(data.report);
-          }
+          alert('🔔 Bạn có thông báo mới!');
+          if (data.report_id) updateReportsTable(data);
+          else updateNotificationsTable(data);
         };
-
-        socket.onclose = () => {
-          console.warn('WebSocket đóng. Đang thử kết nối lại...');
-          setTimeout(connectWebSocket, 3000);
-        };
+        ws.onclose = () => setTimeout(() => connectWebSocket(username), 5000);
       }
 
-      fetchReports(); // Tải báo cáo ban đầu
-      connectWebSocket(); // Kết nối WebSocket
+      async function initWebSocket() {
+        const username = await getUsername();
+        if (username) {
+          connectWebSocket(username);
+        } else {
+          console.error('Không thể kết nối WebSocket vì thiếu username');
+        }
+      }
+
+      fetchData(API_URL_REPORTS, 'reports-table-body', updateReportsTable);
+      fetchData(
+        API_URL_NOTIFICATIONS,
+        'notifications-table-body',
+        updateNotificationsTable
+      );
+      initWebSocket();
     </script>
   </body>
 </html>

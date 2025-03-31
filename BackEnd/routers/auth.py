@@ -18,6 +18,7 @@ from routers.untils import (
     pwd_context,
     send_reset_email,
 )
+from routers.websocket import websocket_manager
 from schemas import (
     ResetPasswordConfirm,
     TokenSchema,
@@ -45,7 +46,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 # Đăng ký người dùng
 @auth_router.post("/register", response_model=TokenSchema)
-def register(user: UserCreate, db: Session = Depends(get_db)):
+async def register(user: UserCreate, db: Session = Depends(get_db)):
     user.email = user.email.lower()
     db_user_email = (
         db.query(models.User).filter(models.User.email == user.email).first()
@@ -97,7 +98,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
 # Đăng nhập
 @auth_router.post("/login", response_model=TokenSchema)
-def login(
+async def login(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
     db_user = (
@@ -146,7 +147,7 @@ def login(
 
 # API refresh token
 @auth_router.post("/refresh-token", response_model=TokenSchema)
-def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
+async def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
     payload = decode_jwt_token(refresh_token)
     if not payload:
         raise HTTPException(status_code=401, detail="Refresh token không hợp lệ!")
@@ -192,7 +193,7 @@ def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
 
 
 @auth_router.post("/reset-password-request")
-def reset_password_request(email: EmailStr, db: Session = Depends(get_db)):
+async def reset_password_request(email: EmailStr, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="Không tìm thấy người dùng!")
@@ -213,7 +214,7 @@ def reset_password_request(email: EmailStr, db: Session = Depends(get_db)):
 
 
 @auth_router.post("/reset-password-confirm")
-def reset_password_confirm(
+async def reset_password_confirm(
     request: ResetPasswordConfirm, db: Session = Depends(get_db)
 ):
     reset_entry = (
@@ -268,6 +269,16 @@ def reset_password_confirm(
 
         db.add(new_notification)
         db.commit()
+
+        await websocket_manager.send_notification(
+            noti_id=new_notification.id,
+            user_username=new_notification.user_username,
+            sender_username=new_notification.sender_username,
+            message=new_notification.message,
+            notification_type=new_notification.type,
+            related_id=new_notification.related_id,
+            related_table=new_notification.related_table,
+        )
 
         # Xóa reset token sau khi đã cập nhật thành công
         db.delete(reset_entry)
