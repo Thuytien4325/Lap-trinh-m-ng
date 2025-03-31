@@ -14,7 +14,7 @@ friend_request_router = APIRouter(prefix="/friend-requests", tags=["Friend Reque
 @friend_request_router.get(
     "/status", dependencies=[Depends(update_last_active_dependency)]
 )
-def get_friend_status(
+async def get_friend_status(
     username: str,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -93,7 +93,7 @@ def get_friend_status(
     response_model=schemas.FriendRequestResponse,
     dependencies=[Depends(update_last_active_dependency)],
 )
-def send_friend_request(
+async def send_friend_request(
     receiver_username: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -205,7 +205,7 @@ def send_friend_request(
 @friend_request_router.post(
     "/accept", dependencies=[Depends(update_last_active_dependency)]
 )
-def accept_friend_request(
+async def accept_friend_request(
     request_id: int,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -273,7 +273,7 @@ def accept_friend_request(
 @friend_request_router.post(
     "/reject", dependencies=[Depends(update_last_active_dependency)]
 )
-def reject_friend_request(
+async def reject_friend_request(
     request_id: int,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -326,7 +326,7 @@ def reject_friend_request(
     response_model=list[schemas.FriendRequestResponse],
     dependencies=[Depends(update_last_active_dependency)],
 )
-def get_received_friend_requests(
+async def get_received_friend_requests(
     current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Lấy danh sách lời mời kết bạn đã nhận"""
@@ -369,7 +369,7 @@ def get_received_friend_requests(
     response_model=list[schemas.FriendRequestResponse],
     dependencies=[Depends(update_last_active_dependency)],
 )
-def get_sent_friend_requests(
+async def get_sent_friend_requests(
     current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Lấy danh sách lời mời kết bạn đã gửi"""
@@ -415,7 +415,7 @@ def get_sent_friend_requests(
 @friend_request_router.delete(
     "/delete", dependencies=[Depends(update_last_active_dependency)]
 )
-def delete_friend_request(
+async def delete_friend_request(
     request_id: int,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),

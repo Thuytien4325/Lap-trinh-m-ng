@@ -18,7 +18,7 @@ conversation_router = APIRouter(prefix="/conversations", tags=["Conversations"])
     response_model=ConversationResponse,
     dependencies=[Depends(update_last_active_dependency)],
 )
-def create_conversation(
+async def create_conversation(
     type: str = Query(..., description="Loại cuộc hội thoại: private hoặc group"),
     username: Optional[List[str]] = Query(
         None, description="Danh sách thành viên (bắt buộc nếu là private)"
@@ -235,7 +235,7 @@ def create_conversation(
     response_model=list[ConversationResponse],
     dependencies=[Depends(update_last_active_dependency)],
 )
-def add_to_group(
+async def add_to_group(
     group_id: int,
     new_member_username: str,
     db: Session = Depends(get_db),
@@ -363,7 +363,7 @@ def add_to_group(
     response_model=list[ConversationResponse],
     dependencies=[Depends(update_last_active_dependency)],
 )
-def get_conversations(
+async def get_conversations(
     db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)
 ):
     conversations = (
@@ -416,7 +416,7 @@ def get_conversations(
     status_code=200,
     dependencies=[Depends(update_last_active_dependency)],
 )
-def delete_conversation(
+async def delete_conversation(
     conversation_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -502,7 +502,7 @@ def delete_conversation(
 @conversation_router.get(
     "/check-ban-group", dependencies=[Depends(update_last_active_dependency)]
 )
-def check_group_ban(
+async def check_group_ban(
     conversation_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -566,7 +566,7 @@ def check_group_ban(
 @conversation_router.post(
     "/leave-group", dependencies=[Depends(update_last_active_dependency)]
 )
-def leave_group(
+async def leave_group(
     conversation_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),

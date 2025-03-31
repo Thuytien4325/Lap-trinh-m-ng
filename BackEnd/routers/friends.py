@@ -14,7 +14,7 @@ friends_router = APIRouter(prefix="/friends", tags=["Friends"])
     response_model=list[schemas.FriendResponse],
     dependencies=[Depends(update_last_active_dependency)],
 )
-def get_friends(
+async def get_friends(
     current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Lấy danh sách bạn bè hiện tại"""
@@ -42,7 +42,7 @@ def get_friends(
 
 
 @friends_router.post("/unfriend", dependencies=[Depends(update_last_active_dependency)])
-def unfriend(
+async def unfriend(
     friend_username: str,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -82,7 +82,7 @@ def unfriend(
 
 
 @friends_router.get("/mutual", dependencies=[Depends(update_last_active_dependency)])
-def get_mutual_friends(
+async def get_mutual_friends(
     username: str,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
