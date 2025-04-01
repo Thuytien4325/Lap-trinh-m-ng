@@ -6,85 +6,12 @@
     <title>Mini Chat</title>
     <link rel="stylesheet" href="chat.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <script>
-        function searchUser() {
-            let searchInput = document.querySelector('.search').value.toLowerCase();
-            let chatItems = document.querySelectorAll('.chat-item');
-    
-            chatItems.forEach(item => {
-                if (item.innerText.toLowerCase().includes(searchInput) && searchInput !== '') {
-                    openChat(item.innerText);
-                }
-            });
-        }
-        document.querySelector('.search').addEventListener('input', searchUser);
-    
-        function openChat(chatName) {
-            document.getElementById('chat-header').innerText = chatName;
-            document.getElementById('chat-content').innerHTML = <p>Đây là cuộc trò chuyện về <strong>${chatName}</strong></p>;
-        }
-
-        function sendMessage() {
-            let messageInput = document.querySelector('.chat-input');
-            let message = messageInput.value;
-            chatContent.scrollTop = chatContent.scrollHeight;
-            if (message.trim() !== '') {
-                let chatContent = document.getElementById('chat-content');
-                let newMessage = document.createElement('p');
-                newMessage.innerText = message;
-                chatContent.appendChild(newMessage);
-                messageInput.value = '';
-            }
-        }
-
-        function sendFile(event) {
-            const file = event.target.files[0];
-            if (file) {
-                let chatContent = document.getElementById('chat-content');
-                let fileLink = document.createElement('a');
-                fileLink.href = URL.createObjectURL(file);
-                fileLink.innerText = `Tệp: ${file.name}`;  // 
-                fileLink.download = file.name;
-                fileLink.target = "_blank";
-                chatContent.appendChild(fileLink);
-                chatContent.appendChild(document.createElement('br'));
-            }
-        }
-        function sendImage(event) {
-            const file = event.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    let chatContent = document.getElementById('chat-content');
-                    let img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.style.maxWidth = '200px';
-                    chatContent.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-
-
-        function uploadAvatar(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('avatar-img').src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-    </script>
 </head>
 
 <body>
     <div class="container">
         <aside class="sidebar">
-            <div class="profile">
-                               
+            <div class="profile"></div>
             <input type="text" class="search" placeholder="Tìm kiếm">
             <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 10px;">
                 <button onclick="addUser()" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 6px 10px; border-radius: 15px; border: none; cursor: pointer; transition: background 0.3s ease, transform 0.2s ease;">
@@ -121,5 +48,16 @@
             </div>
         </main>
     </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-icons">
+            <i class="fas fa-user"></i>
+            <i class="fas fa-comment-dots"></i>
+        </div>
+        <button class="logout-button" onclick="logout()" title="Đăng xuất">
+            <i class="fas fa-sign-out-alt"></i>
+        </button>
+    </footer>
 </body>
 </html>
