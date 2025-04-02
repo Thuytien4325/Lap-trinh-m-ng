@@ -112,12 +112,16 @@ async def update_user_and_avatar(
             except Exception as e:
                 print(f"Lỗi khi xóa avatar cũ: {e}")
 
-        file_path = f"{AVATARS_USER_DIR}/userID_{current_user.user_id}.{file_extension}"
-
+        # Lưu avatar vào thư mục với đường dẫn 'uploads/avatars/users/userID_2.jpg'
+        file_path = os.path.join(
+            AVATARS_USER_DIR, f"userID_{current_user.user_id}.{file_extension}"
+        )
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(avatar_file.file, buffer)
 
-        current_user.avatar = file_path
+        # Cập nhật lại avatar với đường dẫn đầy đủ
+        normalized_path = file_path.replace("\\", "/")
+        current_user.avatar = normalized_path
 
     db.commit()
     db.refresh(current_user)

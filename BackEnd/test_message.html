@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f4f4f4;
+      }
+      .chat-container {
+        width: 400px;
+        height: 500px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: white;
+        display: flex;
+        flex-direction: column-reverse;
+        overflow-y: auto;
+        padding: 10px;
+      }
+      .message {
+        padding: 8px 12px;
+        margin: 5px;
+        border-radius: 12px;
+        max-width: 70%;
+        word-wrap: break-word;
+      }
+      .sent {
+        align-self: flex-end;
+        background: #4caf50;
+        color: white;
+      }
+      .received {
+        align-self: flex-start;
+        background: #ddd;
+      }
+      .attachments {
+        margin-top: 5px;
+      }
+      .attachment {
+        margin-right: 10px;
+        max-width: 100px;
+        max-height: 100px;
+      }
+      .input-container {
+        display: flex;
+        margin-top: 10px;
+      }
+      input,
+      button {
+        padding: 10px;
+        font-size: 16px;
+      }
+      input {
+        flex: 1;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button {
+        margin-left: 5px;
+        background: #28a745;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class="chat-container" id="chat-box"></div>
+      <div class="input-container">
+        <input type="text" id="messageInput" placeholder="Nhập tin nhắn..." />
+        <button onclick="sendMessage()">Gửi</button>
+      </div>
+    </div>
+
+    <script>
+      const conversationId = 1; // Thay bằng ID thật
+      const chatBox = document.getElementById('chat-box');
+      const accessToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwidXNlcl9pZCI6MiwiZXhwIjoxNzQzNTgzOTE1fQ.7MPpY0aVYidMrV9jxo0uu8IL-kbmtzfz69zYIPkqcy8'; // 🔥 Token lấy sau khi đăng nhập
+
+      // 🟢 Lấy tin nhắn từ API
+      async function fetchMessages() {
+        try {
+          const response = await fetch(
+            `http://127.0.0.1:8000/messages/1/messages?limit=20&offset=0`,
+            {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`Lỗi: ${response.status}`);
+          }
+
+          const messages = await response.json();
+          renderMessages(messages);
+        } catch (error) {
+          console.error('Lỗi khi tải tin nhắn:', error);
+        }
+      }
+
+      // 🎨 Hiển thị tin nhắn lên giao diện
+      function renderMessages(messages) {
+        chatBox.innerHTML = ''; // Xóa nội dung cũ
+        messages.messages.reverse().forEach((msg) => {
+          const messageDiv = document.createElement('div');
+          messageDiv.classList.add(
+            'message',
+            msg.sender_id === 2 ? 'sent' : 'received'
+          ); // Giả sử ID 2 là người dùng hiện tại
+          messageDiv.textContent = msg.content;
+
+          // Hiển thị các tệp đính kèm (nếu có)
+          if (msg.attachments.length > 0) {
+            const attachmentsDiv = document.createElement('div');
+            attachmentsDiv.classList.add('attachments');
+
+            msg.attachments.forEach((attachment) => {
+              const fileElement = document.createElement('img');
+              fileElement.src = attachment.file_url;
+              fileElement.classList.add('attachment');
+              fileElement.alt = 'File đính kèm';
+              attachmentsDiv.appendChild(fileElement);
+            });
+
+            messageDiv.appendChild(attachmentsDiv);
+          }
+
+          chatBox.appendChild(messageDiv);
+        });
+      }
+
+      // 🚀 Gửi tin nhắn mới (Gửi token qua Header)
+      async function sendMessage() {
+        const messageInput = document.getElementById('messageInput');
+        const content = messageInput.value.trim();
+        if (!content) return;
+
+        try {
+          const response = await fetch(`http://127.0.0.1:8000/messages/`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              conversation_id: conversationId,
+              content: content,
+            }),
+          });
+
+          if (response.ok) {
+            messageInput.value = '';
+            fetchMessages(); // Cập nhật danh sách tin nhắn
+          } else {
+            console.error('Lỗi khi gửi tin nhắn:', await response.json());
+          }
+        } catch (error) {
+          console.error('Lỗi khi gửi tin nhắn:', error);
+        }
+      }
+
+      // 🔄 Load tin nhắn mỗi 3 giây
+      //   setInterval(fetchMessages, 3000);
+      fetchMessages();
+    </script>
+  </body>
+</html>
