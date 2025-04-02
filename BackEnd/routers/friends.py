@@ -10,7 +10,7 @@ friends_router = APIRouter(prefix="/friends", tags=["Friends"])
 
 
 @friends_router.get(
-    "/Get-friends",
+    "/friends",
     response_model=list[schemas.FriendResponse],
     dependencies=[Depends(update_last_active_dependency)],
 )
@@ -41,7 +41,9 @@ async def get_friends(
     ]
 
 
-@friends_router.post("/unfriend", dependencies=[Depends(update_last_active_dependency)])
+@friends_router.delete(
+    "/friends/{friend_username}", dependencies=[Depends(update_last_active_dependency)]
+)
 async def unfriend(
     friend_username: str,
     current_user: models.User = Depends(get_current_user),

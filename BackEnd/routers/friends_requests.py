@@ -89,7 +89,7 @@ async def get_friend_status(
 
 
 @friend_request_router.post(
-    "/send-request",
+    "/",
     response_model=schemas.FriendRequestResponse,
     dependencies=[Depends(update_last_active_dependency)],
 )
@@ -203,7 +203,7 @@ async def send_friend_request(
 
 
 @friend_request_router.post(
-    "/accept", dependencies=[Depends(update_last_active_dependency)]
+    "/{request_id}/accept", dependencies=[Depends(update_last_active_dependency)]
 )
 async def accept_friend_request(
     request_id: int,
@@ -271,7 +271,7 @@ async def accept_friend_request(
 
 
 @friend_request_router.post(
-    "/reject", dependencies=[Depends(update_last_active_dependency)]
+    "/{request_id}/reject", dependencies=[Depends(update_last_active_dependency)]
 )
 async def reject_friend_request(
     request_id: int,
@@ -413,7 +413,7 @@ async def get_sent_friend_requests(
 
 
 @friend_request_router.delete(
-    "/delete", dependencies=[Depends(update_last_active_dependency)]
+    "/{request_id}", dependencies=[Depends(update_last_active_dependency)]
 )
 async def delete_friend_request(
     request_id: int,

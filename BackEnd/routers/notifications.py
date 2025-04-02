@@ -6,7 +6,7 @@ from routers.untils import update_last_active_dependency
 from routers.users import get_current_user
 from sqlalchemy.orm import Session
 
-notifications_router = APIRouter(prefix="/noti", tags=["Notifications"])
+notifications_router = APIRouter(prefix="/notifications", tags=["Notifications"])
 
 
 @notifications_router.get(
@@ -47,94 +47,131 @@ async def get_notifications(
 
 
 @notifications_router.post(
-    "/mark-as-read",
-    response_model=list[schemas.NotificationResponse],
+    "/{notification_id}/read",
+    response_model=schemas.NotificationResponse,
     dependencies=[Depends(update_last_active_dependency)],
 )
-async def mark_notifications_as_read(
-    notification_id: int | None = None,
+async def mark_notification_as_read(
+    notification_id: int,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Đánh dấu đã xem một (nhập id) hoặc tất cả thông báo (để trống)"""
+    """Đánh dấu thông báo là đã đọc"""
 
-    if notification_id:
-        # Đánh dấu một thông báo
-        notification = (
-            db.query(models.Notification)
-            .filter(
-                models.Notification.id == notification_id,
-                models.Notification.user_username == current_user.username,
-            )
-            .first()
+    notification = (
+        db.query(models.Notification)
+        .filter(
+            models.Notification.id == notification_id,
+            models.Notification.user_username == current_user.username,
         )
+        .first()
+    )
 
-        if not notification:
-            raise HTTPException(status_code=404, detail="Thông báo không tồn tại")
+    if not notification:
+        raise HTTPException(status_code=404, detail="Thông báo không tồn tại")
 
-        notification.is_read = True
-        db.commit()
-        db.refresh(notification)
-        return [schemas.NotificationResponse.from_orm(notification)]
+    notification.is_read = True
+    db.commit()
+    db.refresh(notification)
 
-    else:
-        # Đánh dấu tất cả thông báo
-        notifications = (
-            db.query(models.Notification)
-            .filter(
-                models.Notification.user_username == current_user.username,
-                models.Notification.is_read == False,
-            )
-            .all()
-        )
-
-        if not notifications:
-            raise HTTPException(status_code=404, detail="Không có thông báo chưa đọc")
-
-        for notification in notifications:
-            notification.is_read = True
-
-        db.commit()
-
-        return [
-            schemas.NotificationResponse.from_orm(notification)
-            for notification in notifications
-        ]
+    return schemas.NotificationResponse.from_orm(notification)
 
 
 @notifications_router.post(
-    "/mark-as-unread",
-    response_model=list[schemas.NotificationResponse],
+    "/{notification_id}/unread",
+    response_model=schemas.NotificationResponse,
     dependencies=[Depends(update_last_active_dependency)],
 )
-async def mark_notifications_as_unread(
-    notification_id: int | None = None,
+async def mark_notification_as_unread(
+    notification_id: int,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Đánh dấu một (nhập id) hoặc tất cả thông báo (để trống) là chưa đọc"""
+    """Đánh dấu thông báo là chưa đọc"""
 
-    query = db.query(models.Notification).filter(
-        models.Notification.user_username == current_user.username,
-        models.Notification.is_read == True,
+    notification = (
+        db.query(models.Notification)
+        .filter(
+            models.Notification.id == notification_id,
+            models.Notification.user_username == current_user.username,
+        )
+        .first()
     )
 
-    if notification_id:
-        query = query.filter(models.Notification.id == notification_id)
+    if not notification:
+        raise HTTPException(status_code=404, detail="Thông báo không tồn tại")
 
-    notifications = query.all()
+    notification.is_read = False
+    db.commit()
+    db.refresh(notification)
+
+    return schemas.NotificationResponse.from_orm(notification)
+
+
+@notifications_router.post(
+    "/read",
+    response_model=list[schemas.NotificationResponse],
+    dependencies=[Depends(update_last_active_dependency)],
+)
+async def mark_all_notifications_as_read(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Đánh dấu tất cả thông báo là đã đọc"""
+
+    notifications = (
+        db.query(models.Notification)
+        .filter(
+            models.Notification.user_username == current_user.username,
+            models.Notification.is_read == False,
+        )
+        .all()
+    )
 
     if not notifications:
-        raise HTTPException(status_code=404, detail="Không tìm thấy thông báo phù hợp")
+        raise HTTPException(status_code=404, detail="Không có thông báo chưa đọc")
 
-    # Cập nhật trạng thái của thông báo
+    for notification in notifications:
+        notification.is_read = True
+
+    db.commit()
+
+    return [
+        schemas.NotificationResponse.from_orm(notification)
+        for notification in notifications
+    ]
+
+
+@notifications_router.post(
+    "/unread",
+    response_model=list[schemas.NotificationResponse],
+    dependencies=[Depends(update_last_active_dependency)],
+)
+async def mark_all_notifications_as_unread(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Đánh dấu tất cả thông báo là chưa đọc"""
+
+    notifications = (
+        db.query(models.Notification)
+        .filter(
+            models.Notification.user_username == current_user.username,
+            models.Notification.is_read == True,
+        )
+        .all()
+    )
+
+    if not notifications:
+        raise HTTPException(status_code=404, detail="Không tìm thấy thông báo đã đọc")
+
     for notification in notifications:
         notification.is_read = False
 
     db.commit()
 
     return [
-        schemas.NotificationResponse.model_validate(notification)
+        schemas.NotificationResponse.from_orm(notification)
         for notification in notifications
     ]
 

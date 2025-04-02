@@ -1,11 +1,17 @@
+import os
+import shutil
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Union
 
 import models
 from database import get_db
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from models import Conversation, GroupMember, Notification, User
-from routers.untils import get_current_user, update_last_active_dependency
+from routers.untils import (
+    AVATARS_GROUP_DIR,
+    get_current_user,
+    update_last_active_dependency,
+)
 from schemas import ConversationCreate, ConversationResponse
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
@@ -14,7 +20,7 @@ conversation_router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
 
 @conversation_router.post(
-    "/create-conversation",
+    "/",
     response_model=ConversationResponse,
     dependencies=[Depends(update_last_active_dependency)],
 )
@@ -83,6 +89,7 @@ async def create_conversation(
         new_conversation = Conversation(
             type="private",
             name=f"{current_user.username} & {recipient.username}",
+            avatar_url=None,
             created_at_UTC=datetime.now(timezone.utc),
         )
         db.add(new_conversation)
@@ -157,7 +164,12 @@ async def create_conversation(
         if existing_group:
             raise HTTPException(status_code=400, detail="Nhóm với tên này đã tồn tại.")
 
-        new_conversation = Conversation(type="group", name=name)
+        new_conversation = Conversation(
+            type="group",
+            name=name,
+            avatar_url=None,
+            created_at_UTC=datetime.now(timezone.utc),
+        )
         db.add(new_conversation)
         db.commit()
         db.refresh(new_conversation)
@@ -226,17 +238,19 @@ async def create_conversation(
         "conversation_id": new_conversation.conversation_id,
         "type": new_conversation.type,
         "name": new_conversation.name,
+        "avatar_url": new_conversation.avatar_url,
+        "created_at_UTC": new_conversation.created_at_UTC,
         "group_members": group_members,
     }
 
 
 @conversation_router.post(
-    "/add-to-group",
+    "/{conversation_id}/members",
     response_model=list[ConversationResponse],
     dependencies=[Depends(update_last_active_dependency)],
 )
 async def add_to_group(
-    group_id: int,
+    conversation_id: int,
     new_member_username: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -244,7 +258,7 @@ async def add_to_group(
     group = (
         db.query(models.Conversation)
         .filter(
-            models.Conversation.conversation_id == group_id,
+            models.Conversation.conversation_id == conversation_id,
             models.Conversation.type == "group",
         )
         .first()
@@ -255,7 +269,7 @@ async def add_to_group(
     existing_member = (
         db.query(models.GroupMember)
         .filter(
-            models.GroupMember.conversation_id == group_id,
+            models.GroupMember.conversation_id == conversation_id,
             models.GroupMember.username == current_user.username,
         )
         .first()
@@ -278,7 +292,7 @@ async def add_to_group(
     already_in_group = (
         db.query(models.GroupMember)
         .filter(
-            models.GroupMember.conversation_id == group_id,
+            models.GroupMember.conversation_id == conversation_id,
             models.GroupMember.username == new_member_username,
         )
         .first()
@@ -310,7 +324,7 @@ async def add_to_group(
         )
 
     new_group_member = models.GroupMember(
-        conversation_id=group_id,
+        conversation_id=conversation_id,
         username=new_member_username,
         role="member",
         joined_at_UTC=datetime.now(timezone.utc),
@@ -333,7 +347,7 @@ async def add_to_group(
     members = (
         db.query(models.GroupMember, models.User)
         .join(models.User, models.GroupMember.username == models.User.username)
-        .filter(models.GroupMember.conversation_id == group_id)
+        .filter(models.GroupMember.conversation_id == conversation_id)
         .all()
     )
 
@@ -342,6 +356,8 @@ async def add_to_group(
             "conversation_id": group.conversation_id,
             "type": group.type,
             "name": group.name,
+            "avatar_url": group.avatar_url,
+            "created_at_UTC": group.created_at_UTC,
             "group_members": [
                 {
                     "username": member.User.username,
@@ -359,7 +375,7 @@ async def add_to_group(
 
 # Lấy danh sách cuộc hội thoại
 @conversation_router.get(
-    "/get-conversations",
+    "/",
     response_model=list[ConversationResponse],
     dependencies=[Depends(update_last_active_dependency)],
 )
@@ -404,6 +420,8 @@ async def get_conversations(
                 "conversation_id": convo.conversation_id,
                 "type": convo.type,
                 "name": convo.name,
+                "avatar_url": convo.avatar_url,
+                "created_at_UTC": convo.created_at_UTC,
                 "group_members": group_members,
             }
         )
@@ -411,9 +429,289 @@ async def get_conversations(
     return conversation_list
 
 
+@conversation_router.get(
+    "/{conversation_id}",
+    response_model=ConversationResponse,
+    dependencies=[Depends(update_last_active_dependency)],
+)
+async def get_conversation(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    conversation = (
+        db.query(models.Conversation)
+        .filter(models.Conversation.conversation_id == conversation_id)
+        .join(models.GroupMember)
+        .filter(models.GroupMember.username == current_user.username)
+        .first()
+    )
+
+    if not conversation:
+        raise HTTPException(
+            status_code=404,
+            detail="Không tìm thấy cuộc hội thoại hoặc bạn không có quyền!",
+        )
+
+    # Lấy danh sách thành viên của nhóm
+    members = (
+        db.query(models.GroupMember, models.User)
+        .join(models.User, models.GroupMember.username == models.User.username)
+        .filter(models.GroupMember.conversation_id == conversation_id)
+        .all()
+    )
+
+    return {
+        "conversation_id": conversation.conversation_id,
+        "type": conversation.type,
+        "name": conversation.name,
+        "avatar_url": conversation.avatar_url,
+        "created_at_UTC": conversation.created_at_UTC,
+        "group_members": [
+            {
+                "username": member.User.username,
+                "avatar": member.User.avatar,
+                "nickname": member.User.nickname,
+                "role": member.GroupMember.role,
+            }
+            for member in members
+        ],
+    }
+
+
+@conversation_router.put(
+    "/{conversation_id}/group",
+    response_model=ConversationResponse,
+    dependencies=[Depends(update_last_active_dependency)],
+)
+async def update_group(
+    conversation_id: int,
+    name_group: str | None = None,
+    avatar_file: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    conversation = (
+        db.query(models.Conversation)
+        .filter(models.Conversation.conversation_id == conversation_id)
+        .join(models.GroupMember)
+        .filter(models.GroupMember.username == current_user.username)
+        .first()
+    )
+
+    if not conversation:
+        raise HTTPException(
+            status_code=404,
+            detail="Không tìm thấy cuộc hội thoại hoặc bạn không có quyền!",
+        )
+
+    if name_group:
+        conversation.name = name_group
+
+    if avatar_file:
+        file_extension = avatar_file.filename.split(".")[-1].lower()
+        if file_extension not in ["jpg", "jpeg", "png"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Định dạng ảnh không hợp lệ! (Chỉ chấp nhận jpg, jpeg, png)",
+            )
+
+        # Xóa avatar cũ nếu có
+        if conversation.avatar_url:
+            old_avatar_path = os.path.join(
+                AVATARS_GROUP_DIR, os.path.basename(conversation.avatar_url)
+            )
+            if os.path.exists(old_avatar_path):
+                os.remove(old_avatar_path)
+
+        # Lưu file mới với format
+        file_path = f"{AVATARS_GROUP_DIR}/groupID_{conversation_id}.{file_extension}"
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(avatar_file.file, buffer)
+
+        # Cập nhật avatar_url trong database
+        conversation.avatar_url = f"/{file_path}"
+
+    # Lưu thay đổi vào database
+    db.commit()
+    db.refresh(conversation)
+
+    members = (
+        db.query(models.GroupMember, models.User)
+        .join(models.User, models.GroupMember.username == models.User.username)
+        .filter(models.GroupMember.conversation_id == conversation_id)
+        .all()
+    )
+
+    return {
+        "conversation_id": conversation.conversation_id,
+        "type": conversation.type,
+        "name": conversation.name,
+        "avatar_url": conversation.avatar_url,
+        "created_at_UTC": conversation.created_at_UTC,
+        "group_members": [
+            {
+                "username": member.User.username,
+                "avatar": member.User.avatar,
+                "nickname": member.User.nickname,
+                "role": member.GroupMember.role,
+            }
+            for member in members
+        ],
+    }
+
+
+@conversation_router.delete("/{conversations_id}/members/{member_username}")
+async def remove_member_from_group(
+    conversations_id: int,
+    member_username: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Kiểm tra nếu cuộc hội thoại có tồn tại không
+    conversation = (
+        db.query(Conversation)
+        .filter(Conversation.conversation_id == conversations_id)
+        .first()
+    )
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Cuộc hội thoại không tồn tại.")
+
+    if conversation.type == "private":
+        raise HTTPException(
+            status_code=400,
+            detail="Không thể xóa thành viên trong cuộc trò chuyện riêng tư.",
+        )
+
+    # Kiểm tra quyền người dùng (chỉ admin mới có quyền xóa thành viên)
+    is_admin = (
+        db.query(models.GroupMember)
+        .filter(
+            models.GroupMember.conversation_id == conversations_id,
+            models.GroupMember.username == current_user.username,
+            models.GroupMember.role == "admin",
+        )
+        .first()
+    )
+
+    if not is_admin:
+        raise HTTPException(
+            status_code=403, detail="Chỉ quản trị viên mới có thể xóa nhóm."
+        )
+
+    if current_user.username == member_username:
+        raise HTTPException(
+            status_code=400, detail="Quản trị viên không thể xóa chính mình."
+        )
+
+    # Tìm thành viên trong nhóm
+    member = (
+        db.query(GroupMember)
+        .filter(
+            GroupMember.username == member_username,
+            GroupMember.conversation_id == conversations_id,
+        )
+        .first()
+    )
+    if not member:
+        raise HTTPException(
+            status_code=404, detail="Thành viên không tồn tại trong nhóm."
+        )
+
+    # Xóa thành viên khỏi nhóm
+    db.delete(member)
+    db.commit()
+
+    return {"message": f"Thành viên {member_username} đã bị xóa khỏi nhóm."}
+
+
+@conversation_router.put("/{conversation_id}/members/{member_username}/admin")
+async def assign_admin(
+    conversation_id: int,
+    member_username: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Kiểm tra nếu cuộc hội thoại có tồn tại không
+    conversation = (
+        db.query(Conversation)
+        .filter(Conversation.conversation_id == conversation_id)
+        .first()
+    )
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Cuộc hội thoại không tồn tại.")
+
+    if conversation.type == "private":
+        raise HTTPException(
+            status_code=400,
+            detail="Không thể chỉ định người dùng làm admin trong cuộc trò chuyện riêng tư",
+        )
+
+    # Kiểm tra quyền người dùng (chỉ admin mới có quyền chỉ định admin)
+    is_admin = (
+        db.query(models.GroupMember)
+        .filter(
+            models.GroupMember.conversation_id == conversation_id,
+            models.GroupMember.username == current_user.username,
+            models.GroupMember.role == "admin",
+        )
+        .first()
+    )
+
+    if not is_admin:
+        raise HTTPException(
+            status_code=403, detail="Chỉ quản trị viên mới có thể chỉ định admin."
+        )
+
+    if current_user.username == member_username:
+        raise HTTPException(
+            status_code=400, detail="Quản trị viên tự chỉ định chính mình."
+        )
+
+    # Tìm thành viên trong nhóm
+    member = (
+        db.query(GroupMember)
+        .filter(
+            GroupMember.username == member_username,
+            GroupMember.conversation_id == conversation_id,
+        )
+        .first()
+    )
+    if not member:
+        raise HTTPException(
+            status_code=404, detail="Thành viên không tồn tại trong nhóm."
+        )
+
+    current_admin = (
+        db.query(models.GroupMember)
+        .filter(
+            models.GroupMember.conversation_id == conversation_id,
+            models.GroupMember.role == "admin",
+        )
+        .first()
+    )
+
+    if current_admin and current_admin.username == current_user.username:
+
+        current_admin.role = "member"
+        db.add(current_admin)
+
+        member.role = "admin"
+        db.add(member)
+
+        db.commit()
+
+        return {
+            "message": f"Thành viên {member_username} đã được chỉ định làm admin và bạn trở thành member."
+        }
+
+    raise HTTPException(status_code=400, detail="Không thể thay đổi quyền admin.")
+
+
 @conversation_router.delete(
-    "/delete-conversation",
-    status_code=200,
+    "/{conversation_id}",
     dependencies=[Depends(update_last_active_dependency)],
 )
 async def delete_conversation(
@@ -500,7 +798,8 @@ async def delete_conversation(
 
 
 @conversation_router.get(
-    "/check-ban-group", dependencies=[Depends(update_last_active_dependency)]
+    "/{conversation_id}/ban-status",
+    dependencies=[Depends(update_last_active_dependency)],
 )
 async def check_group_ban(
     conversation_id: int,
@@ -564,7 +863,7 @@ async def check_group_ban(
 
 
 @conversation_router.post(
-    "/leave-group", dependencies=[Depends(update_last_active_dependency)]
+    "/{conversation_id}/leave", dependencies=[Depends(update_last_active_dependency)]
 )
 async def leave_group(
     conversation_id: int,

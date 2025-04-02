@@ -1,20 +1,20 @@
-import os
-import jwt
-import secrets
-import uuid
 import logging
+import os
+import secrets
 import smtplib
+import uuid
 from datetime import datetime, timedelta, timezone
-from passlib.context import CryptContext
-from dotenv import load_dotenv
-from fastapi import HTTPException, Depends, Security, status, Request
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
+import jwt
 import models
 from database import get_db
+from dotenv import load_dotenv
+from fastapi import Depends, HTTPException, Request, Security, status
+from fastapi.security import OAuth2PasswordBearer
+from passlib.context import CryptContext
+from sqlalchemy.orm import Session
 
 # Load biến môi trường từ .env
 load_dotenv()
@@ -36,23 +36,30 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 # Mã hóa mật khẩu
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
+
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(timezone.utc) + (
+        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 
 def create_refresh_token(data: dict) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode = data.copy()
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 
 def decode_jwt_token(token: str):
     try:
@@ -62,7 +69,10 @@ def decode_jwt_token(token: str):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token không hợp lệ!")
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+
+def get_current_user(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+):
     payload = decode_jwt_token(token)
     user_id = payload.get("user_id")
     if not user_id:
@@ -72,11 +82,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise HTTPException(status_code=401, detail="Người dùng không tồn tại")
     return user
 
+
 def get_admin_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     user = get_current_user(token, db)
     if not user.is_admin:
         raise HTTPException(status_code=403, detail="Bạn không có quyền admin!")
     return user
+
 
 def create_reset_token(db: Session, user_id: int):
     db.query(models.ResetToken).filter(models.ResetToken.user_id == user_id).delete()
@@ -87,15 +99,18 @@ def create_reset_token(db: Session, user_id: int):
         user_id=user_id,
         reset_uuid=reset_uuid,
         token_hash=token_hash,
-        expires_at_UTC=datetime.now(timezone.utc) + timedelta(minutes=5)
+        expires_at_UTC=datetime.now(timezone.utc) + timedelta(minutes=5),
     )
     db.add(reset_entry)
     db.commit()
     return reset_uuid
 
+
 def send_reset_email(to_email: str, reset_uuid: str):
     if not EMAIL_SENDER or not EMAIL_PASSWORD:
-        raise HTTPException(status_code=500, detail="Email sender credentials are missing!")
+        raise HTTPException(
+            status_code=500, detail="Email sender credentials are missing!"
+        )
     reset_link = f"http://your-frontend.com/reset-password?uuid={reset_uuid}"
     subject = "Reset your password"
     msg = MIMEMultipart()
@@ -121,6 +136,7 @@ def send_reset_email(to_email: str, reset_uuid: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 
+
 def update_last_active_dependency(request: Request, db: Session = Depends(get_db)):
     token = request.headers.get("Authorization")
     if token:
@@ -128,7 +144,9 @@ def update_last_active_dependency(request: Request, db: Session = Depends(get_db
         try:
             payload = decode_jwt_token(token)
             username = payload.get("sub")
-            user = db.query(models.User).filter(models.User.username == username).first()
+            user = (
+                db.query(models.User).filter(models.User.username == username).first()
+            )
             if user:
                 user.last_active_UTC = datetime.now(timezone.utc)
                 db.commit()
@@ -137,5 +155,13 @@ def update_last_active_dependency(request: Request, db: Session = Depends(get_db
             logging.error(f"Lỗi khi cập nhật last_active: {e}")
     return None
 
-UPLOAD_DIR = "uploads/avatars"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+UPLOAD_DIR = "uploads"
+AVATARS_USER_DIR = os.path.join(UPLOAD_DIR, "avatars", "users")
+AVATARS_GROUP_DIR = os.path.join(UPLOAD_DIR, "avatars", "groups")
+CONVERSATION_ATTACHMENTS_DIR = os.path.join(UPLOAD_DIR, "conversations")
+
+# Tạo các thư mục nếu chưa tồn tại
+os.makedirs(AVATARS_USER_DIR, exist_ok=True)
+os.makedirs(AVATARS_GROUP_DIR, exist_ok=True)
+os.makedirs(CONVERSATION_ATTACHMENTS_DIR, exist_ok=True)

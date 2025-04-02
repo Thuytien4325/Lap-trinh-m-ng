@@ -11,7 +11,7 @@ from routers.auth import auth_router
 from routers.conversations import conversation_router
 from routers.friends import friends_router
 from routers.friends_requests import friend_request_router
-from routers.messages import message_router
+from routers.messages import messages_router
 from routers.notifications import notifications_router
 from routers.untils import pwd_context
 from routers.users import users_router
@@ -66,7 +66,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(conversation_router)
-app.include_router(message_router)
+app.include_router(messages_router)
 app.include_router(friend_request_router)
 app.include_router(friends_router)
 app.include_router(notifications_router)

@@ -89,9 +89,6 @@ class TokenSchema(BaseModel):
 
 
 # Schema tin nhắn
-class MessageCreate(BaseModel):
-    conversation_id: int
-    content: str
 
 
 class MessageResponse(BaseModel):
@@ -185,7 +182,9 @@ class GroupMemberResponse(BaseModel):
 class ConversationResponse(BaseModel):
     conversation_id: int
     type: str
-    name: Optional[str] = None
+    name: str | None = None
+    avatar_url: str | None = None
+    created_at_UTC: datetime | None
     group_members: Optional[List[GroupMemberResponse]] = []
 
     class Config:

@@ -38,9 +38,6 @@ class User(Base):
     sent_messages = relationship(
         "Message", foreign_keys="[Message.sender_id]", back_populates="sender"
     )
-    received_messages = relationship(
-        "Message", foreign_keys="[Message.receiver_id]", back_populates="receiver"
-    )
     notifications = relationship(
         "Notification",
         back_populates="user",
@@ -56,6 +53,7 @@ class Conversation(Base):
 
     conversation_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(255), nullable=True)
+    avatar_url = Column(String(255), nullable=True)
     type = Column(Enum("private", "group", name="conversation_type"), nullable=False)
     created_at_UTC = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -84,9 +82,6 @@ class Message(Base):
     sender_id = Column(
         Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False
     )
-    receiver_id = Column(
-        Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=True
-    )  # Nếu có chat 1-1
     conversation_id = Column(
         Integer,
         ForeignKey("conversations.conversation_id", ondelete="CASCADE"),
@@ -97,9 +92,6 @@ class Message(Base):
 
     sender = relationship(
         "User", foreign_keys=[sender_id], back_populates="sent_messages"
-    )
-    receiver = relationship(
-        "User", foreign_keys=[receiver_id], back_populates="received_messages"
     )
 
 

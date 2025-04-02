@@ -8,8 +8,12 @@ from database import get_db
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pydantic import EmailStr
 from routers.auth import ALGORITHM, SECRET_KEY, oauth2_scheme
-from routers.untils import UPLOAD_DIR, get_current_user, update_last_active_dependency
-from routers.websocket import websocket_manager  # test
+from routers.untils import (
+    AVATARS_USER_DIR,
+    get_current_user,
+    update_last_active_dependency,
+)
+from routers.websocket import websocket_manager
 from schemas import UserProfile, UserResponse
 from sqlalchemy.orm import Session
 
@@ -19,7 +23,7 @@ users_router = APIRouter(prefix="/users", tags=["User"])
 
 # Lấy thông tin user hiện tại
 @users_router.get(
-    "/me",
+    "/",
     response_model=UserResponse,
     dependencies=[Depends(update_last_active_dependency)],
 )
@@ -36,7 +40,7 @@ async def get_user_info(current_user: models.User = Depends(get_current_user)):
 
 
 @users_router.get(
-    "/search-username",
+    "/search",
     response_model=List[UserProfile],
     dependencies=[Depends(update_last_active_dependency)],
 )
@@ -66,62 +70,18 @@ async def search_users(
     return [UserProfile.model_validate(user) for user in users]
 
 
-# Upload Avatar
-@users_router.post(
-    "/upload-avatar", dependencies=[Depends(update_last_active_dependency)]
-)
-async def upload_avatar(
-    file: UploadFile = File(...),
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    # Chặn admin thay đổi avatar
-    if current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin không được thay đổi avatar.")
-
-    file_extension = file.filename.split(".")[-1].lower()
-    if file_extension not in ["jpg", "jpeg", "png"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Định dạng ảnh không hợp lệ! (Chỉ chấp nhận jpg, jpeg, png)",
-        )
-
-    # Kiểm tra và xóa avatar cũ nếu có
-    if current_user.avatar:
-        old_avatar_path = current_user.avatar
-        try:
-            if os.path.exists(old_avatar_path):
-                os.remove(old_avatar_path)
-        except Exception as e:
-            print(f"Lỗi khi xóa avatar cũ: {e}")
-
-    # Định dạng tên file: user_id + phần mở rộng
-    file_path = f"{UPLOAD_DIR}/userID_{current_user.user_id}.{file_extension}"
-
-    # Lưu file lên server
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    # Cập nhật avatar vào database
-    current_user.avatar = file_path
-    db.commit()
-    db.refresh(current_user)
-
-    return {"message": "Tải ảnh đại diện thành công", "avatar_url": file_path}
-
-
-# Cập nhật thông tin user
-@users_router.put("/update", dependencies=[Depends(update_last_active_dependency)])
-async def update_user(
+@users_router.put("/", dependencies=[Depends(update_last_active_dependency)])
+async def update_user_and_avatar(
     nickname: str | None = None,
-    email: EmailStr | None = None,
+    email: str | None = None,
+    avatar_file: UploadFile | None = File(None),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Chặn admin cập nhật thông tin cá nhân
     if current_user.is_admin:
         raise HTTPException(
-            status_code=403, detail="Admin không được cập nhật thông tin cá nhân."
+            status_code=403,
+            detail="Admin không được cập nhật thông tin cá nhân hoặc avatar.",
         )
 
     if email and email != current_user.email:
@@ -136,6 +96,29 @@ async def update_user(
     if email:
         current_user.email = email
 
+    if avatar_file:
+        file_extension = avatar_file.filename.split(".")[-1].lower()
+        if file_extension not in ["jpg", "jpeg", "png"]:
+            raise HTTPException(
+                status_code=400,
+                detail="Định dạng ảnh không hợp lệ! (Chỉ chấp nhận jpg, jpeg, png)",
+            )
+
+        if current_user.avatar:
+            old_avatar_path = current_user.avatar
+            try:
+                if os.path.exists(old_avatar_path):
+                    os.remove(old_avatar_path)
+            except Exception as e:
+                print(f"Lỗi khi xóa avatar cũ: {e}")
+
+        file_path = f"{AVATARS_USER_DIR}/userID_{current_user.user_id}.{file_extension}"
+
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(avatar_file.file, buffer)
+
+        current_user.avatar = file_path
+
     db.commit()
     db.refresh(current_user)
 
@@ -143,10 +126,11 @@ async def update_user(
         "message": "Cập nhật thông tin thành công",
         "nickname": current_user.nickname,
         "email": current_user.email,
+        "avatar_url": current_user.avatar,
     }
 
 
-@users_router.delete("/delete")
+@users_router.delete("/")
 async def delete_user(
     db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)
 ):
@@ -440,7 +424,7 @@ async def report(
     }
 
 
-@users_router.get("/my-reports", dependencies=[Depends(update_last_active_dependency)])
+@users_router.get("/reports", dependencies=[Depends(update_last_active_dependency)])
 async def get_user_reports(
     db: Session = Depends(get_db),
     is_pending: bool = Query(False, description="Xem các báo cáo chưa xử lý!"),
@@ -485,7 +469,7 @@ async def get_user_reports(
     ]
 
 
-@users_router.get("/check-ban", dependencies=[Depends(update_last_active_dependency)])
+@users_router.get("/ban-status", dependencies=[Depends(update_last_active_dependency)])
 async def check_user_ban(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),

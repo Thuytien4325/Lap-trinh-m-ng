@@ -192,7 +192,7 @@ async def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)
     )
 
 
-@auth_router.post("/reset-password-request")
+@auth_router.post("/password/reset-request")
 async def reset_password_request(email: EmailStr, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user:
@@ -213,7 +213,7 @@ async def reset_password_request(email: EmailStr, db: Session = Depends(get_db))
     return {"message": "Email đặt lại mật khẩu đã được gửi."}
 
 
-@auth_router.post("/reset-password-confirm")
+@auth_router.post("/password/reset-confirm")
 async def reset_password_confirm(
     request: ResetPasswordConfirm, db: Session = Depends(get_db)
 ):
