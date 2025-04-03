@@ -9,10 +9,12 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from models import Conversation, GroupMember, Notification, User
 from routers.untils import (
     AVATARS_GROUP_DIR,
+    CONVERSATION_ATTACHMENTS_DIR,
     get_current_user,
     update_last_active_dependency,
 )
-from schemas import ConversationCreate, ConversationResponse
+from routers.websocket import websocket_manager
+from schemas import ConversationResponse
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
@@ -125,6 +127,16 @@ async def create_conversation(
         db.add(notification)
         db.commit()
 
+        await websocket_manager.send_notification(
+            noti_id=notification.id,
+            user_username=notification.user_username,
+            sender_username=notification.sender_username,
+            message=notification.message,
+            notification_type=notification.type,
+            related_id=notification.related_id,
+            related_table=notification.related_table,
+        )
+
     elif type == "group":
         if not name:
             raise HTTPException(
@@ -155,14 +167,6 @@ async def create_conversation(
                 status_code=400,
                 detail="Danh sách thành viên chỉ có thể là bạn bè của bạn.",
             )
-
-        existing_group = (
-            db.query(Conversation)
-            .filter(Conversation.name == name, Conversation.type == "group")
-            .first()
-        )
-        if existing_group:
-            raise HTTPException(status_code=400, detail="Nhóm với tên này đã tồn tại.")
 
         new_conversation = Conversation(
             type="group",
@@ -213,6 +217,17 @@ async def create_conversation(
 
         db.add_all(notifications)
         db.commit()
+
+        for notification in notifications:
+            await websocket_manager.send_notification(
+                noti_id=notification.id,
+                user_username=notification.user_username,
+                sender_username=notification.sender_username,
+                message=notification.message,
+                notification_type=notification.type,
+                related_id=notification.related_id,
+                related_table=notification.related_table,
+            )
 
     else:
         raise HTTPException(status_code=400, detail="Loại hội thoại không hợp lệ.")
@@ -335,7 +350,7 @@ async def add_to_group(
     notification = Notification(
         user_username=new_member.username,
         sender_username=None,
-        message=f"Bạn đã được thêm vào nhóm {group.name} bởi {current_user.username}.",
+        message=f"Bạn đã được thêm vào nhóm {group.name} bởi {current_user.nickname}.",
         type="system",
         related_id=group.conversation_id,
         related_table="conversations",
@@ -343,6 +358,16 @@ async def add_to_group(
     )
     db.add(notification)
     db.commit()
+
+    await websocket_manager.send_notification(
+        noti_id=notification.id,
+        user_username=notification.user_username,
+        sender_username=notification.sender_username,
+        message=notification.message,
+        notification_type=notification.type,
+        related_id=notification.related_id,
+        related_table=notification.related_table,
+    )
 
     members = (
         db.query(models.GroupMember, models.User)
@@ -373,7 +398,6 @@ async def add_to_group(
     return conversation_list
 
 
-# Lấy danh sách cuộc hội thoại
 @conversation_router.get(
     "/",
     response_model=list[ConversationResponse],
@@ -623,6 +647,28 @@ async def remove_member_from_group(
     db.delete(member)
     db.commit()
 
+    notification = Notification(
+        user_username=member_username,
+        sender_username=None,
+        message=f"Bạn đã bị xóa khỏi nhóm {conversation.name} bởi {current_user.username}.",
+        type="system",
+        related_id=conversation.conversation_id,
+        related_table="conversations",
+        created_at_UTC=datetime.now(timezone.utc),
+    )
+    db.add(notification)
+    db.commit()
+
+    await websocket_manager.send_notification(
+        noti_id=notification.id,
+        user_username=notification.user_username,
+        sender_username=notification.sender_username,
+        message=notification.message,
+        notification_type=notification.type,
+        related_id=notification.related_id,
+        related_table=notification.related_table,
+    )
+
     return {"message": f"Thành viên {member_username} đã bị xóa khỏi nhóm."}
 
 
@@ -703,6 +749,28 @@ async def assign_admin(
 
         db.commit()
 
+        notification = Notification(
+            user_username=member_username,
+            sender_username=None,
+            message=f"Bạn đã được chỉ định làm admin nhóm '{conversation.name}' bởi {current_admin.username}.",
+            type="system",
+            related_id=conversation.conversation_id,
+            related_table="conversations",
+            created_at_UTC=datetime.now(timezone.utc),
+        )
+        db.add(notification)
+        db.commit()
+
+        await websocket_manager.send_notification(
+            noti_id=notification.id,
+            user_username=notification.user_username,
+            sender_username=notification.sender_username,
+            message=notification.message,
+            notification_type=notification.type,
+            related_id=notification.related_id,
+            related_table=notification.related_table,
+        )
+
         return {
             "message": f"Thành viên {member_username} đã được chỉ định làm admin và bạn trở thành member."
         }
@@ -773,7 +841,7 @@ async def delete_conversation(
             models.Notification(
                 user_username=member.username,
                 sender_username=None,
-                message=f"Nhóm '{conversation.name}' đã bị xóa bởi {current_user.username}.",
+                message=f"Nhóm '{conversation.name}' đã bị xóa bởi {current_user.nickname}.",
                 type="system",
                 related_id=conversation.conversation_id,
                 related_table="conversations",
@@ -785,6 +853,17 @@ async def delete_conversation(
         db.add_all(notifications)
         db.commit()
 
+        for notification in notifications:
+            await websocket_manager.send_notification(
+                noti_id=notification.id,
+                user_username=notification.user_username,
+                sender_username=notification.sender_username,
+                message=notification.message,
+                notification_type=notification.type,
+                related_id=notification.related_id,
+                related_table=notification.related_table,
+            )
+
     db.query(models.Message).filter(
         models.Message.conversation_id == conversation_id
     ).delete()
@@ -793,6 +872,13 @@ async def delete_conversation(
     ).delete()
     db.delete(conversation)
     db.commit()
+
+    conversation_dir = os.path.join(CONVERSATION_ATTACHMENTS_DIR, str(conversation_id))
+    if os.path.exists(conversation_dir):
+        try:
+            shutil.rmtree(conversation_dir)  # Xóa thư mục chứa file của cuộc trò chuyện
+        except Exception as e:
+            print(f"Lỗi khi xóa thư mục: {e}")
 
     return {"message": "Xóa hội thoại thành công.", "conversation_id": conversation_id}
 
@@ -943,7 +1029,7 @@ async def leave_group(
             notification = models.Notification(
                 user_username=new_admin.username,
                 sender_username=None,
-                message=f"Bạn đã trở thành quản trị viên của nhóm '{group.name}' vì {current_user.username} đã rời nhóm.",
+                message=f"Bạn đã trở thành quản trị viên của nhóm '{group.name}' vì {current_user.nickname} đã rời nhóm.",
                 type="system",
                 related_id=group.conversation_id,
                 related_table="conversations",
@@ -951,6 +1037,16 @@ async def leave_group(
             )
             db.add(notification)
             db.commit()
+
+            await websocket_manager.send_notification(
+                noti_id=notification.id,
+                user_username=notification.user_username,
+                sender_username=notification.sender_username,
+                message=notification.message,
+                notification_type=notification.type,
+                related_id=notification.related_id,
+                related_table=notification.related_table,
+            )
 
         else:
             raise HTTPException(
@@ -984,6 +1080,17 @@ async def leave_group(
         ]
         db.add_all(notifications)
         db.commit()
+
+        for notification in notifications:
+            await websocket_manager.send_notification(
+                noti_id=notification.id,
+                user_username=notification.user_username,
+                sender_username=notification.sender_username,
+                message=notification.message,
+                notification_type=notification.type,
+                related_id=notification.related_id,
+                related_table=notification.related_table,
+            )
 
     # Xóa người dùng khỏi nhóm
     db.query(models.GroupMember).filter(

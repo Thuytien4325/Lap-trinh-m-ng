@@ -7,24 +7,23 @@ from typing import List
 
 import models
 from database import get_db
-from fastapi import (
-    APIRouter,
-    Depends,
-    File,
-    HTTPException,
-    Query,
-    UploadFile,
-    WebSocket,
-    WebSocketDisconnect,
-)
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from models import Attachment, Conversation, GroupMember, Message
-from routers.untils import CONVERSATION_ATTACHMENTS_DIR, get_current_user
+from routers.untils import (
+    CONVERSATION_ATTACHMENTS_DIR,
+    get_current_user,
+    update_last_active_dependency,
+)
+from routers.websocket import websocket_manager
 from sqlalchemy.orm import Session
 
 messages_router = APIRouter(prefix="/messages", tags=["Messages"])
 
 
-@messages_router.post("/")
+@messages_router.post(
+    "/",
+    dependencies=[Depends(update_last_active_dependency)],
+)
 async def send_message(
     conversation_id: int,
     content: str | None = None,  # Tin nhắn văn bản (nếu có)
@@ -104,6 +103,30 @@ async def send_message(
 
         db.commit()
 
+    message_data = {
+        "message_id": new_message.message_id,
+        "sender_id": current_user.user_id,
+        "content": new_message.content,
+        "timestamp": new_message.timestamp.isoformat(),
+        "attachments": file_urls,
+    }
+
+    # Lấy danh sách thành viên nhóm (trừ người gửi)
+    group_members = (
+        db.query(GroupMember.username)
+        .filter(GroupMember.conversation_id == conversation_id)
+        .all()
+    )
+    recipient_list = [
+        member[0] for member in group_members if member[0] != current_user.username
+    ]
+
+    # Gửi tin nhắn đến tất cả thành viên nhóm
+    for recipient in recipient_list:
+        await websocket_manager.send_chat_message(
+            conversation_id, recipient, message_data
+        )
+
     # Trả về kết quả
     return {
         "message": "Gửi tin nhắn thành công",
@@ -176,7 +199,10 @@ async def get_messages(
 
 
 # API xóa tin nhắn
-@messages_router.put("/delete/{message_id}")
+@messages_router.put(
+    "/delete/{message_id}",
+    dependencies=[Depends(update_last_active_dependency)],
+)
 async def delete_message(
     message_id: int,
     current_user: models.User = Depends(get_current_user),
@@ -211,12 +237,95 @@ async def delete_message(
         # Xóa thông tin file trong bảng Attachment
         db.delete(attachment)
 
-    # Cập nhật nội dung tin nhắn thành null
-    message.content = f"Tin nhắn đã bị xóa bởi {current_user.username}"
+    message.content = f"Tin nhắn đã bị xóa bởi {current_user.nickname}"
     db.commit()
+
+    conversation = (
+        db.query(Conversation)
+        .filter(Conversation.conversation_id == message.conversation_id)
+        .first()
+    )
+
+    if conversation:
+        members = (
+            db.query(GroupMember.username)
+            .filter(GroupMember.conversation_id == conversation.conversation_id)
+            .all()
+        )
+        for member in members:
+            notification_message = json.dumps(
+                {
+                    "type": "message_deleted",
+                    "message_id": message_id,
+                    "content": f"Tin nhắn đã bị xóa bởi {current_user.nickname}.",
+                }
+            )
+            await websocket_manager.send_message(notification_message, "user")
 
     # Trả về thông báo thành công
     return {
         "message": "Tin nhắn và file đính kèm đã được xóa",
         "message_id": message_id,
     }
+
+
+@messages_router.delete(
+    "/{conversation_id}/clear",
+    dependencies=[Depends(update_last_active_dependency)],
+)
+async def clear_conversation(
+    conversation_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    conversation = (
+        db.query(Conversation)
+        .filter(Conversation.conversation_id == conversation_id)
+        .first()
+    )
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Cuộc hội thoại không tồn tại")
+
+    is_member = (
+        db.query(GroupMember)
+        .filter(
+            GroupMember.conversation_id == conversation_id,
+            GroupMember.username == current_user.username,
+        )
+        .first()
+    )
+    if not is_member:
+        raise HTTPException(status_code=403, detail="Bạn không thuộc nhóm này")
+
+    messages = (
+        db.query(Message).filter(Message.conversation_id == conversation_id).all()
+    )
+
+    for message in messages:
+        attachments = (
+            db.query(Attachment)
+            .filter(Attachment.message_id == message.message_id)
+            .all()
+        )
+
+        # Xóa các file đính kèm
+        for attachment in attachments:
+            file_path = os.path.join(
+                CONVERSATION_ATTACHMENTS_DIR, attachment.file_url.lstrip("/")
+            )
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)  # Xóa file
+                except Exception as e:
+                    print(f"Lỗi khi xóa file: {e}")
+
+            # Xóa thông tin file trong bảng Attachment
+            db.delete(attachment)
+
+        # Xóa tin nhắn
+        db.delete(message)
+
+    db.commit()
+
+    # Trả về thông báo thành công
+    return {"message": "Tất cả tin nhắn và file đính kèm đã được xóa thành công"}

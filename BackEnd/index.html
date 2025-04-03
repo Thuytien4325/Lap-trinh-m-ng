@@ -55,11 +55,11 @@
 
     <script>
       const API_URL_REPORTS =
-        'http://127.0.0.1:8000/admin/get-reports?is_pending=false&is_in_progress=false&is_resolved=false&newest_first=false';
+        'http://127.0.0.1:8000/admin/get-reports?is_pending=false&is_in_progress=false&is_resolved=false&newest_first=true';
       const API_URL_NOTIFICATIONS =
-        'http://127.0.0.1:8000/noti/?unread_only=false&from_system=false&newest_first=false';
+        'http://127.0.0.1:8000/notifications/?unread_only=false&from_system=false&newest_first=true';
       const ACCESS_TOKEN =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInVzZXJfaWQiOjEsImV4cCI6MTc0MzM5Mzk5OX0.GZrWBA9oN-MKH9UUY6hNsa4x8mq90ooMz74vAzKXDig';
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0MSIsInVzZXJfaWQiOjMsImV4cCI6MTc0MzY5NDUzNH0._reO5Z8tv1Sd1xM4NpmrDZP5voalE1o8RxzenSkBqnk';
 
       function formatDate(isoString) {
         if (!isoString) return 'N/A';

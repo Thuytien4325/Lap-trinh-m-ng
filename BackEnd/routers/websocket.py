@@ -105,5 +105,26 @@ class WebSocketManager:
                 except WebSocketDisconnect:
                     self.active_connections["user"].pop(user_username, None)
 
+    async def send_chat_message(
+        self, conversation_id: int, recipient_username: str, message_data: dict
+    ):
+        """Gửi tin nhắn real-time đến người nhận"""
+        message = json.dumps(
+            {
+                "type": "new_message",
+                "conversation_id": conversation_id,
+                "message": message_data,
+            }
+        )
+
+        connection = self.active_connections["user"].get(recipient_username)
+        if connection:
+            try:
+                await connection.send_text(message)
+            except WebSocketDisconnect:
+                self.disconnect(connection, "user", recipient_username)
+        else:
+            print(f"❌ Người nhận {recipient_username} không có kết nối WebSocket.")
+
 
 websocket_manager = WebSocketManager()
