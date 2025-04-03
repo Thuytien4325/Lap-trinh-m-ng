@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Trang quản lí</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="admin.css">
+
+    <style>
+        .nav-button {
+            text-decoration: none;
+        }
+    </style>
+
+    <!-- JS -->
+    <script src="services/dashboard.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <img src="../Dang ky tai khoan/assets/image/logo.jpg" alt="Chat Logo">
+        </div>
+        <button type="button" class="custom-close-outside" id="closeLogin" aria-label="Close">&times;</button>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="container">
+        <!-- Sidebar -->
+        <nav>
+            <ul>
+                <li><a href="report/report.html" class="nav-button active" style="text-decoration: none;"><i class="fas fa-home"></i>Bảng điều khiển</a></li>
+                <li><button class="nav-button" data-page="users.html"><i class="fas fa-users"></i> Xử lí vi phạm</button></li>
+            </ul>
+        </nav>
+        
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Nội dung sẽ được load vào đây -->
+        </main>
+    </div>
+    
+    <!-- Footer -->
+    <footer>
+        <small class="footer-text">© Created by Nhóm 2</small>
+    </footer>
+    
+    <script>
+        document.querySelectorAll('.nav-button').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                const page = this.getAttribute('data-page');
+                if (page) {
+                    document.getElementById('main-content').innerHTML = `<iframe src="${page}" width="100%" height="100%" style="border:none;"></iframe>`;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
