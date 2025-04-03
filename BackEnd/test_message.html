@@ -84,13 +84,64 @@
       const conversationId = 1; // Thay bằng ID thật
       const chatBox = document.getElementById('chat-box');
       const accessToken =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwidXNlcl9pZCI6MiwiZXhwIjoxNzQzNTgzOTE1fQ.7MPpY0aVYidMrV9jxo0uu8IL-kbmtzfz69zYIPkqcy8'; // 🔥 Token lấy sau khi đăng nhập
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwidXNlcl9pZCI6MiwiZXhwIjoxNzQzNzAxMzU1fQ.tO_yUBpWl5s8dImJZ2nZJ20gDndtQKOEgsMEQfX8V34'; // 🔥 Token lấy sau khi đăng nhập
+      let username = ''; // Biến để lưu username
+
+      // 🟢 Lấy username từ API /users/
+      async function fetchUsername() {
+        try {
+          const response = await fetch(`http://127.0.0.1:8000/users/`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Lỗi: ${response.status}`);
+          }
+
+          const userData = await response.json();
+          username = userData.username; // Lưu username lấy được
+          console.log('Username:', username);
+          connectWebSocket(); // Sau khi có username, kết nối WebSocket
+          fetchMessages(); // Tải tin nhắn ngay sau khi kết nối
+        } catch (error) {
+          console.error('Lỗi khi tải thông tin người dùng:', error);
+        }
+      }
+
+      // 🟢 Kết nối WebSocket
+      let socket = null;
+
+      function connectWebSocket() {
+        const wsUrl = `ws://127.0.0.1:8000/ws/user/${username}`;
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+          console.log('WebSocket kết nối thành công!');
+        };
+
+        socket.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          if (message.type === 'message_deleted') {
+            alert(`Tin nhắn với ID ${message.message_id} đã bị xóa.`);
+            // Cập nhật lại giao diện nếu cần
+            fetchMessages();
+          }
+        };
+
+        socket.onclose = () => {
+          console.log('WebSocket bị đóng');
+        };
+      }
 
       // 🟢 Lấy tin nhắn từ API
       async function fetchMessages() {
         try {
           const response = await fetch(
-            `http://127.0.0.1:8000/messages/1/messages?limit=20&offset=0`,
+            `http://127.0.0.1:8000/messages/7/messages?limit=20&offset=0`,
             {
               method: 'GET',
               headers: {
@@ -105,7 +156,8 @@
           }
 
           const messages = await response.json();
-          renderMessages(messages);
+          console.log('Messages:', messages); // In ra console để kiểm tra dữ liệu
+          renderMessages(messages); // Hiển thị tin nhắn
         } catch (error) {
           console.error('Lỗi khi tải tin nhắn:', error);
         }
@@ -114,6 +166,13 @@
       // 🎨 Hiển thị tin nhắn lên giao diện
       function renderMessages(messages) {
         chatBox.innerHTML = ''; // Xóa nội dung cũ
+
+        // Kiểm tra nếu không có tin nhắn
+        if (messages.messages && messages.messages.length === 0) {
+          chatBox.innerHTML = '<div>Không có tin nhắn nào.</div>';
+          return;
+        }
+
         messages.messages.reverse().forEach((msg) => {
           const messageDiv = document.createElement('div');
           messageDiv.classList.add(
@@ -123,7 +182,7 @@
           messageDiv.textContent = msg.content;
 
           // Hiển thị các tệp đính kèm (nếu có)
-          if (msg.attachments.length > 0) {
+          if (msg.attachments && msg.attachments.length > 0) {
             const attachmentsDiv = document.createElement('div');
             attachmentsDiv.classList.add('attachments');
 
@@ -172,9 +231,7 @@
         }
       }
 
-      // 🔄 Load tin nhắn mỗi 3 giây
-      //   setInterval(fetchMessages, 3000);
-      fetchMessages();
+      fetchUsername(); // Gọi hàm lấy username khi trang tải
     </script>
   </body>
 </html>

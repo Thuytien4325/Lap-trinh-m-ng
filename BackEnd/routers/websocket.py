@@ -35,6 +35,8 @@ class WebSocketManager:
                     await connection.send_text(message)
                 except WebSocketDisconnect:
                     self.disconnect(connection, user_type)
+        else:
+            print(f"Lỗi: Không có kết nối cho loại người dùng '{user_type}'")
 
     async def notify_new_report(
         self,
