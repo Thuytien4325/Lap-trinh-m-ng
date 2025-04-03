@@ -30,11 +30,28 @@ class WebSocketManager:
     async def send_message(self, message: str, user_type: str):
         """Gửi tin nhắn đến đúng nhóm user hoặc admin"""
         if user_type in self.active_connections:
-            for connection in self.active_connections[user_type]:
-                try:
-                    await connection.send_text(message)
-                except WebSocketDisconnect:
-                    self.disconnect(connection, user_type)
+            if isinstance(
+                self.active_connections[user_type], list
+            ):  # Kiểm tra xem là danh sách WebSocket
+                for connection in self.active_connections[user_type]:
+                    try:
+                        await connection.send_text(message)
+                    except WebSocketDisconnect:
+                        self.disconnect(connection, user_type)
+            elif isinstance(
+                self.active_connections[user_type], dict
+            ):  # Kiểm tra kiểu từ 'user'
+                for connection in self.active_connections[
+                    user_type
+                ].values():  # Duyệt qua các kết nối user theo username
+                    try:
+                        await connection.send_text(message)
+                    except WebSocketDisconnect:
+                        self.disconnect(connection, user_type)
+            else:
+                print(
+                    f"Lỗi: active_connections[{user_type}] không phải là kiểu hợp lệ."
+                )
         else:
             print(f"Lỗi: Không có kết nối cho loại người dùng '{user_type}'")
 
