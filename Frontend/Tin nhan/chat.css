@@ -15,9 +15,9 @@ body {
 /* Container */
 .container {
     display: flex;
-    width: 80%; /* giới hạn chiều rộng */
+    width: 80%; 
     max-width: 1200px; 
-    flex-grow: 1; /* Container chiếm không gian còn lại */
+    flex-grow: 1; /* Container tự động */
     background: #fff9e6;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     border-radius: 20px;
@@ -102,13 +102,13 @@ button:hover {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Nội dung chat */
+/* nội dung chatchat */
 .chat-content {
     flex-grow: 1;
     overflow-y: auto;
     padding: 10px;
     border-bottom: 1px solid #ccc;
-    background: #fff9e6; /* Giữ nền trắng */
+    background: #fff9e6; 
     border-radius: 8px;
     margin: 10px 0;
 }
@@ -119,31 +119,51 @@ button:hover {
     align-items: center;
     width: 100%;
     gap: 5px;
-    padding: 2px 0; /* Giảm từ 5px xuống 2px để thu hẹp thêm */
+    padding: 2px 0; 
 }
 
 /* Ô nhập tin nhắn */
 .chat-input {
     flex-grow: 1;
     border-radius: 30px;
-    padding: 8px; /* Giữ nguyên kích cỡ ô nhập tin nhắn */
+    padding: 8px; 
     border: 1px solid #e0c085;
     background: #fff;
 }
 
-/* Nút gửi tin nhắn */
-.send-button {
-    background: #e6ac50;
+/* Button group trong sidebar */
+.button-group {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.add-user-btn, .add-group-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 10px;
+    border-radius: 15px;
     border: none;
-    padding: 8px 12px;
-    border-radius: 50%;
     cursor: pointer;
     transition: background 0.3s ease, transform 0.2s ease;
 }
 
-.send-button:hover {
-    background: #ffcc80;
-    transform: scale(1.1);
+.add-user-btn i, .add-group-btn i {
+    font-size: 12px;
+    color: #fff9e6;
+}
+
+.add-user-btn span, .add-group-btn span {
+    font-size: 12px;
+}
+
+/* Send button */
+.send-button {
+    transform: scale(0.8);
 }
 
 /* Nút tải ảnh và file */
@@ -157,7 +177,7 @@ button:hover {
 /* FOOTER */
 footer {
     display: flex;
-    justify-content: center; /* Giữ ở giữ cho footer-icons */
+    justify-content: center; /* Giữ center cho footer-icons */
     align-items: center;
     width: 100%;
     padding: 5px 15px; /* Giữ padding trái/phải */
@@ -183,16 +203,31 @@ footer {
     cursor: pointer;
 }
 
+/* Hover chung */
 .footer-icons i:hover {
     background: #ffefc2;
     transform: scale(1.05);
 }
 
+/* -------- THAY ĐỔI CHO ICON TIN NHẮN -------- */
+.footer-icons .message-icon {
+    background: #fff9e6;
+    font-weight: bold;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+    transition: none;
+}
+
+/* Gỡ hiệu ứng hover cho icon tin nhắn */
+.footer-icons .message-icon:hover {
+    background: #fff9e6;
+    transform: none;
+}
+
 /* Nút đăng xuất */
 .logout-button {
     position: fixed; /* Cố định so với viewport */
-    bottom: 10px; /* Cách đáy màn hình 10px */
-    right: 10px; /* Cách mép phải màn hình 10px */
+    bottom: 5px; 
+    right: 10px;
     background: #e6ac50;
     border: none;
     padding: 10px;
@@ -207,7 +242,7 @@ footer {
 }
 
 .logout-button:hover {
-    background: #ffcc80;
+    background: #ffefc2;
     transform: scale(1.05);
 }
 
