@@ -1,28 +1,12 @@
 /* Reset cơ bản */
-<<<<<<< HEAD
-html, body {
-  height: 100vh;
-=======
 html,
 body {
   height: 100%;
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
   margin: 0;
   padding: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-<<<<<<< HEAD
-  
-  font-family: Arial, sans-serif;
-  background-color: #f8f9fa;
-
-}
-
-/* Header */
-header {
-  height: 60px;
-=======
 }
 
 body {
@@ -38,22 +22,12 @@ header {
   position: sticky;
   top: 0;
   padding: 10px;
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
   background: #ffc107;
   color: white;
   text-align: center;
   font-size: 2rem;
-<<<<<<< HEAD
-  line-height: 60px;
-  position: relative;
-  z-index: 1000;
-  flex-shrink: 0;
-  border-bottom-left-radius: 15px;/* Bo tròn dưới bên trái */
-  border-bottom-right-radius: 15px; 
-=======
   min-height: 30px;
   z-index: 1000;
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
 }
 
 /* Logo */
@@ -74,47 +48,20 @@ header {
   border-radius: 10px;
 }
 
-<<<<<<< HEAD
-/* Home & Icon Header */
-.home, .icon-header {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-=======
 .home {
   position: fixed;
   right: 10px;
   top: 20px;
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
   cursor: pointer;
   text-decoration: none;
 }
 
-<<<<<<< HEAD
-.home i, .icon-header i {
-=======
 .home i {
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
   font-size: 24px;
   color: white;
   transition: color 0.3s ease-in-out;
 }
 
-<<<<<<< HEAD
-.home i:hover, .icon-header i:hover {
-  color: #ff5722;
-}
-
-/* Main content container */
-.container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-  overflow: hidden;
-=======
 .home i:hover {
   color: #ff5722;
 }
@@ -143,7 +90,6 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
 }
 
 /* Form */
@@ -151,13 +97,6 @@ form {
   display: flex;
   flex-direction: column;
   align-items: center;
-<<<<<<< HEAD
-  max-height: 100%;
-}
-
-/* Login Box */
-
-=======
 }
 
 /* Left Panel */
@@ -184,7 +123,6 @@ form {
   justify-content: center;
   align-items: center;
 }
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
 
 .login-box h2 {
   margin-bottom: 20px;
@@ -192,30 +130,18 @@ form {
   color: #333;
 }
 
-<<<<<<< HEAD
-/* Input Group */
-.input-group {
-  display: flex;
-  align-items: center;
-  position: relative;
-=======
 /* Input Fields */
 .input-group {
   display: flex;
   align-items: center;
   position: relative; /* Giữ button cố định */
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
   margin-bottom: 20px;
   border: 1px solid #ccc;
   border-radius: 10px;
   padding: 10px;
   background-color: #f5f5dc;
   transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-<<<<<<< HEAD
-  width: 300px;
-=======
   width: 300px; /* Đảm bảo input-group có kích thước cố định */
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
 }
 
 .input-group:focus-within {
@@ -223,21 +149,13 @@ form {
   box-shadow: 0 0 8px rgba(255, 110, 196, 0.5);
 }
 
-<<<<<<< HEAD
-
-=======
 /* Icon trong input */
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
 .input-group .icon {
   margin-right: 10px;
   color: #888;
 }
 
-<<<<<<< HEAD
-
-=======
 /* Input */
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
 .input-group input {
   outline: none;
   flex-grow: 1;
@@ -248,14 +166,10 @@ form {
   border: none;
 }
 
-<<<<<<< HEAD
-/* Input đơn giản */
-=======
 .input-group button:hover {
   color: #ff6ec4;
 }
 /*inp*/
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
 .inp {
   outline: none;
   font-size: 1rem;
@@ -265,11 +179,7 @@ form {
   width: 100%;
   transition: border-color 0.3s ease-in-out;
 }
-<<<<<<< HEAD
-
-=======
 /* Khi focus vào inp, đổi màu đường kẻ */
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
 .inp:focus {
   border-bottom: 1px solid #ff6ec4;
 }
@@ -292,14 +202,6 @@ form {
   align-items: center;
   justify-content: center;
 }
-<<<<<<< HEAD
-
-.input-group button:hover {
-  color: #ff6ec4;
-}
-
-=======
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
 /* Forgot Password Link */
 .forgot-password {
   display: block;
@@ -316,74 +218,18 @@ form {
 /* Submit Button */
 .submit-btn {
   display: inline-block;
-<<<<<<< HEAD
-  margin-top: 30px;
-  padding: 12px 30px;
-  background: linear-gradient(135deg, #f6d365, #fda085);
-=======
   padding: 12px 30px;
   background: linear-gradient(135deg, #f6d365, #fda085); /* Hiệu ứng gradient */
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
   color: white;
   font-size: 1.2rem;
   font-weight: bold;
   border: none;
   border-radius: 30px;
-<<<<<<< HEAD
-  text-decoration: none;
-=======
   text-decoration: none; /* Loại bỏ gạch chân */
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
   transition: all 0.3s ease-in-out;
   cursor: pointer;
 }
 
-<<<<<<< HEAD
-
-
-.submit-btn:hover {
-  background: linear-gradient(135deg, #f093fb, #f5576c);
-  transform: scale(1.05);
-}
-
-/* Register Link */
-.chat-link {
-  text-align: center;
-  margin-top: 20px;
-}
-
-.chat-link a {
-  color: #007bff;
-  text-decoration: none;
-}
-
-.chat-link a:hover {
-  text-decoration: underline;
-}
-
-/* Error Message */
-.Error {
-  color: #ff4d4d;
-  font-size: 1rem;
-  font-weight: bold;
-  margin-top: 10px;
-  text-align: center;
-  background-color: #ffe6e6;
-  padding: 10px;
-  border: 1px solid #ff4d4d;
-  border-radius: 5px;
-  display: none;
-}
-
-/* Ghi chú */
-.description {
-  text-align: center;
-  font-size: 1rem;
-  color: #555;
-  margin: 20px auto;
-  max-width: 400px;
-  line-height: 1.5;
-=======
 .submit-btn:hover {
   background: linear-gradient(135deg, #f093fb, #f5576c); /* Hiệu ứng hover */
   transform: scale(1.05); /* Phóng to nhẹ khi hover */
@@ -391,7 +237,6 @@ form {
 
 .submit-btn:hover {
   background: linear-gradient(135deg, #f093fb, #f5576c);
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
 }
 
 /* Register Link */
@@ -440,78 +285,4 @@ footer {
   text-align: center;
   line-height: 60px;
   font-weight: bold;
-<<<<<<< HEAD
-  flex-shrink: 0;
-  border-top-left-radius: 15px; /* Bo tròn trên bên trái */
-  border-top-right-radius: 15px; /* Bo tròn trên bên phải */
-}
-
-/* Responsive cho tablet và điện thoại */
-@media (max-width: 768px) {
-  header, footer {
-    font-size: 1.5rem;
-  }
-
-  .logo img {
-    max-width: 70px;
-  }
-
-  .icon-header, .home {
-    top: 50%;
-    transform: translateY(-50%);
-  }
-
-  .container {
-    padding: 10px;
-  }
-
-  .input-group {
-    width: 90%;
-  }
-
-  .submit-btn {
-    width: 90%;
-    padding: 12px 20px;
-  }
-
-  .login-box h2 {
-    font-size: 1.5rem;
-  }
-
-  .description {
-    font-size: 0.95rem;
-    padding: 0 10px;
-  }
-}
-
-@media (max-width: 480px) {
-  header, footer {
-    font-size: 1.2rem;
-  }
-
-  .logo img {
-    max-width: 50px;
-  }
-
-  .input-group input {
-    font-size: 0.9rem;
-  }
-
-  .submit-btn {
-    font-size: 1rem;
-  }
-
-  .input-group {
-    padding: 8px;
-  }
-
-  .icon-header i, .home i {
-    font-size: 20px;
-  }
-
-  .description {
-    font-size: 0.9rem;
-  }
-=======
->>>>>>> 59a3c6e1e68ef0e5606404c737c7dc7d285bbeb3
 }
