@@ -183,7 +183,33 @@ footer {
     padding: 5px 15px; /* Giữ padding trái/phải */
     background: #e6ac50;
     color: #5a4a2f;
-    flex-shrinhắn */
+    flex-shrink: 0;
+}
+
+/* Footer Icons */
+.footer-icons {
+    display: flex;
+    gap: 40px;
+}
+
+/* Icon người dùng và tin nhắn */
+.footer-icons i {
+    font-size: 24px;
+    color: #5a4a2f;
+    padding: 10px;
+    background: #e6ac50;
+    border-radius: 12px;
+    transition: background 0.3s, transform 0.2s;
+    cursor: pointer;
+}
+
+/* Hover chung */
+.footer-icons i:hover {
+    background: #ffefc2;
+    transform: scale(1.05);
+}
+
+/* -------- THAY ĐỔI CHO ICON TIN NHẮN -------- */
 .footer-icons .message-icon {
     background: #fff9e6;
     font-weight: bold;
