@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Chat</title>
+    <link rel="stylesheet" href="chat.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+      <aside class="sidebar">
+        <div class="profile"></div>
+        <input type="text" class="search" placeholder="Tìm kiếm" />
+        <div class="button-group">
+          <button onclick="addUser()" class="add-user-btn">
+            <i class="fa fa-user-plus"></i>
+            <span>Thêm Người Dùng</span>
+          </button>
+          <button onclick="addGroupChat()" class="add-group-btn">
+            <i class="fa fa-users"></i>
+            <span>Thêm Nhóm</span>
+          </button>
+        </div>
+
+        <!-- Danh sách người dùng -->
+        <ul class="chat-list">
+          <li class="chat-item" onclick="selectChat('Nguyễn Phi Hải')">Nguyễn Phi Hải</li>
+          <li class="chat-item" onclick="selectChat('Gnoud')">Gnoud</li>
+        </ul>
+      </aside>
+
+      <main class="chat-window">
+        <!-- Tiêu đề sẽ thay đổi theo người dùng -->
+        <div id="chat-header" class="chat-header">Cuộc trò chuyện</div>
+
+        <div id="chat-content" class="chat-content">
+          <div class="message received">
+            <div class="message-text">HiHi</div>
+          </div>
+          <div class="message sent">
+            <div class="message-text">Hello</div>
+          </div>
+        </div>
+
+        <div class="chat-input-container">
+          <label for="image-upload" class="file-label">
+            <i class="fa fa-image"></i>
+          </label>
+          <input type="file" id="image-upload" accept="image/*" onchange="sendImage(event)" hidden />
+
+          <label for="file-upload" class="file-label">
+            <i class="fa fa-file"></i>
+          </label>
+          <input type="file" id="file-upload" onchange="sendFile(event)" hidden />
+
+          <input type="text" class="chat-input" placeholder="Nhập tin nhắn..." />
+          <button class="send-button" onclick="sendMessage()">
+            <i class="fa fa-paper-plane"></i>
+          </button>
+        </div>
+      </main>
+    </div>
+
+    <footer>
+      <div class="footer-icons">
+        <i class="fas fa-user"></i>
+        <i class="fas fa-comment-dots message-icon"></i>
+      </div>
+      <button class="logout-button" onclick="logout()" title="Đăng xuất">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+    </footer>
+    <script>
+          function sendMessage() {
+    const input = document.querySelector('.chat-input');
+    const message = input.value.trim();
+    if (message === '') return;
+
+    const chatContent = document.getElementById('chat-content');
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message sent';
+
+    const messageText = document.createElement('div');
+    messageText.className = 'message-text';
+    messageText.textContent = message;
+
+    // Thêm phần thời gian
+    const timestamp = document.createElement('div');
+    timestamp.className = 'timestamp';
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    timestamp.textContent = `${hours}:${minutes}`;
+
+    messageDiv.appendChild(messageText);
+    messageDiv.appendChild(timestamp); // Gắn thời gian vào khung tin nhắn
+    chatContent.appendChild(messageDiv);
+
+    input.value = '';
+    chatContent.scrollTop = chatContent.scrollHeight;
+  }
+
+  function selectChat(name) {
+    const header = document.getElementById('chat-header');
+    header.textContent = name;
+    document.getElementById('chat-content').innerHTML = '';
+
+    const allItems = document.querySelectorAll('.chat-item');
+    allItems.forEach(item => item.classList.remove('active'));
+
+    allItems.forEach(item => {
+      if (item.textContent.trim() === name) {
+        item.classList.add('active');
+      }
+    });
+  }
+
+    </script>
+</body>
+</html>

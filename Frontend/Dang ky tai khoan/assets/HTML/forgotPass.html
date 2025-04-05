@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chat</title>
+    <!-- Font Awesome -->
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+
+    <link rel="stylesheet" href="../styles/style.css" />
+    <!-- Auth JS -->
+    <script src="../../services/authservice.js" defer></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <header>
+      <div class="logo">
+        <img src="../image/logo.jpg" alt="Chat Logo" style="height: 60px" />
+      </div>
+      <a href="../../index.html" class="icon-header">
+        <i class="fas fa-home"></i>
+      </a>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+      <!-- Left Section -->
+      <div class="left-panel">
+        <img src="../image/logo.jpg" alt="Chat Logo" class="logoleft" />
+        <h3>Simple talks - Strong bonds</h3>
+      </div>
+
+      <!-- Right Section (Login Form) -->
+      <div class="right-panel">
+        <div class="login-box">
+          <h2>Quên mật khẩu</h2>
+          <p class="description">
+            Nhập địa chỉ email của bạn để nhận liên kết đặt lại mật khẩu.
+          </p>
+          <form>
+            <!-- Email Input -->
+            <div class="input-group">
+              <span class="icon"><i class="fa-solid fa-at"></i></span>
+              <input
+                type="email"
+                id="email"
+                placeholder="Email"
+                class="inp"
+                required
+              />
+            </div>
+
+            <button type="submit" class="submit-btn">Gửi</button>
+            <p class="chat-link">
+              Đã nhớ mật khẩu!
+              <a href="login.html">Đăng nhập ngay</a>
+            </p>
+            <!-- Error -->
+            <div id="forgotError" class="Error"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <small>© Created by Nhom 2</small>
+    </footer>
+  </body>
+</html>
