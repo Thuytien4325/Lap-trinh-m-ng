@@ -27,7 +27,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const result = await response.json();
 
         if (response.ok && result.access_token) {
-          localStorage.setItem('userToken', result.access_token);
+          const now = Date.now();
+
+          // Lưu token và thời gian
+          localStorage.setItem('access_token', result.access_token);
+          localStorage.setItem('refresh_token', result.refresh_token);
+          localStorage.setItem('user', JSON.stringify(result.user));
+
+          localStorage.setItem('login_time', now.toString());
+          localStorage.setItem('access_token_time', result.access_token_time);
+          localStorage.setItem('refresh_token_time', result.refresh_token_time);
           toast({
             title: 'Đăng nhập thành công',
             message: 'Chào mừng bạn quay trở lại!',
