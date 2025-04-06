@@ -1,16 +1,19 @@
-/* Reset cơ bản */
-html,
-body {
-  height: 100vh;
+/* Reset & cấu trúc tổng thể */
+* {
   margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   font-family: Arial, sans-serif;
 }
 
 /* Header & Footer */
-header,
-footer {
+header, footer {
   height: 60px;
   background: #ffc107;
   color: white;
@@ -29,6 +32,7 @@ header {
 footer {
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
+  margin-top: auto;
 }
 
 /* Logo */
@@ -39,18 +43,15 @@ footer {
   transform: translateY(-50%);
   display: flex;
   align-items: center;
-  height: 100%;
 }
 .logo img {
   max-height: 40px;
-  width: auto;
-  object-fit: contain;
   border-radius: 10px;
 }
 
 /* Icon bên phải header */
-.home,
-.icon-header {
+.icon-header,
+.home {
   position: absolute;
   right: 10px;
   top: 50%;
@@ -58,23 +59,24 @@ footer {
   cursor: pointer;
   text-decoration: none;
 }
-.home i,
-.icon-header i {
+.icon-header i,
+.home i {
   font-size: 24px;
   color: white;
   transition: color 0.3s ease-in-out;
 }
-.home i:hover,
-.icon-header i:hover {
+.icon-header i:hover,
+.home i:hover {
   color: #ff5722;
 }
 
-/* Container chính */
+/* Phần giữa */
 .container {
   flex: 1;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
   padding: 0 20px;
 }
 
@@ -83,17 +85,16 @@ form {
   display: flex;
   flex-direction: column;
   align-items: center;
-  max-height: 100%;
 }
 
-/* Login Box */
+/* Login box */
 .login-box h2 {
   margin-bottom: 20px;
   text-align: center;
   color: #333;
 }
 
-/* Nhóm input */
+/* Input Group */
 .input-group {
   display: flex;
   align-items: center;
@@ -116,7 +117,6 @@ form {
 }
 .input-group input {
   flex-grow: 1;
-  width: 100%;
   background: inherit;
   border: none;
   outline: none;
@@ -124,7 +124,7 @@ form {
   color: #333;
 }
 
-/* Input đơn giản */
+/* Input đơn */
 .inp {
   width: 100%;
   padding: 5px;
@@ -138,22 +138,17 @@ form {
   border-color: #ff6ec4;
 }
 
-/* Nút hiển thị/ẩn mật khẩu */
+/* Toggle mật khẩu */
 .input-group button {
   position: absolute;
   top: 50%;
   right: 10px;
-  width: 30px;
-  height: 30px;
   transform: translateY(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: none;
   border: none;
   cursor: pointer;
-  color: #888;
   font-size: 1.2rem;
+  color: #888;
   transition: color 0.3s;
 }
 .input-group button:hover {
@@ -215,7 +210,7 @@ form {
   text-align: center;
 }
 
-/* Ghi chú mô tả */
+/* Mô tả */
 .description {
   margin: 20px auto;
   max-width: 400px;
@@ -225,10 +220,9 @@ form {
   line-height: 1.5;
 }
 
-/* Responsive Tablet */
+/* Responsive */
 @media (max-width: 768px) {
-  header,
-  footer {
+  header, footer {
     font-size: 1.5rem;
   }
 
@@ -241,10 +235,6 @@ form {
     width: 90%;
   }
 
-  .submit-btn {
-    padding: 12px 20px;
-  }
-
   .login-box h2 {
     font-size: 1.5rem;
   }
@@ -253,18 +243,10 @@ form {
     font-size: 0.95rem;
     padding: 0 10px;
   }
-
-  .icon-header,
-  .home {
-    top: 50%;
-    transform: translateY(-50%);
-  }
 }
 
-/* Responsive Mobile */
 @media (max-width: 480px) {
-  header,
-  footer {
+  header, footer {
     font-size: 1.2rem;
   }
 
@@ -284,8 +266,7 @@ form {
     font-size: 1rem;
   }
 
-  .icon-header i,
-  .home i {
+  .icon-header i, .home i {
     font-size: 20px;
   }
 
@@ -294,60 +275,31 @@ form {
   }
 }
 
-/*Toast*/
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
+/* Toast giữ nguyên */
 #toast {
   position: fixed;
   top: 32px;
   right: 32px;
   z-index: 9999;
 }
-
 .toast {
   min-width: 400px;
   max-width: 450px;
   display: flex;
   align-items: center;
   background-color: #fff;
+  border-left: 4px solid;
   border-radius: 2px;
   padding: 20px 0;
-  border-left: 4px solid;
   box-shadow: 0 5px 8px rgba(0, 0, 0, 0.08);
   transition: all linear 0.3s;
 }
-
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(calc(100% + 32px));
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes fadeOut {
-  to {
-    opacity: 0;
-  }
-}
-
 .toast + .toast {
   margin-top: 24px;
 }
-
-.toast__icon {
-  font-size: 24px;
-}
-
 .toast__icon,
 .toast__close {
+  font-size: 24px;
   padding: 0 16px;
 }
 .toast__body {
@@ -365,43 +317,17 @@ form {
   line-height: 1.5;
 }
 .toast__close {
-  font-size: 20px;
-  color: rgba(0, 0, 0, 0.3);
   cursor: pointer;
+  color: rgba(0, 0, 0, 0.3);
 }
-
 .toast__close:hover {
   color: rgba(0, 0, 0, 0.6);
 }
-
-.toast--success {
-  border-color: #4caf50;
-}
-
-.toast--success .toast__icon {
-  color: #4caf50;
-}
-
-.toast--info {
-  border-color: #2196f3;
-}
-
-.toast--info .toast__icon {
-  color: #2196f3;
-}
-
-.toast--warning {
-  border-color: #ff9800;
-}
-
-.toast--warning .toast__icon {
-  color: #ff9800;
-}
-
-.toast--error {
-  border-color: #f44336;
-}
-
-.toast--error .toast__icon {
-  color: #f44336;
-}
+.toast--success { border-color: #4caf50; }
+.toast--success .toast__icon { color: #4caf50; }
+.toast--info { border-color: #2196f3; }
+.toast--info .toast__icon { color: #2196f3; }
+.toast--warning { border-color: #ff9800; }
+.toast--warning .toast__icon { color: #ff9800; }
+.toast--error { border-color: #f44336; }
+.toast--error .toast__icon { color: #f44336; }
