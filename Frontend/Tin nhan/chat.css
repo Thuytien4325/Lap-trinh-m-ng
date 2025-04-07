@@ -185,7 +185,7 @@ footer {
     justify-content: center;
     align-items: center;
     width: 100%;
-    padding: 5px 15px;
+    padding: 5px 5px;
     background: #e6ac50;
     color: #5a4a2f;
     flex-shrink: 0;
@@ -312,4 +312,13 @@ footer {
     .chat-window {
         border-radius: 0 0 20px 20px;
     }
+}
+
+/* Tên người gửi phía trên tin nhắn */
+.sender-name {
+    font-size: 13px;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 4px;
+    margin-left: 5px;
 }
