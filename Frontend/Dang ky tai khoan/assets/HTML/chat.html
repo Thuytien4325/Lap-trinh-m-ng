@@ -117,6 +117,40 @@
           }
         });
       }
+
+      function receiveMessage(senderName, message) {
+        const chatContent = document.getElementById('chat-content');
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message received';
+
+        // Tên người gửi
+        const senderLabel = document.createElement('div');
+        senderLabel.className = 'sender-name';
+        senderLabel.textContent = senderName;
+
+        const messageText = document.createElement('div');
+        messageText.className = 'message-text';
+        messageText.textContent = message;
+
+        // Thời gian
+        const timestamp = document.createElement('div');
+        timestamp.className = 'timestamp';
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        timestamp.textContent = `${hours}:${minutes}`;
+
+        // Ghép vào messageDiv
+        messageDiv.appendChild(senderLabel);
+        messageDiv.appendChild(messageText);
+        messageDiv.appendChild(timestamp);
+
+        chatContent.appendChild(messageDiv);
+        chatContent.scrollTop = chatContent.scrollHeight;
+      }
+
+      receiveMessage('Nguyễn Phi Hải', 'Chào bạn! Mình là Hải.');
     </script>
   </body>
 </html>
