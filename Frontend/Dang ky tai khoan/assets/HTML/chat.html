@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mini Chat</title>
     <link rel="stylesheet" href="chat.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
-    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     <script src="../../services/auth-check.js"></script>
   </head>
   <body>
@@ -29,9 +26,7 @@
 
         <!-- Danh sách người dùng -->
         <ul class="chat-list">
-          <li class="chat-item" onclick="selectChat('Nguyễn Phi Hải')">
-            Nguyễn Phi Hải
-          </li>
+          <li class="chat-item" onclick="selectChat('Nguyễn Phi Hải')">Nguyễn Phi Hải</li>
           <li class="chat-item" onclick="selectChat('Gnoud')">Gnoud</li>
         </ul>
       </aside>
@@ -53,29 +48,14 @@
           <label for="image-upload" class="file-label">
             <i class="fa fa-image"></i>
           </label>
-          <input
-            type="file"
-            id="image-upload"
-            accept="image/*"
-            onchange="sendImage(event)"
-            hidden
-          />
+          <input type="file" id="image-upload" accept="image/*" onchange="sendImage(event)" hidden />
 
           <label for="file-upload" class="file-label">
             <i class="fa fa-file"></i>
           </label>
-          <input
-            type="file"
-            id="file-upload"
-            onchange="sendFile(event)"
-            hidden
-          />
+          <input type="file" id="file-upload" onchange="sendFile(event)" hidden />
 
-          <input
-            type="text"
-            class="chat-input"
-            placeholder="Nhập tin nhắn..."
-          />
+          <input type="text" class="chat-input" placeholder="Nhập tin nhắn..." />
           <button class="send-button" onclick="sendMessage()">
             <i class="fa fa-paper-plane"></i>
           </button>
