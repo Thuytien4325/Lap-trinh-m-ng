@@ -283,6 +283,24 @@ footer {
     border-top-right-radius: 0;
 }
 
+/* Tên người gửi phía trên tin nhắn */
+.sender-name {
+    font-size: 13px;
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 4px;
+    margin-left: 5px;
+}
+
+.timestamp {
+  display: block;
+  font-size: 11px; /* Nhỏ hơn văn bản tin nhắn */
+  color: #888; /* Màu xám nhẹ để dễ phân biệt */
+  margin-top: 4px; /* Tạo khoảng cách với nội dung tin nhắn */
+  text-align: right;
+}
+
+
 /* Hiệu ứng xuất hiện */
 @keyframes fadeIn {
     from {
@@ -314,11 +332,3 @@ footer {
     }
 }
 
-/* Tên người gửi phía trên tin nhắn */
-.sender-name {
-    font-size: 13px;
-    font-weight: bold;
-    color: #555;
-    margin-bottom: 4px;
-    margin-left: 5px;
-}
