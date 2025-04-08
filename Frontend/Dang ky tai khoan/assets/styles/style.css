@@ -16,7 +16,7 @@ body {
 /* Header & Footer */
 header,
 footer {
-  height: 60px;
+  height: 65px;
   background: #ffc107;
   color: white;
   text-align: center;
@@ -79,7 +79,6 @@ footer {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 0 20px;
 }
 
 /* Form */
