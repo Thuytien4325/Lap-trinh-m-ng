@@ -415,6 +415,7 @@ async def get_conversations(
 
     conversation_list = []
     for convo in conversations:
+        # Lấy thông tin thành viên
         members = (
             db.query(
                 models.User.username,
@@ -439,6 +440,13 @@ async def get_conversations(
             for member in members
         ]
 
+        # Lấy thời gian tin nhắn gần nhất
+        last_message_time = (
+            db.query(func.max(models.Message.timestamp))
+            .filter(models.Message.conversation_id == convo.conversation_id)
+            .scalar()
+        )
+
         conversation_list.append(
             {
                 "conversation_id": convo.conversation_id,
@@ -446,6 +454,7 @@ async def get_conversations(
                 "name": convo.name,
                 "avatar_url": convo.avatar_url,
                 "created_at_UTC": convo.created_at_UTC,
+                "last_message_time": last_message_time,
                 "group_members": group_members,
             }
         )

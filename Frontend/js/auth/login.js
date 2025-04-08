@@ -20,8 +20,28 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   if (loginForm) {
+    let canSubmit = true;
+    let submitAttempts = 0;
+    const maxSubmitAttempts = 2;
+    const attemptTimeFrame = 5000;
+
     loginForm.addEventListener('submit', async function (event) {
       event.preventDefault();
+
+      const submitButton = document.querySelector('.submit-btn');
+      if (submitAttempts >= maxSubmitAttempts) {
+        toast({
+          title: 'Quá tải',
+          message: 'Bạn đã nhấn quá nhiều lần. Vui lòng thử lại sau.',
+          type: 'warning',
+        });
+        return;
+      }
+
+      if (!canSubmit) return;
+      canSubmit = false;
+      submitAttempts++;
+      submitButton.disabled = true;
 
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
@@ -93,6 +113,14 @@ document.addEventListener('DOMContentLoaded', () => {
           type: 'error',
         });
       }
+
+      setTimeout(() => {
+        canSubmit = true;
+        submitButton.disabled = false;
+      }, 1000);
+      setTimeout(() => {
+        submitAttempts = 0;
+      }, attemptTimeFrame);
     });
   }
 });

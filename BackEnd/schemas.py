@@ -185,6 +185,7 @@ class ConversationResponse(BaseModel):
     name: str | None = None
     avatar_url: str | None = None
     created_at_UTC: datetime | None
+    last_message_time: datetime | None = None
     group_members: Optional[List[GroupMemberResponse]] = []
 
     class Config:

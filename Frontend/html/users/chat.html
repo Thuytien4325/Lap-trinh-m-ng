@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="../../css/users/chat.css" />
     <link rel="stylesheet" href="../../css/modal-overlay.css" />
     <link rel="stylesheet" href="../../css/toast.css" />
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     <script type="module" src="../../js/auth/auth-check.js"></script>
   </head>
@@ -29,14 +28,10 @@
         </div>
 
         <!-- Danh sách người dùng -->
-        <ul class="chat-list">
-          <li class="chat-item" onclick="selectChat('Nguyễn Phi Hải')">Nguyễn Phi Hải</li>
-          <li class="chat-item" onclick="selectChat('Gnoud')">Gnoud</li>
-        </ul>
+        <ul class="chat-list"></ul>
       </aside>
 
       <main class="chat-window">
-        <!-- Tiêu đề sẽ thay đổi theo người dùng -->
         <div id="chat-header" class="chat-header">Cuộc trò chuyện</div>
 
         <div id="chat-content" class="chat-content">
@@ -76,85 +71,78 @@
         <i class="fas fa-sign-out-alt"></i>
       </button>
     </footer>
+
+    <!-- SCRIPT xử lý cuộc trò chuyện -->
     <script>
-      function sendMessage() {
-        const input = document.querySelector('.chat-input');
-        const message = input.value.trim();
-        if (message === '') return;
+      async function loadConversations() {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          console.error('Không có token đăng nhập');
+          return;
+        }
 
-        const chatContent = document.getElementById('chat-content');
+        try {
+          const response = await fetch('http://127.0.0.1:8000/conversations/', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
 
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message sent';
-
-        const messageText = document.createElement('div');
-        messageText.className = 'message-text';
-        messageText.textContent = message;
-
-        // Thêm phần thời gian
-        const timestamp = document.createElement('div');
-        timestamp.className = 'timestamp';
-        const now = new Date();
-        const hours = now.getHours().toString().padStart(2, '0');
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        timestamp.textContent = `${hours}:${minutes}`;
-
-        messageDiv.appendChild(messageText);
-        messageDiv.appendChild(timestamp); // Gắn thời gian vào khung tin nhắn
-        chatContent.appendChild(messageDiv);
-
-        input.value = '';
-        chatContent.scrollTop = chatContent.scrollHeight;
-      }
-
-      function selectChat(name) {
-        const header = document.getElementById('chat-header');
-        header.textContent = name;
-        document.getElementById('chat-content').innerHTML = '';
-
-        const allItems = document.querySelectorAll('.chat-item');
-        allItems.forEach((item) => item.classList.remove('active'));
-
-        allItems.forEach((item) => {
-          if (item.textContent.trim() === name) {
-            item.classList.add('active');
+          if (!response.ok) {
+            console.error('Lỗi khi gọi API:', response.status);
+            return;
           }
-        });
+
+          const conversations = await response.json();
+
+          // Sắp xếp theo thời gian tin nhắn gần nhất
+          conversations.sort((a, b) => {
+            const timeA = a.last_message_time ? new Date(a.last_message_time) : new Date(0);
+            const timeB = b.last_message_time ? new Date(b.last_message_time) : new Date(0);
+            return timeB - timeA;
+          });
+
+          const chatList = document.querySelector('.chat-list');
+          chatList.innerHTML = ''; // Xoá danh sách cũ
+
+          conversations.forEach((conv) => {
+            const li = document.createElement('li');
+            li.className = 'chat-item';
+            li.onclick = () => selectChat(conv.name || `Cuộc trò chuyện ${conv.conversation_id}`);
+
+            // Avatar
+            const avatar = document.createElement('img');
+            avatar.className = 'avatar';
+            avatar.src =
+              conv.avatar_url ||
+              (conv.type === 'group' ? '../../assets/image/group-chat-default.jpg' : '../../assets/image/private-chat-default.jpg');
+            avatar.alt = 'avatar';
+
+            // Tên + icon loại
+            const nameContainer = document.createElement('span');
+            nameContainer.className = 'chat-name';
+
+            const typeIcon = document.createElement('i');
+            typeIcon.className = 'type-icon fas ' + (conv.type === 'group' ? 'fa-users' : 'fa-user');
+
+            const nameText = document.createTextNode(' ' + (conv.name || `Cuộc trò chuyện ${conv.conversation_id}`));
+
+            nameContainer.appendChild(typeIcon);
+            nameContainer.appendChild(nameText);
+
+            // Gắn vào item
+            li.appendChild(avatar);
+            li.appendChild(nameContainer);
+            chatList.appendChild(li);
+          });
+        } catch (error) {
+          console.error('Lỗi khi fetch:', error);
+        }
       }
 
-      function receiveMessage(senderName, message) {
-        const chatContent = document.getElementById('chat-content');
-
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message received';
-
-        // Tên người gửi
-        const senderLabel = document.createElement('div');
-        senderLabel.className = 'sender-name';
-        senderLabel.textContent = senderName;
-
-        const messageText = document.createElement('div');
-        messageText.className = 'message-text';
-        messageText.textContent = message;
-
-        // Thời gian
-        const timestamp = document.createElement('div');
-        timestamp.className = 'timestamp';
-        const now = new Date();
-        const hours = now.getHours().toString().padStart(2, '0');
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        timestamp.textContent = `${hours}:${minutes}`;
-
-        // Ghép vào messageDiv
-        messageDiv.appendChild(senderLabel);
-        messageDiv.appendChild(messageText);
-        messageDiv.appendChild(timestamp);
-
-        chatContent.appendChild(messageDiv);
-        chatContent.scrollTop = chatContent.scrollHeight;
-      }
-
-      receiveMessage('Nguyễn Phi Hải', 'Chào bạn! Mình là Hải.');
+      // Gọi khi trang đã load xong
+      document.addEventListener('DOMContentLoaded', loadConversations);
     </script>
   </body>
 </html>
