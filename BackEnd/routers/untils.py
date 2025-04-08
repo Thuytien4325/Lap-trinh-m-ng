@@ -111,7 +111,9 @@ def send_reset_email(to_email: str, reset_uuid: str):
         raise HTTPException(
             status_code=500, detail="Email sender credentials are missing!"
         )
-    reset_link = f"http://127.0.0.1:5500/Frontend/Dang%20ky%20tai%20khoan/assets/HTML/resetpass.html?uuid={reset_uuid}"
+    reset_link = (
+        f"http://127.0.0.1:5500/Frontend/html/auth/resetpass.html?uuid={reset_uuid}"
+    )
     subject = "Reset your password"
     msg = MIMEMultipart()
     msg["From"] = EMAIL_SENDER

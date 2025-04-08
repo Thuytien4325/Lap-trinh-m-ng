@@ -1,0 +1,282 @@
+/* Reset CSS */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+/* Background chung */
+body {
+  background: linear-gradient(135deg, #fdf6e3, #fae1bb);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* HEADER */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #e6ac50;
+  padding: 12px 20px;
+  color: white;
+}
+
+.logo img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+h5 {
+  font-size: 16px;
+  flex-grow: 1;
+  text-align: center;
+}
+
+/* Nút đóng */
+.custom-close-outside {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.custom-close-outside:hover {
+  color: #ffcc80;
+}
+
+/* CONTAINER */
+.container {
+  display: flex;
+  flex: 1;
+  max-width: 1200px;
+  margin: 20px auto;
+  width: 90%;
+  background: #fff9e6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* SIDEBAR */
+nav {
+  width: 250px;
+  background: #fce8b6;
+  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  border-right: 3px solid #e0c085;
+}
+
+nav ul {
+  list-style: none;
+  padding: 0;
+}
+
+nav ul li {
+  padding: 10px 20px;
+}
+
+nav ul li a {
+  text-decoration: none;
+  color: #5a4a2f;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  transition: background 0.3s, transform 0.2s;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+nav ul li a i {
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+nav ul li a:hover {
+  background: #ffefc2;
+  transform: scale(1.05);
+}
+
+/* MAIN CONTENT */
+main {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: #fff9e6;
+  border-radius: 0 20px 20px 0;
+}
+
+/* FOOTER */
+footer {
+  text-align: center;
+  padding: 10px;
+  font-size: 14px;
+  color: #5a4a2f;
+  background: #e6ac50;
+  border-radius: 0 0 20px 20px;
+  margin-top: auto;
+}
+/* Reset CSS */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+/* Background chung */
+body {
+  background: linear-gradient(135deg, #fdf6e3, #fae1bb);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* HEADER */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #e6ac50;
+  padding: 12px 20px;
+  color: white;
+}
+
+.logo img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+h5 {
+  font-size: 16px;
+  flex-grow: 1;
+  text-align: center;
+}
+
+/* Nút đóng */
+.custom-close-outside {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.custom-close-outside:hover {
+  color: #ffcc80;
+}
+
+/* CONTAINER */
+.container {
+  display: flex;
+  flex: 1;
+  max-width: 1200px;
+  margin: 20px auto;
+  width: 90%;
+  background: #fff9e6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* SIDEBAR */
+nav {
+  width: 250px;
+  background: #fce8b6;
+  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  border-right: 3px solid #e0c085;
+}
+
+nav ul {
+  list-style: none;
+  padding: 0;
+}
+
+nav ul li {
+  padding: 10px 20px;
+}
+
+.nav-button {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #5a4a2f;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  transition: background 0.3s, transform 0.2s;
+  border-radius: 12px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.nav-button i {
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+.nav-button:hover {
+  background: #ffefc2;
+  transform: scale(1.05);
+}
+
+/* MAIN CONTENT */
+main {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: #fff9e6;
+  border-radius: 0 20px 20px 0;
+}
+
+/* FOOTER */
+footer {
+  text-align: center;
+  padding: 10px;
+  font-size: 14px;
+  color: #5a4a2f;
+  background: #e6ac50;
+  margin-top: auto;
+}
+
+.nav-link.active {
+  background-color: #f39c12 !important; /* Màu cam đậm */
+  color: white !important;
+  font-weight: bold;
+  border-radius: 5px;
+}
+.nav-link {
+  transition: background-color 0.3s, color 0.3s;
+}
+.nav-link:hover {
+  background-color: #ffc107; /* Màu cam nhạt khi hover */
+}
+
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    width: 90%;
+    margin: 10px auto; /* Giảm margin cho màn hình nhỏ */
+  }
+
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 3px solid #e0c085;
+  }
+
+  .chat-window {
+    border-radius: 0 0 20px 20px;
+  }
+}
