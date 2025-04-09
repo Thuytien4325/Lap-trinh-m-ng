@@ -144,6 +144,7 @@ button:hover {
   background: #fff9e6;
   border-radius: 8px;
   margin: 10px 0;
+  scrollbar-width: none;
 }
 
 /* Ô nhập tin nhắn */
@@ -341,6 +342,18 @@ footer {
   color: #888; /* Màu xám nhẹ để dễ phân biệt */
   margin-top: 4px; /* Tạo khoảng cách với nội dung tin nhắn */
   text-align: right;
+}
+
+.attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.attachment-img {
+  max-width: 100px;
+  height: auto;
+  object-fit: contain;
 }
 
 /* Hiệu ứng xuất hiện */

@@ -8,7 +8,7 @@ from typing import List
 import models
 from database import get_db
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from models import Attachment, Conversation, GroupMember, Message
+from models import Attachment, Conversation, GroupMember, Message, User
 from routers.untils import (
     CONVERSATION_ATTACHMENTS_DIR,
     get_current_user,
@@ -140,8 +140,8 @@ async def send_message(
 @messages_router.get("/{conversation_id}/messages")
 async def get_messages(
     conversation_id: int,
-    limit: int = Query(20, ge=1, le=100),  # Số tin nhắn mỗi lần load (tối đa 100)
-    offset: int = Query(0, ge=0),  # Vị trí bắt đầu lấy tin nhắn
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -166,11 +166,12 @@ async def get_messages(
     if not is_member:
         raise HTTPException(status_code=403, detail="Bạn không thuộc nhóm này")
 
-    # Lấy tin nhắn theo thứ tự thời gian (cũ nhất -> mới nhất)
+    # Lấy tin nhắn kèm thông tin người gửi
     messages = (
-        db.query(Message)
+        db.query(Message, User)
+        .join(User, Message.sender_id == User.user_id)
         .filter(Message.conversation_id == conversation_id)
-        .order_by(Message.timestamp.asc())  # Sắp xếp từ cũ đến mới
+        .order_by(Message.timestamp.desc())
         .offset(offset)
         .limit(limit)
         .all()
@@ -178,7 +179,7 @@ async def get_messages(
 
     # Lấy danh sách file đính kèm theo từng tin nhắn
     message_list = []
-    for msg in messages:
+    for msg, sender in messages:
         attachments = (
             db.query(Attachment).filter(Attachment.message_id == msg.message_id).all()
         )
@@ -186,6 +187,8 @@ async def get_messages(
             {
                 "message_id": msg.message_id,
                 "sender_id": msg.sender_id,
+                "sender_username": sender.username,
+                "sender_nickname": sender.nickname,
                 "content": msg.content,
                 "timestamp": msg.timestamp,
                 "attachments": [
