@@ -4,11 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trang Thông Tin Cá Nhân</title>
-    <link rel="stylesheet" href="thongtin.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-    />
+    <link rel="stylesheet" href="../../css/users/thongtin.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <script src="../Dang ky tai khoan/services/auth-check.js"></script>
   </head>
   <body>
@@ -46,22 +43,23 @@
             Software Engineer
           </p>
         </div>
-        <div
-          class="button-container"
-          style="margin-top: auto; text-align: center"
-        >
+        <div class="button-container" style="margin-top: auto; text-align: center">
           <button class="edit-btn">Chỉnh sửa thông tin</button>
         </div>
       </div>
     </div>
-        <footer>
-        <div class="footer-icons">
-            <i class="fa fa-user user-icon"></i>
-            <i class="fa fa-comment-dots message-icon"></i>
-        </div>
-        <button class="logout-button" title="Đăng xuất">
-            <i class="fas fa-sign-out-alt"></i>
+    <footer>
+      <div class="footer-icons">
+        <button onclick="info()" class="user-icon">
+          <i class="fas fa-user"></i>
         </button>
+        <button onclick="user()">
+          <i class="fas fa-comment-dots"></i>
+        </button>
+      </div>
+      <button class="logout-button" onclick="logout()" title="Đăng xuất">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
     </footer>
   </body>
 </html>

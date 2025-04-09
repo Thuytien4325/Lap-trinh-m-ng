@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../../css/toast.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     <script type="module" src="../../js/auth/auth-check.js"></script>
+    <script type="module" src="../../js/users/chat.js"></script>
   </head>
   <body>
     <div class="container">
@@ -34,25 +35,18 @@
       <main class="chat-window">
         <div id="chat-header" class="chat-header">Cuộc trò chuyện</div>
 
-        <div id="chat-content" class="chat-content">
-          <div class="message received">
-            <div class="message-text">HiHi</div>
-          </div>
-          <div class="message sent">
-            <div class="message-text">Hello</div>
-          </div>
-        </div>
+        <div id="chat-content" class="chat-content"></div>
 
         <div class="chat-input-container">
           <label for="image-upload" class="file-label">
             <i class="fa fa-image"></i>
           </label>
-          <input type="file" id="image-upload" accept="image/*" onchange="sendImage(event)" hidden />
+          <input type="file" id="image-upload" accept=".jpg,.jpeg,.png" onchange="sendImage(event)" hidden />
 
           <label for="file-upload" class="file-label">
             <i class="fa fa-file"></i>
           </label>
-          <input type="file" id="file-upload" onchange="sendFile(event)" hidden />
+          <input type="file" id="file-upload" accept=".pdf,.mp4,.mp3" onchange="sendFile(event)" hidden />
 
           <input type="text" class="chat-input" placeholder="Nhập tin nhắn..." />
           <button class="send-button" onclick="sendMessage()">
@@ -64,85 +58,17 @@
 
     <footer>
       <div class="footer-icons">
-        <i class="fas fa-user"></i>
-        <i class="fas fa-comment-dots message-icon"></i>
+        <button onclick="info()">
+          <i class="fas fa-user"></i>
+        </button>
+        <button onclick="msg()" class="message-icon">
+          <i class="fas fa-comment-dots"></i>
+        </button>
       </div>
+
       <button class="logout-button" onclick="logout()" title="Đăng xuất">
         <i class="fas fa-sign-out-alt"></i>
       </button>
     </footer>
-
-    <!-- SCRIPT xử lý cuộc trò chuyện -->
-    <script>
-      async function loadConversations() {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-          console.error('Không có token đăng nhập');
-          return;
-        }
-
-        try {
-          const response = await fetch('http://127.0.0.1:8000/conversations/', {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (!response.ok) {
-            console.error('Lỗi khi gọi API:', response.status);
-            return;
-          }
-
-          const conversations = await response.json();
-
-          // Sắp xếp theo thời gian tin nhắn gần nhất
-          conversations.sort((a, b) => {
-            const timeA = a.last_message_time ? new Date(a.last_message_time) : new Date(0);
-            const timeB = b.last_message_time ? new Date(b.last_message_time) : new Date(0);
-            return timeB - timeA;
-          });
-
-          const chatList = document.querySelector('.chat-list');
-          chatList.innerHTML = ''; // Xoá danh sách cũ
-
-          conversations.forEach((conv) => {
-            const li = document.createElement('li');
-            li.className = 'chat-item';
-            li.onclick = () => selectChat(conv.name || `Cuộc trò chuyện ${conv.conversation_id}`);
-
-            // Avatar
-            const avatar = document.createElement('img');
-            avatar.className = 'avatar';
-            avatar.src =
-              conv.avatar_url ||
-              (conv.type === 'group' ? '../../assets/image/group-chat-default.jpg' : '../../assets/image/private-chat-default.jpg');
-            avatar.alt = 'avatar';
-
-            // Tên + icon loại
-            const nameContainer = document.createElement('span');
-            nameContainer.className = 'chat-name';
-
-            const typeIcon = document.createElement('i');
-            typeIcon.className = 'type-icon fas ' + (conv.type === 'group' ? 'fa-users' : 'fa-user');
-
-            const nameText = document.createTextNode(' ' + (conv.name || `Cuộc trò chuyện ${conv.conversation_id}`));
-
-            nameContainer.appendChild(typeIcon);
-            nameContainer.appendChild(nameText);
-
-            // Gắn vào item
-            li.appendChild(avatar);
-            li.appendChild(nameContainer);
-            chatList.appendChild(li);
-          });
-        } catch (error) {
-          console.error('Lỗi khi fetch:', error);
-        }
-      }
-
-      // Gọi khi trang đã load xong
-      document.addEventListener('DOMContentLoaded', loadConversations);
-    </script>
   </body>
 </html>

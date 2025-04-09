@@ -1,4 +1,4 @@
-import { toast } from '../toast.js';
+import { toast } from '../untils.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.querySelector('form');

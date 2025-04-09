@@ -1,4 +1,4 @@
-import { toast } from '../toast.js';
+import { toast, createModal } from '../untils.js';
 const API_BASE = 'http://127.0.0.1:8000/auth';
 
 function parseTimeString(str) {
@@ -9,59 +9,9 @@ function parseTimeString(str) {
   return 0;
 }
 
-function showModal({ title, message, showExtendButton = false, onExtend = null }) {
-  const existing = document.querySelector('.modal-overlay');
-  if (existing) existing.remove();
-
-  const modalHTML = `
-            <div class="modal-overlay show">
-              <div class="modal">
-                <div class="close-btn"><i class="fa-solid fa-xmark"></i></div>
-                <div class="modal-header">
-                  <h3>${title}</h3>
-                </div>
-                <div class="modal-content">
-                  <p>${message}</p>
-                </div>
-                <div class="modal-buttons">
-                  ${
-                    showExtendButton
-                      ? '<button class="btn btn-extend">Kéo dài phiên làm việc</button>'
-                      : '<button class="btn btn-login">Đăng nhập lại</button>'
-                  }
-                </div>
-              </div>
-            </div>
-          `;
-
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = modalHTML.trim();
-  const modalEl = wrapper.firstElementChild;
-  document.body.appendChild(modalEl);
-
-  // Khi nhấn nút đóng (X) => luôn chuyển sang login
-  modalEl.querySelector('.close-btn').onclick = () => {
-    modalEl.remove();
-    localStorage.clear();
-    window.location.href = '../../html/auth/login.html';
-  };
-
-  // Nếu có nút "Kéo dài phiên" thì xử lý khác
-  if (showExtendButton && onExtend) {
-    modalEl.querySelector('.btn-extend').onclick = () => {
-      onExtend();
-      modalEl.remove();
-    };
-  }
-
-  // Nếu không có nút "Kéo dài", thì là nút "Đăng nhập lại" => chuyển login
-  if (!showExtendButton) {
-    modalEl.querySelector('.btn-login').onclick = () => {
-      modalEl.remove();
-      localStorage.clear();
-      window.location.href = '../../html/auth/login.html';
-    };
-  }
+function redirectToLogin() {
+  localStorage.clear();
+  window.location.href = '../../html/auth/login.html';
 }
 
 function checkTokenExpiration() {
@@ -73,33 +23,35 @@ function checkTokenExpiration() {
 
   // Nếu không có token thì chuyển về trang đăng nhập
   if (!refreshToken || !loginTime) {
-    localStorage.clear();
-    showModal({
+    createModal({
       title: 'Phiên đăng nhập đã hết hạn',
       message: 'Vui lòng đăng nhập lại.',
-      onClose: () => (window.location.href = '../../html/auth/login.html'),
+      primaryButtonText: 'Đăng nhập lại',
+      onPrimary: redirectToLogin,
+      onClose: redirectToLogin,
     });
     return;
   }
 
   // Hết hạn refresh_token => đăng xuất
   if (now - loginTime >= refreshTokenTime) {
-    localStorage.clear();
-    showModal({
+    createModal({
       title: 'Phiên đăng nhập đã hết hạn',
       message: 'Vui lòng đăng nhập lại.',
-      onClose: () => (window.location.href = '../../html/auth/login.html'),
+      primaryButtonText: 'Đăng nhập lại',
+      onPrimary: redirectToLogin,
+      onClose: redirectToLogin,
     });
     return;
   }
 
-  // Hết hạn access_token => refresh
+  // Hết hạn access_token => hỏi có muốn gia hạn không
   if (now - loginTime >= accessTokenTime) {
-    showModal({
-      title: 'Phiên đăng nhập của bạn sắp hết hạn',
-      message: 'Bạn có muốn gia hạn phiên hiện tại không?',
-      showExtendButton: true,
-      onExtend: () => {
+    createModal({
+      title: 'Phiên đăng nhập sắp hết hạn',
+      message: 'Bạn có muốn gia hạn phiên làm việc không?',
+      primaryButtonText: 'Kéo dài phiên làm việc',
+      onPrimary: () => {
         fetch(`${API_BASE}/refresh-token?refresh_token=${encodeURIComponent(refreshToken)}`, {
           method: 'POST',
         })
@@ -139,11 +91,10 @@ function checkTokenExpiration() {
             });
 
             localStorage.clear();
-            setTimeout(() => {
-              window.location.href = '../../html/auth/login.html';
-            }, 1200);
+            setTimeout(redirectToLogin, 1200);
           });
       },
+      onClose: redirectToLogin,
     });
   }
 }

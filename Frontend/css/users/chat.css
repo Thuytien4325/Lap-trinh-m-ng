@@ -229,7 +229,7 @@ footer {
 }
 
 /* Icon người dùng và tin nhắn */
-.footer-icons i {
+.footer-icons button {
   font-size: 24px;
   color: #5a4a2f;
   padding: 10px;
@@ -240,8 +240,8 @@ footer {
 }
 
 /* Hover chung */
-.footer-icons i:hover {
-  background: #ffefc2;
+.footer-icons button:hover {
+  background: #fff9e6;
   transform: scale(1.05);
 }
 
@@ -254,6 +254,18 @@ footer {
 }
 
 .footer-icons .message-icon:hover {
+  background: #fff9e6;
+  transform: none;
+}
+
+.footer-icons .user-icon {
+  background: #fff9e6;
+  font-weight: bold;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+  transition: none;
+}
+
+.footer-icons .user-icon:hover {
   background: #fff9e6;
   transform: none;
 }
@@ -277,7 +289,7 @@ footer {
 }
 
 .logout-button:hover {
-  background: #ffefc2;
+  background: #fff9e6;
   transform: scale(1.05);
 }
 
