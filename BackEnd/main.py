@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from database import SessionLocal
@@ -60,6 +61,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Thêm router
@@ -99,11 +101,22 @@ async def get_active_connections():
     )
 
 
+# Lấy đường dẫn tuyệt đối đến thư mục Frontend
+frontend_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "Frontend")
+)
 # Cho phép truy cập file tĩnh (uploads)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-
+app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 # Chạy ứng dụng
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, reload=True)
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        ws_ping_interval=20,
+        ws_ping_timeout=20,
+    )

@@ -1,5 +1,5 @@
 import { toast, createModal } from '../untils.js';
-const API_BASE = 'http://127.0.0.1:8000/auth';
+import config from '../config.js';
 
 function parseTimeString(str) {
   if (!str) return 0;
@@ -52,7 +52,7 @@ function checkTokenExpiration() {
       message: 'Bạn có muốn gia hạn phiên làm việc không?',
       primaryButtonText: 'Kéo dài phiên làm việc',
       onPrimary: () => {
-        fetch(`${API_BASE}/refresh-token?refresh_token=${encodeURIComponent(refreshToken)}`, {
+        fetch(`${config.baseURL}/auth/refresh-token?refresh_token=${encodeURIComponent(refreshToken)}`, {
           method: 'POST',
         })
           .then(async (res) => {

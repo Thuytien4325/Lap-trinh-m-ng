@@ -1,12 +1,20 @@
 import { toast, createModal } from '../untils.js';
+import config from '../config.js';
 
-const baseURL = 'http://127.0.0.1:8000';
+// Các biến toàn cục
 let selectedFiles = [];
 let currentConversationId = null;
 let messageOffset = 0;
 let isLoadingMessages = false;
 const messageLimit = 20;
 
+// Thêm biến để quản lý WebSocket
+let socket = null;
+
+// Thêm biến để kiểm soát việc reload
+let isReloadConfirmed = false;
+
+// Hàm lấy người dùng trong localstorage
 function getCurrentUser() {
   const userStr = localStorage.getItem('user');
   if (!userStr) return null;
@@ -19,6 +27,7 @@ function getCurrentUser() {
   }
 }
 
+// Load cuộc trò chuyện
 async function loadConversations() {
   const token = localStorage.getItem('access_token');
   if (!token) {
@@ -27,7 +36,7 @@ async function loadConversations() {
   }
 
   try {
-    const response = await fetch(`${baseURL}/conversations/`, {
+    const response = await fetch(`${config.baseURL}/conversations/`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -50,52 +59,61 @@ async function loadConversations() {
     const chatList = document.querySelector('.chat-list');
     chatList.innerHTML = '';
 
-    conversations.forEach((conv) => {
-      const li = document.createElement('li');
-      li.className = 'chat-item';
+    if (conversations.length > 0) {
+      conversations.forEach((conv) => {
+        const li = document.createElement('li');
+        li.className = 'chat-item';
 
-      li.dataset.conversationId = conv.conversation_id;
-      li.dataset.conversationName = conv.name || `Cuộc trò chuyện ${conv.conversation_id}`;
+        li.dataset.conversationId = conv.conversation_id;
+        li.dataset.conversationName = conv.name || `Cuộc trò chuyện ${conv.conversation_id}`;
 
-      li.onclick = () => {
-        const id = li.dataset.conversationId;
-        const name = li.dataset.conversationName;
-        currentConversationId = id;
-        loadMessages(id, name, true);
-      };
+        li.onclick = () => {
+          const id = li.dataset.conversationId;
+          const name = li.dataset.conversationName;
+          currentConversationId = id;
+          loadMessages(id, name, true);
+        };
 
-      const avatar = document.createElement('img');
-      avatar.className = 'avatar';
+        const avatar = document.createElement('img');
+        avatar.className = 'avatar';
 
-      const fixedAvatarUrl = conv.avatar_url
-        ? `${baseURL}${conv.avatar_url.replace(/\\/g, '/')}`
-        : conv.type === 'group'
-        ? '../../assets/image/group-chat-default.jpg'
-        : '../../assets/image/private-chat-default.jpg';
+        const fixedAvatarUrl = conv.avatar_url
+          ? conv.avatar_url.startsWith('http')
+            ? conv.avatar_url
+            : `${config.baseURL}${conv.avatar_url.replace(/^\/+/, '')}`
+          : conv.type === 'group'
+          ? '../../assets/image/group-chat-default.jpg'
+          : '../../assets/image/private-chat-default.jpg';
 
-      avatar.src = fixedAvatarUrl;
-      avatar.alt = 'avatar';
+        avatar.src = fixedAvatarUrl;
+        avatar.alt = 'avatar';
 
-      const nameContainer = document.createElement('span');
-      nameContainer.className = 'chat-name';
+        const nameContainer = document.createElement('span');
+        nameContainer.className = 'chat-name';
 
-      const typeIcon = document.createElement('i');
-      typeIcon.className = 'type-icon fas ' + (conv.type === 'group' ? 'fa-users' : 'fa-user');
+        const typeIcon = document.createElement('i');
+        typeIcon.className = 'type-icon fas ' + (conv.type === 'group' ? 'fa-users' : 'fa-user');
 
-      const nameText = document.createTextNode(' ' + (conv.name || `Cuộc trò chuyện ${conv.conversation_id}`));
+        const nameText = document.createTextNode(' ' + (conv.name || `Cuộc trò chuyện ${conv.conversation_id}`));
 
-      nameContainer.appendChild(typeIcon);
-      nameContainer.appendChild(nameText);
+        nameContainer.appendChild(typeIcon);
+        nameContainer.appendChild(nameText);
 
-      li.appendChild(avatar);
-      li.appendChild(nameContainer);
-      chatList.appendChild(li);
-    });
+        li.appendChild(avatar);
+        li.appendChild(nameContainer);
+        chatList.appendChild(li);
+      });
+
+      const latestConversation = conversations[0];
+      currentConversationId = latestConversation.conversation_id;
+      loadMessages(latestConversation.conversation_id, latestConversation.name || `Cuộc trò chuyện ${latestConversation.conversation_id}`, true);
+    }
   } catch (error) {
     console.error('Lỗi khi fetch:', error);
   }
 }
 
+// Load tin nhắn
 async function loadMessages(conversationId, conversationName, isInitial = true) {
   const token = localStorage.getItem('access_token');
   if (!token) return;
@@ -113,7 +131,7 @@ async function loadMessages(conversationId, conversationName, isInitial = true) 
   isLoadingMessages = true;
 
   try {
-    const response = await fetch(`${baseURL}/messages/${conversationId}/messages?limit=${messageLimit}&offset=${messageOffset}`, {
+    const response = await fetch(`${config.baseURL}/messages/${conversationId}/messages?limit=${messageLimit}&offset=${messageOffset}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
@@ -164,6 +182,9 @@ function appendMessageToUI(msg) {
     const senderName = document.createElement('div');
     senderName.className = 'sender-name';
     senderName.textContent = msg.sender_nickname;
+    senderName.dataset.username = msg.sender_username;
+    senderName.style.cursor = 'pointer';
+    senderName.onclick = () => showUserInfo(msg.sender_username);
     messageDiv.appendChild(senderName);
   }
 
@@ -177,7 +198,7 @@ function appendMessageToUI(msg) {
     attContainer.className = 'attachments';
 
     msg.attachments.forEach((att) => {
-      const fixedFileUrl = `${baseURL}/${att.file_url.replace(/\\/g, '/')}`;
+      const fixedFileUrl = att.file_url.startsWith('http') ? att.file_url : `${config.baseURL}/${att.file_url.replace(/^\/+/, '')}`;
 
       if (/\.(jpg|jpeg|png|gif)$/i.test(fixedFileUrl)) {
         const img = document.createElement('img');
@@ -219,6 +240,9 @@ function appendMessageToTop(msg, currentUser) {
     const senderName = document.createElement('div');
     senderName.className = 'sender-name';
     senderName.textContent = msg.sender_nickname;
+    senderName.dataset.username = msg.sender_username;
+    senderName.style.cursor = 'pointer';
+    senderName.onclick = () => showUserInfo(msg.sender_username);
     messageDiv.appendChild(senderName);
   }
 
@@ -232,7 +256,7 @@ function appendMessageToTop(msg, currentUser) {
     attContainer.className = 'attachments';
 
     msg.attachments.forEach((att) => {
-      const fixedFileUrl = `${baseURL}/${att.file_url.replace(/\\/g, '/')}`;
+      const fixedFileUrl = att.file_url.startsWith('http') ? att.file_url : `${config.baseURL}/${att.file_url.replace(/^\/+/, '')}`;
 
       if (/\.(jpg|jpeg|png|gif)$/i.test(fixedFileUrl)) {
         const img = document.createElement('img');
@@ -293,6 +317,11 @@ document.addEventListener('click', function (e) {
   if (e.target.classList.contains('close-btn') || e.target.id === 'image-modal') {
     document.getElementById('image-modal').style.display = 'none';
   }
+
+  const modal = document.getElementById('user-info-modal');
+  if (e.target === modal) {
+    closeUserInfoModal();
+  }
 });
 
 async function sendMessage() {
@@ -318,7 +347,7 @@ async function sendMessage() {
   }
 
   try {
-    const response = await fetch(`${baseURL}/messages/?${query.toString()}`, {
+    const response = await fetch(`${config.baseURL}/messages/?${query.toString()}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -331,7 +360,8 @@ async function sendMessage() {
       console.error('Gửi tin nhắn thất bại:', response.status);
       return;
     }
-
+    const sentMessage = await response.json(); // <- giả sử API trả về tin nhắn đã lưu
+    appendMessageToUI(sentMessage);
     input.value = '';
     selectedFiles = [];
   } catch (error) {
@@ -361,94 +391,88 @@ document.getElementById('chat-content').addEventListener('scroll', function () {
   }
 });
 
-let socket = null;
-
+// Thêm hàm kết nối WebSocket
 function connectWebSocket() {
   const user = getCurrentUser();
   if (!user) return;
 
-  socket = new WebSocket(`ws://127.0.0.1:8000/ws/user/${user.username}`);
+  socket = new WebSocket(`${config.wsUrl}/ws/user/${user.username}`);
 
   socket.onopen = () => {
-    console.log('✅ WebSocket connected');
+    console.log('✅ WebSocket đã kết nối');
   };
 
-  socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    console.log('📩 Dữ liệu WebSocket nhận được:', data); // <-- thêm dòng này
-
-    if (data.type === 'new_message') {
-      if (String(currentConversationId) === String(data.conversation_id)) {
-        const currentUser = getCurrentUser();
-        const msg = data.message;
-        const chatContent = document.getElementById('chat-content');
-
-        const isCurrentUser = msg.sender_id === currentUser.user_id;
-        const messageDiv = document.createElement('div');
-        messageDiv.classList.add('message', isCurrentUser ? 'sent' : 'received');
-
-        if (!isCurrentUser) {
-          const senderName = document.createElement('div');
-          senderName.className = 'sender-name';
-          senderName.textContent = msg.sender_nickname || 'Người dùng';
-          messageDiv.appendChild(senderName);
-        }
-
-        const textDiv = document.createElement('div');
-        textDiv.className = 'message-text';
-        textDiv.innerHTML = msg.content;
-        messageDiv.appendChild(textDiv);
-
-        if (msg.attachments && msg.attachments.length > 0) {
-          const attContainer = document.createElement('div');
-          attContainer.className = 'attachments';
-
-          msg.attachments.forEach((att) => {
-            const fixedFileUrl = `${baseURL}/${att.file_url.replace(/\\/g, '/')}`;
-
-            if (/\.(jpg|jpeg|png|gif)$/i.test(fixedFileUrl)) {
-              const img = document.createElement('img');
-              img.src = fixedFileUrl;
-              img.className = 'attachment-img';
-              img.alt = 'Ảnh đính kèm';
-              attContainer.appendChild(img);
-            } else {
-              const fileLink = document.createElement('a');
-              fileLink.href = fixedFileUrl;
-              fileLink.textContent = 'Tải file';
-              fileLink.target = '_blank';
-              fileLink.className = 'attachment-file';
-              attContainer.appendChild(fileLink);
-            }
-          });
-
-          messageDiv.appendChild(attContainer);
-        }
-
-        const time = document.createElement('span');
-        time.className = 'timestamp';
-        time.textContent = new Date(msg.timestamp).toLocaleString();
-        messageDiv.appendChild(time);
-
-        chatContent.appendChild(messageDiv);
-        chatContent.scrollTop = chatContent.scrollHeight; // Auto scroll to bottom
-      } else {
-        loadConversations();
+  socket.onmessage = async (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log('Tin nhắn từ WebSocket:', data);
+      if (data.type === 'url_update') {
+        const updateEvent = new CustomEvent('url-update', {
+          detail: data.data,
+        });
+        window.dispatchEvent(updateEvent);
       }
+
+      // Bỏ qua tin nhắn từ Live Server
+      if (typeof data === 'string' && (data === 'reload' || data === 'refreshcss')) {
+        return;
+      }
+
+      // Xử lý tin nhắn mới
+      if (data.type === 'new_message') {
+        const msg = {
+          ...data.message,
+          sender_nickname: data.message.sender_nickname || 'Người gửi',
+          sender_username: data.message.sender_username || 'unknown',
+        };
+        console.log('msg', msg);
+        // Nếu tin nhắn thuộc cuộc trò chuyện hiện tại
+        if (String(currentConversationId) === String(data.conversation_id)) {
+          if (msg.attachments && msg.attachments.length > 0) {
+            alert(`Bạn vừa nhận được tin nhắn có ${msg.attachments.length} file đính kèm.\nTrang sẽ tự động tải lại để hiển thị file.`);
+
+            isReloadConfirmed = true;
+            localStorage.setItem('lastConversationId', currentConversationId);
+            window.location.href = window.location.href;
+          } else {
+            appendMessageToUI(msg);
+          }
+        } else {
+          loadConversations();
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi xử lý tin nhắn WebSocket:', error);
     }
   };
 
   socket.onclose = () => {
-    console.log('❌ WebSocket closed, reconnecting...');
+    console.log('❌ WebSocket đã đóng, đang kết nối lại...');
     setTimeout(connectWebSocket, 2000);
   };
 
   socket.onerror = (error) => {
-    console.error('⚠️ WebSocket error:', error);
+    console.error('⚠️ Lỗi WebSocket:', error);
   };
 }
 
+// Thêm event listener để ngăn reload tự động
+window.addEventListener('beforeunload', (e) => {
+  if (!isReloadConfirmed) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// Sửa lại phần khởi tạo khi trang load
 document.addEventListener('DOMContentLoaded', () => {
+  // Kiểm tra xem có conversationId được lưu từ lần reload trước không
+  const lastConversationId = localStorage.getItem('lastConversationId');
+  if (lastConversationId) {
+    currentConversationId = lastConversationId;
+    localStorage.removeItem('lastConversationId'); // Xóa sau khi đã lấy
+  }
+
   loadConversations();
   connectWebSocket();
 });
@@ -457,3 +481,43 @@ window.logout = logout;
 window.sendMessage = sendMessage;
 window.sendImage = sendImage;
 window.sendFile = sendFile;
+
+// Thêm hàm đóng modal thông tin người dùng
+function closeUserInfoModal() {
+  document.getElementById('user-info-modal').style.display = 'none';
+}
+
+// Thêm hàm lấy và hiển thị thông tin người dùng
+async function showUserInfo(username) {
+  try {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${config.baseURL}/users/search?query=${username}&search_by_nickname=false`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      const users = await response.json();
+      const userData = users[0];
+      if (userData) {
+        document.getElementById('user-avatar').src = userData.avatar
+          ? userData.avatar.startsWith('http')
+            ? userData.avatar
+            : `${config.baseURL}/${userData.avatar.replace(/^\/+/, '')}`
+          : '../../assets/image/private-chat-default.jpg';
+        document.getElementById('user-username').textContent = `${userData.username}`;
+        document.getElementById('user-nickname').textContent = userData.nickname || 'string';
+        document.getElementById('user-email').textContent = userData.email || 'user@example.com';
+
+        // Sử dụng flex để căn giữa modal
+        document.getElementById('user-info-modal').style.display = 'flex';
+      }
+    }
+  } catch (error) {
+    console.error('Lỗi khi lấy thông tin người dùng:', error);
+  }
+}
+
+// Thêm vào window để có thể gọi từ HTML
+window.closeUserInfoModal = closeUserInfoModal;

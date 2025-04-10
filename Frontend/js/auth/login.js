@@ -1,9 +1,10 @@
 // login.js
 import { toast } from '../untils.js';
+import config from '../config.js';
+console.log('BASE URL:', config.baseURL);
 
 document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('loginForm');
-  const API_BASE = 'http://localhost:8000/auth';
 
   document.querySelectorAll('.toggle-password').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -52,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.append('grant_type', 'password');
 
       try {
-        const response = await fetch(`${API_BASE}/login`, {
+        const response = await fetch(`${config.baseURL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: formData,
@@ -107,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
       } catch (error) {
+        console.error('Lỗi:', error);
         toast({
           title: 'Lỗi mạng',
           message: 'Không thể kết nối đến máy chủ. Vui lòng thử lại.',

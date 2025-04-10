@@ -84,7 +84,7 @@
       const conversationId = 1; // Thay bằng ID thật
       const chatBox = document.getElementById('chat-box');
       const accessToken =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0MSIsInVzZXJfaWQiOjMsImV4cCI6MTc0MzcwMjM3NH0.Yi2k9w7XeOhiWxfu3_Ax3Y2lsJ0hUTlfFk30vCVAod8'; // 🔥 Token lấy sau khi đăng nhập
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwidXNlcl9pZCI6MiwiZXhwIjoxNzQ0MzAxMzkxfQ.ZLsOvu9ZVQeBuv1wxfXTG7LglZo5Vy-M6ZV7-2eb4M8'; // 🔥 Token lấy sau khi đăng nhập
       let username = ''; // Biến để lưu username
 
       // 🟢 Lấy username từ API /users/
@@ -140,16 +140,13 @@
       // 🟢 Lấy tin nhắn từ API
       async function fetchMessages() {
         try {
-          const response = await fetch(
-            `http://127.0.0.1:8000/messages/7/messages?limit=20&offset=0`,
-            {
-              method: 'GET',
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-              },
-            }
-          );
+          const response = await fetch(`http://127.0.0.1:8000/messages/1/messages?limit=20&offset=0`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
 
           if (!response.ok) {
             throw new Error(`Lỗi: ${response.status}`);
@@ -175,10 +172,7 @@
 
         messages.messages.reverse().forEach((msg) => {
           const messageDiv = document.createElement('div');
-          messageDiv.classList.add(
-            'message',
-            msg.sender_id === 2 ? 'sent' : 'received'
-          ); // Giả sử ID 2 là người dùng hiện tại
+          messageDiv.classList.add('message', msg.sender_id === 2 ? 'sent' : 'received'); // Giả sử ID 2 là người dùng hiện tại
           messageDiv.textContent = msg.content;
 
           // Hiển thị các tệp đính kèm (nếu có)

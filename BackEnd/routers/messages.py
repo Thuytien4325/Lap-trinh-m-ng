@@ -106,6 +106,8 @@ async def send_message(
     message_data = {
         "message_id": new_message.message_id,
         "sender_id": current_user.user_id,
+        "sender_username": current_user.username,
+        "sender_nickname": current_user.nickname,
         "content": new_message.content,
         "timestamp": new_message.timestamp.isoformat(),
         "attachments": file_urls,
@@ -128,11 +130,23 @@ async def send_message(
         )
 
     # Trả về kết quả
+
     return {
-        "message": "Gửi tin nhắn thành công",
         "message_id": new_message.message_id,
+        "sender_id": current_user.user_id,
+        "sender_username": current_user.username,
+        "sender_nickname": current_user.nickname,
         "content": new_message.content,
-        "files": file_urls,
+        "timestamp": new_message.timestamp.isoformat(),
+        "attachments": [
+            {"file_url": url, "file_type": att.file_type}
+            for url, att in zip(
+                file_urls,
+                db.query(Attachment)
+                .filter(Attachment.message_id == new_message.message_id)
+                .all(),
+            )
+        ],
     }
 
 
