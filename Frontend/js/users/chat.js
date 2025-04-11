@@ -1361,6 +1361,21 @@ document.getElementById('apply-filters').addEventListener('click', () => {
   });
 });
 
+function toggleConversationInfo() {
+  const sidebar = document.getElementById('conversation-info-sidebar');
+
+  if (sidebar.style.display === 'none' || sidebar.classList.contains('hiding')) {
+    sidebar.classList.remove('hiding');
+    sidebar.style.display = 'flex';
+  } else {
+    sidebar.classList.add('hiding');
+    setTimeout(() => {
+      sidebar.style.display = 'none';
+      sidebar.classList.remove('hiding');
+    }, 300); // match thời gian trong transition CSS
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Kiểm tra xem có conversationId được lưu từ lần reload trước không
   const lastConversationId = localStorage.getItem('lastConversationId');
@@ -1483,3 +1498,4 @@ window.loadFriendRequests = loadFriendRequests;
 window.markSelectedNoti = markSelectedNoti;
 window.deleteSelectedNoti = deleteSelectedNoti;
 window.checkUnreadNotifications = checkUnreadNotifications;
+window.toggleConversationInfo = toggleConversationInfo;

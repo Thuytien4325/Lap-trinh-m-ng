@@ -753,7 +753,7 @@ footer {
   background: transparent;
   border: none;
   font-size: 1.2rem;
-  /* margin-left: auto; */
+  margin-left: auto;
   margin-right: 10px;
   cursor: pointer;
   color: #fff;
@@ -1037,4 +1037,26 @@ footer {
 }
 .conversation-actions button:hover {
   background: #ff6b5b;
+}
+
+.chat-header .info-button {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 20px;
+  width: 24px;
+  height: 24px;
+  color: #fff;
+  padding: 6px;
+  border-radius: 10px;
+  transition: background 0.3s ease, transform 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-header .info-button:hover {
+  background: #ffcc80;
+  transform: scale(1.05);
 }
