@@ -7,7 +7,7 @@ let currentConversationId = null;
 let messageOffset = 0;
 let isLoadingMessages = false;
 const messageLimit = 20;
-
+let isReloadConfirmed = false;
 // Thêm biến để quản lý WebSocket
 let socket = null;
 
@@ -155,7 +155,9 @@ async function loadMessages(conversationId, conversationName, isInitial = true) 
       const newScrollHeight = chatContent.scrollHeight;
       chatContent.scrollTop = newScrollHeight - oldScrollHeight;
     } else {
-      chatContent.scrollTop = chatContent.scrollHeight;
+      setTimeout(() => {
+        chatContent.scrollTop = chatContent.scrollHeight;
+      }, 0);
     }
 
     messageOffset += messages.length;
@@ -169,30 +171,47 @@ async function loadMessages(conversationId, conversationName, isInitial = true) 
 function createAttachmentElement(att) {
   const fixedFileUrl = att.file_url.startsWith('http') ? att.file_url : `${config.baseURL}/${att.file_url.replace(/^\/+/, '')}`;
 
+  const isImage = /\.(jpg|jpeg|png|gif)$/i.test(fixedFileUrl);
+
   // Nếu là ảnh
-  if (/\.(jpg|jpeg|png|gif)$/i.test(fixedFileUrl)) {
+  if (isImage) {
     const img = document.createElement('img');
     img.src = fixedFileUrl;
     img.className = 'attachment-img has-context';
     img.alt = 'Ảnh đính kèm';
     img.setAttribute('data-url', fixedFileUrl);
+
+    img.onerror = () => {
+      const fileWrapper = document.createElement('div');
+      fileWrapper.className = 'file-wrapper';
+      fileWrapper.setAttribute('data-url', fixedFileUrl);
+
+      const fallbackIcon = document.createElement('i');
+      fallbackIcon.className = 'fas fa-exclamation-circle file-icon';
+
+      const fallbackText = document.createElement('span');
+      fallbackText.className = 'file-fallback-text';
+      fallbackText.textContent = 'Ảnh không còn tồn tại!';
+
+      fileWrapper.appendChild(fallbackIcon);
+      fileWrapper.appendChild(fallbackText);
+
+      img.replaceWith(fileWrapper);
+    };
+
     return img;
   }
 
   // Nếu là file khác
   const fileWrapper = document.createElement('div');
   fileWrapper.className = 'file-wrapper';
-
-  // Gắn data-url và class để dùng context menu
   fileWrapper.setAttribute('data-url', fixedFileUrl);
   fileWrapper.classList.add('has-context');
 
   const fileIcon = document.createElement('i');
   let iconClass = 'fa-file-alt';
 
-  if (/\.(jpg|jpeg|png)$/i.test(fixedFileUrl)) {
-    iconClass = 'fa-file-image';
-  } else if (/\.(pdf)$/i.test(fixedFileUrl)) {
+  if (/\.(pdf)$/i.test(fixedFileUrl)) {
     iconClass = 'fa-file-pdf';
   } else if (/\.(mp4)$/i.test(fixedFileUrl)) {
     iconClass = 'fa-file-video';
@@ -207,13 +226,34 @@ function createAttachmentElement(att) {
   fileLink.href = fixedFileUrl;
   fileLink.target = '_blank';
   fileLink.className = 'attachment-file';
+  fileLink.textContent = '';
 
   fileWrapper.appendChild(fileLink);
+
+  // Gửi HEAD request để kiểm tra file tồn tại
+  fetch(fixedFileUrl, { method: 'HEAD' })
+    .then((res) => {
+      if (!res.ok) throw new Error('File not found');
+    })
+    .catch(() => {
+      fileWrapper.classList.remove('has-context');
+      fileWrapper.innerHTML = '';
+
+      const errorIcon = document.createElement('i');
+      errorIcon.className = 'fas fa-exclamation-circle file-icon';
+
+      const errorText = document.createElement('span');
+      errorText.className = 'file-fallback-text';
+      errorText.textContent = 'File không còn tồn tại!';
+
+      fileWrapper.appendChild(errorIcon);
+      fileWrapper.appendChild(errorText);
+    });
 
   return fileWrapper;
 }
 
-// 🆕 Thêm hàm này để hiển thị tin nhắn mới từ WebSocket
+// Thêm hàm này để hiển thị tin nhắn mới từ WebSocket
 function appendMessageToUI(msg) {
   const currentUser = getCurrentUser();
   const chatContent = document.getElementById('chat-content');
@@ -264,7 +304,7 @@ function appendMessageToUI(msg) {
   chatContent.scrollTop = chatContent.scrollHeight;
 }
 
-// 🧩 Phục vụ loadMessages: thêm tin nhắn lên đầu khi cuộn
+// Phục vụ loadMessages: thêm tin nhắn lên đầu khi cuộn
 function appendMessageToTop(msg, currentUser) {
   const chatContent = document.getElementById('chat-content');
 
@@ -483,6 +523,26 @@ function connectWebSocket() {
   };
 }
 
+window.addEventListener('beforeunload', (e) => {
+  if (!isReloadConfirmed) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// Sửa lại phần khởi tạo khi trang load
+document.addEventListener('DOMContentLoaded', () => {
+  // Kiểm tra xem có conversationId được lưu từ lần reload trước không
+  const lastConversationId = localStorage.getItem('lastConversationId');
+  if (lastConversationId) {
+    currentConversationId = lastConversationId;
+    localStorage.removeItem('lastConversationId'); // Xóa sau khi đã lấy
+  }
+
+  loadConversations();
+  connectWebSocket();
+});
+
 window.logout = logout;
 window.sendMessage = sendMessage;
 window.sendImage = sendImage;
@@ -535,6 +595,42 @@ async function showUserInfo(username) {
 // Thêm vào window để có thể gọi từ HTML
 window.closeUserInfoModal = closeUserInfoModal;
 
+const chatContainer = document.getElementById('chat-content'); // container hiển thị tin nhắn
+const scrollBtn = document.getElementById('scrollToBottomBtn');
+
+// Kiểm tra xem người dùng có đang ở gần đáy không
+function isUserAtBottom() {
+  return chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 50;
+}
+
+// Hiện hoặc ẩn nút
+function showScrollButton() {
+  scrollBtn.style.opacity = '1';
+  scrollBtn.style.pointerEvents = 'auto';
+}
+
+function hideScrollButton() {
+  scrollBtn.style.opacity = '0';
+  scrollBtn.style.pointerEvents = 'none';
+}
+
+// Gắn sự kiện khi người dùng cuộn
+chatContainer.addEventListener('scroll', () => {
+  if (!isUserAtBottom()) {
+    showScrollButton();
+  } else {
+    hideScrollButton();
+  }
+});
+
+// Khi người dùng bấm nút
+scrollBtn.addEventListener('click', () => {
+  chatContainer.scrollTo({
+    top: chatContainer.scrollHeight,
+    behavior: 'smooth',
+  });
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   // Kiểm tra xem có conversationId được lưu từ lần reload trước không
   const lastConversationId = localStorage.getItem('lastConversationId');
@@ -557,24 +653,36 @@ document.addEventListener('DOMContentLoaded', () => {
       switch (action) {
         case 'download': {
           try {
-            // Tách conversation_id và filename từ URL gốc
             const urlParts = new URL(fileUrl).pathname.split('/');
             const conversationIdIndex = urlParts.indexOf('conversations') + 1;
             const conversationId = urlParts[conversationIdIndex];
             const filename = urlParts.pop();
+            const isImage = /\.(jpg|jpeg|png|gif)$/i.test(filename);
 
-            const downloadApiUrl = `${config.baseURL}/conversations/download/${conversationId}/${filename}`;
+            const downloadUrl = isImage ? `${config.baseURL}/conversations/download/${conversationId}/${filename}` : fileUrl;
 
             const a = document.createElement('a');
-            a.href = downloadApiUrl;
+            a.href = downloadUrl;
             a.download = filename;
             a.style.display = 'none';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+
+            setTimeout(() => {
+              toast({
+                title: 'Đã gửi yêu cầu tải',
+                message: 'Nếu trình duyệt hỏi vị trí lưu, vui lòng xác nhận.',
+                type: 'info',
+              });
+            }, 300);
           } catch (e) {
             console.error('Tải file thất bại:', e);
-            toast({ title: 'Lỗi', message: 'Không thể tải file', type: 'error' });
+            toast({
+              title: 'Lỗi',
+              message: 'Không thể tải file',
+              type: 'error',
+            });
           }
           break;
         }
@@ -583,7 +691,11 @@ document.addEventListener('DOMContentLoaded', () => {
           navigator.clipboard
             .writeText(fileUrl)
             .then(() => {
-              toast({ title: 'Thành công!', message: 'Đã sao chép liên kết thành công!', type: 'success' });
+              toast({
+                title: 'Thành công!',
+                message: 'Đã sao chép liên kết thành công!',
+                type: 'success',
+              });
             })
             .catch(() => {
               toast({ title: 'Sao chép thất bại', type: 'error' });

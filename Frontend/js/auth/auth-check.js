@@ -74,6 +74,8 @@ function checkTokenExpiration() {
               localStorage.setItem('access_token_time', result.access_token_time);
               localStorage.setItem('refresh_token_time', result.refresh_token_time);
               localStorage.setItem('login_time', Date.now().toString());
+
+              window.location.reload();
             } else {
               throw new Error('Không thể làm mới token');
             }
