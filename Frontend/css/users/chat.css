@@ -32,11 +32,22 @@ body {
   width: 30%;
   background: #fce8b6;
   padding: 20px;
-  display: flex;
+  display: none;
   flex-direction: column;
-  /* border-right: 3px solid #e0c085; */
+  border-right: 3px solid #e0c085;
+}
+.sidebar {
+  width: 280px;
+  transition: opacity 0.8s ease, width 0.2s ease;
+  opacity: 1;
 }
 
+.sidebar.hiding {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  padding: 0;
+}
 /* Ô tìm kiếm */
 .search {
   width: 100%;
@@ -316,7 +327,7 @@ footer {
 }
 
 .received {
-  background-color: #f1f0f0;
+  background-color: #fce8b6;
   float: left;
   text-align: left;
   border-top-left-radius: 0;
@@ -349,6 +360,8 @@ footer {
 .attachments {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
   gap: 5px;
 }
 
@@ -487,6 +500,10 @@ footer {
 
 .file-wrapper {
   margin-top: 4px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .file-icon {
@@ -544,7 +561,9 @@ footer {
   position: absolute;
   top: 50%; /* Đặt điểm giữa */
   left: 10px;
-  transform: translateY(-50%); /* Dịch ngược 50% chiều cao của chính nó để canh giữa */
+  transform: translateY(
+    -50%
+  ); /* Dịch ngược 50% chiều cao của chính nó để canh giữa */
   height: 50vh;
   width: 50px;
   z-index: 10;

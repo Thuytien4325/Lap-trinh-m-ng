@@ -9,7 +9,10 @@
     <link rel="stylesheet" href="../../css/toast.css" />
     <link rel="stylesheet" href="../../css/context-menu.css" />
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    />
 
     <script type="module" src="../../js/auth/auth-check.js"></script>
     <script type="module" src="../../js/users/chat.js"></script>
@@ -28,8 +31,18 @@
         <button onclick="showNotifications()" title="Thông báo">
           <i class="fas fa-bell"></i>
         </button>
+
+        <!-- Nút Hiển thị cuộc trò chuyện -->
+        <button onclick="toggleChatList()" title="Hiển thị cuộc trò chuyện">
+          <i class="fas fa-comments"></i>
+        </button>
+
+        <!-- Nút Hiển thị bạn bè -->
+        <button onclick="toggleFriendsList()" title="Hiển thị danh sách bạn bè">
+          <i class="fas fa-user-friends"></i>
+        </button>
       </div>
-      <aside class="sidebar">
+      <aside id="sidebar" class="sidebar">
         <div class="profile"></div>
         <input type="text" class="search" placeholder="Tìm kiếm" />
         <div class="button-group">
@@ -43,7 +56,7 @@
           </button>
         </div>
 
-        <!-- Danh sách người dùng -->
+        <!-- Danh sách cuộc trò chuyện -->
         <ul class="chat-list"></ul>
       </aside>
 
@@ -57,14 +70,30 @@
           <label for="image-upload" class="file-label">
             <i class="fa fa-image"></i>
           </label>
-          <input type="file" id="image-upload" accept=".jpg,.jpeg,.png" onchange="sendImage(event)" hidden />
+          <input
+            type="file"
+            id="image-upload"
+            accept=".jpg,.jpeg,.png"
+            onchange="sendImage(event)"
+            hidden
+          />
 
           <label for="file-upload" class="file-label">
             <i class="fa fa-file"></i>
           </label>
-          <input type="file" id="file-upload" accept=".pdf,.mp4,.mp3" onchange="sendFile(event)" hidden />
+          <input
+            type="file"
+            id="file-upload"
+            accept=".pdf,.mp4,.mp3"
+            onchange="sendFile(event)"
+            hidden
+          />
 
-          <input type="text" class="chat-input" placeholder="Nhập tin nhắn..." />
+          <input
+            type="text"
+            class="chat-input"
+            placeholder="Nhập tin nhắn..."
+          />
           <button class="send-button" onclick="sendMessage()">
             <i class="fa fa-paper-plane"></i>
           </button>
@@ -96,9 +125,16 @@
     <!-- Modal hiển thị thông tin người dùng -->
     <div id="user-info-modal" class="user-modal">
       <div class="user-modal-content">
-        <span class="user-modal-close" onclick="closeUserInfoModal()">&times;</span>
+        <span class="user-modal-close" onclick="closeUserInfoModal()"
+          >&times;</span
+        >
         <div class="user-info-container">
-          <img id="user-avatar" class="user-avatar" src="../../assets/image/private-chat-default.jpg" alt="Avatar" />
+          <img
+            id="user-avatar"
+            class="user-avatar"
+            src="../../assets/image/private-chat-default.jpg"
+            alt="Avatar"
+          />
           <div class="user-details">
             <div class="user-info-item">
               <i class="fas fa-at"></i>
@@ -117,7 +153,11 @@
       </div>
     </div>
 
-    <div id="file-context-menu" class="context-menu" style="display: none; position: absolute; z-index: 1000">
+    <div
+      id="file-context-menu"
+      class="context-menu"
+      style="display: none; position: absolute; z-index: 1000"
+    >
       <ul>
         <li id="download-file">Tải xuống</li>
         <li id="open-file">Mở file</li>
