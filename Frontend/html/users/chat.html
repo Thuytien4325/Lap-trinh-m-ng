@@ -18,6 +18,17 @@
   <body>
     <div class="container">
       <div id="toast"></div>
+      <div class="sidebar-toggle-container">
+        <!-- Nút Cài đặt -->
+        <button onclick="openSettings()" title="Cài đặt">
+          <i class="fas fa-cog"></i>
+        </button>
+
+        <!-- Nút Thông báo -->
+        <button onclick="showNotifications()" title="Thông báo">
+          <i class="fas fa-bell"></i>
+        </button>
+      </div>
       <aside class="sidebar">
         <div class="profile"></div>
         <input type="text" class="search" placeholder="Tìm kiếm" />
@@ -37,8 +48,12 @@
       </aside>
 
       <main class="chat-window">
-        <div id="chat-header" class="chat-header">Cuộc trò chuyện</div>
-
+        <div id="chat-header" class="chat-header">
+          <button id="toggle-sidebar-btn" title="Ẩn/Hiện danh sách">
+            <i class="fas fa-bars"></i>
+          </button>
+          <span id="conversation-name">Cuộc trò chuyện</span>
+        </div>
         <div id="chat-content" class="chat-content"></div>
 
         <div class="chat-input-container">

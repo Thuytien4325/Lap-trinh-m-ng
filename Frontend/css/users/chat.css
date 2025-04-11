@@ -11,6 +11,7 @@ body {
   flex-direction: column;
   min-height: 100vh;
   max-height: 100vh;
+  overflow: hidden;
 }
 
 /* Container */
@@ -33,7 +34,7 @@ body {
   padding: 20px;
   display: flex;
   flex-direction: column;
-  border-right: 3px solid #e0c085;
+  /* border-right: 3px solid #e0c085; */
 }
 
 /* Ô tìm kiếm */
@@ -139,6 +140,7 @@ button:hover {
 .chat-content {
   flex-grow: 1;
   overflow-y: auto;
+  max-height: calc(100vh - 230px);
   padding: 10px;
   border-bottom: 1px solid #ccc;
   background: #fff9e6;
@@ -351,9 +353,11 @@ footer {
 }
 
 .attachment-img {
-  max-width: 100px;
-  height: auto;
+  max-width: 200px;
+  max-height: 200px;
   object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
 }
 
 /* Hiệu ứng xuất hiện */
@@ -372,18 +376,14 @@ footer {
 @media (max-width: 768px) {
   .container {
     flex-direction: column;
-    width: 90%;
+    width: 95%;
+    height: auto;
+    max-height: none;
     margin: 10px auto;
   }
 
-  .sidebar {
-    width: 100%;
-    border-right: none;
-    border-bottom: 3px solid #e0c085;
-  }
-
-  .chat-window {
-    border-radius: 0 0 20px 20px;
+  .chat-content {
+    max-height: 50vh;
   }
 }
 
@@ -504,4 +504,41 @@ footer {
 
 .attachment-file:hover {
   text-decoration: underline;
+}
+
+#toggle-sidebar-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  /* margin-left: auto; */
+  margin-right: 10px;
+  cursor: pointer;
+  color: #fff;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 10px;
+  gap: 10px;
+}
+
+.sidebar-toggle-container button {
+  background: none;
+  border: none;
+  font-size: 22px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.sidebar-toggle-container {
+  background: linear-gradient(90deg, #e6ac50, #f7c070);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 10px;
+  gap: 10px;
+  border-left: 3px solid #e0c085;
+  border-right: 3px solid #e0c085;
 }

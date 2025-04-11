@@ -119,7 +119,7 @@ async function loadMessages(conversationId, conversationName, isInitial = true) 
   const chatContent = document.getElementById('chat-content');
 
   if (isInitial) {
-    document.getElementById('chat-header').textContent = conversationName;
+    document.getElementById('conversation-name').textContent = conversationName;
     chatContent.innerHTML = '';
     messageOffset = 0;
   }
@@ -594,9 +594,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Ngăn context menu toàn trang, chỉ cho phép ở .has-context
-  document.addEventListener('contextmenu', function (e) {
-    if (!e.target.closest('.has-context')) {
-      e.preventDefault();
-    }
-  });
+  // document.addEventListener('contextmenu', function (e) {
+  //   if (!e.target.closest('.has-context')) {
+  //     e.preventDefault();
+  //   }
+  // });
 });
