@@ -64,6 +64,16 @@ class UserProfile(BaseModel):
         from_attributes = True
 
 
+class UserWithFriendStatus(BaseModel):
+    username: str
+    nickname: Optional[str]
+    email: Optional[str]
+    avatar: Optional[str]
+    created_at_UTC: datetime
+    last_active_UTC: Optional[datetime]
+    status: str
+
+
 # Schema admin trả về thông tin người dùng
 class AdminUserResponse(BaseModel):
     user_id: int

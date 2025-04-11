@@ -14,7 +14,7 @@ from routers.untils import (
     update_last_active_dependency,
 )
 from routers.websocket import websocket_manager
-from schemas import UserProfile, UserResponse
+from schemas import UserProfile, UserResponse, UserWithFriendStatus
 from sqlalchemy.orm import Session
 
 # Tạo router
@@ -41,7 +41,7 @@ async def get_user_info(current_user: models.User = Depends(get_current_user)):
 
 @users_router.get(
     "/search",
-    response_model=List[UserProfile],
+    response_model=List[UserWithFriendStatus],
     dependencies=[Depends(update_last_active_dependency)],
 )
 async def search_users(
@@ -54,7 +54,9 @@ async def search_users(
         users = (
             db.query(models.User)
             .filter(
-                models.User.nickname.ilike(f"%{query}%"), models.User.is_admin == False
+                models.User.nickname.ilike(f"%{query}%"),
+                models.User.is_admin == False,
+                models.User.username != current_user.username,
             )
             .all()
         )
@@ -62,12 +64,76 @@ async def search_users(
         users = (
             db.query(models.User)
             .filter(
-                models.User.username.ilike(f"%{query}%"), models.User.is_admin == False
+                models.User.username.ilike(f"%{query}%"),
+                models.User.is_admin == False,
+                models.User.username != current_user.username,
             )
             .all()
         )
 
-    return [UserProfile.model_validate(user) for user in users]
+    results = []
+
+    for user in users:
+        # Mặc định trạng thái
+        status = "Chưa kết bạn"
+
+        # Là bạn bè?
+        is_friend = (
+            db.query(models.Friend)
+            .filter(
+                (
+                    (models.Friend.user_username == current_user.username)
+                    & (models.Friend.friend_username == user.username)
+                )
+                | (
+                    (models.Friend.user_username == user.username)
+                    & (models.Friend.friend_username == current_user.username)
+                )
+            )
+            .first()
+        )
+        if is_friend:
+            status = "Bạn bè"
+        else:
+            # Đã gửi lời mời?
+            sent = (
+                db.query(models.FriendRequest)
+                .filter(
+                    models.FriendRequest.sender_username == current_user.username,
+                    models.FriendRequest.receiver_username == user.username,
+                    models.FriendRequest.status == "Đợi",
+                )
+                .first()
+            )
+            if sent:
+                status = "Đã gửi lời mời"
+            else:
+                # Đã nhận lời mời?
+                received = (
+                    db.query(models.FriendRequest)
+                    .filter(
+                        models.FriendRequest.sender_username == user.username,
+                        models.FriendRequest.receiver_username == current_user.username,
+                        models.FriendRequest.status == "Đợi",
+                    )
+                    .first()
+                )
+                if received:
+                    status = "Chờ xác nhận"
+
+        results.append(
+            UserWithFriendStatus(
+                username=user.username,
+                nickname=user.nickname,
+                email=user.email,
+                avatar=user.avatar,
+                created_at_UTC=user.created_at_UTC,
+                last_active_UTC=user.last_active_UTC,
+                status=status,
+            )
+        )
+
+    return results
 
 
 @users_router.put("/", dependencies=[Depends(update_last_active_dependency)])
@@ -510,6 +576,13 @@ async def check_user_ban(
                     }
                 )
 
+    if active_bans:
+        return {
+            "is_banned": True,
+            "active_bans": active_bans,
+        }
+
+    return {"is_banned": False, "message": "Người dùng không bị ban."}
     if active_bans:
         return {
             "is_banned": True,

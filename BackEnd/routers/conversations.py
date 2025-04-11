@@ -88,7 +88,10 @@ async def create_conversation(
         )
 
         if existing_conversation:
-            return existing_conversation
+            raise HTTPException(
+                status_code=400,
+                detail="Cuộc trò chuyện với người này đã tồn tại."
+            )
 
         new_conversation = Conversation(
             type="private",
