@@ -1,5 +1,5 @@
 import { toast } from '../untils.js';
-
+import config from '../config.js';
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.querySelector('form');
   const passwordInput = document.getElementById('password');
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/auth/password/reset-confirm', {
+      const response = await fetch(`${config.API_BASE_URL}/auth/password/reset-confirm`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

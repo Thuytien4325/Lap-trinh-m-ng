@@ -1,5 +1,5 @@
 import { toast } from '../untils.js';
-
+import config from '../config.js';
 document.addEventListener('DOMContentLoaded', () => {
   const forgotForm = document.querySelector('form');
   const emailField = document.getElementById('email');
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       try {
-        const response = await fetch(`http://127.0.0.1:8000/auth/password/reset-request?email=${encodeURIComponent(email)}`, { method: 'POST' });
+        const response = await fetch(`${config.baseURL}/auth/password/reset-request?email=${encodeURIComponent(email)}`, { method: 'POST' });
 
         const result = await response.json();
 

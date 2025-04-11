@@ -7,9 +7,13 @@
     <link rel="stylesheet" href="../../css/users/chat.css" />
     <link rel="stylesheet" href="../../css/modal-overlay.css" />
     <link rel="stylesheet" href="../../css/toast.css" />
+    <link rel="stylesheet" href="../../css/context-menu.css" />
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+
     <script type="module" src="../../js/auth/auth-check.js"></script>
     <script type="module" src="../../js/users/chat.js"></script>
+    <script type="module" src="../../js/context-menu.js"></script>
   </head>
   <body>
     <div class="container">
@@ -99,6 +103,13 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div id="file-context-menu" class="context-menu" style="display: none; position: absolute; z-index: 1000">
+      <ul>
+        <li id="download-file">Tải xuống</li>
+        <li id="open-file">Mở file</li>
+      </ul>
     </div>
   </body>
 </html>

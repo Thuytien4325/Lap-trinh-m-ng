@@ -1,11 +1,13 @@
 import os
 import shutil
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import List, Optional, Union
 
 import models
 from database import get_db
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
 from models import Conversation, GroupMember, Notification, User
 from routers.untils import (
     AVATARS_GROUP_DIR,
@@ -1109,3 +1111,18 @@ async def leave_group(
     db.commit()
 
     return {"message": f"{current_user.username} đã rời khỏi nhóm '{group.name}'."}
+
+
+@conversation_router.get("/download/{conversation_id}/{filename}")
+def download_file(conversation_id: int, filename: str):
+    file_url = f"uploads/conversations/{conversation_id}/{filename}"
+    file_path = Path(file_url)
+
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File không tồn tại")
+
+    return FileResponse(
+        path=file_path,
+        media_type="application/octet-stream",
+        filename=filename,
+    )

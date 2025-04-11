@@ -1,6 +1,6 @@
 import { toast, createModal } from '../untils.js';
 import config from '../config.js';
-
+import initContextMenu from '../context-menu.js';
 // Các biến toàn cục
 let selectedFiles = [];
 let currentConversationId = null;
@@ -10,9 +10,6 @@ const messageLimit = 20;
 
 // Thêm biến để quản lý WebSocket
 let socket = null;
-
-// Thêm biến để kiểm soát việc reload
-let isReloadConfirmed = false;
 
 // Hàm lấy người dùng trong localstorage
 function getCurrentUser() {
@@ -169,6 +166,53 @@ async function loadMessages(conversationId, conversationName, isInitial = true) 
   }
 }
 
+function createAttachmentElement(att) {
+  const fixedFileUrl = att.file_url.startsWith('http') ? att.file_url : `${config.baseURL}/${att.file_url.replace(/^\/+/, '')}`;
+
+  // Nếu là ảnh
+  if (/\.(jpg|jpeg|png|gif)$/i.test(fixedFileUrl)) {
+    const img = document.createElement('img');
+    img.src = fixedFileUrl;
+    img.className = 'attachment-img has-context';
+    img.alt = 'Ảnh đính kèm';
+    img.setAttribute('data-url', fixedFileUrl);
+    return img;
+  }
+
+  // Nếu là file khác
+  const fileWrapper = document.createElement('div');
+  fileWrapper.className = 'file-wrapper';
+
+  // Gắn data-url và class để dùng context menu
+  fileWrapper.setAttribute('data-url', fixedFileUrl);
+  fileWrapper.classList.add('has-context');
+
+  const fileIcon = document.createElement('i');
+  let iconClass = 'fa-file-alt';
+
+  if (/\.(jpg|jpeg|png)$/i.test(fixedFileUrl)) {
+    iconClass = 'fa-file-image';
+  } else if (/\.(pdf)$/i.test(fixedFileUrl)) {
+    iconClass = 'fa-file-pdf';
+  } else if (/\.(mp4)$/i.test(fixedFileUrl)) {
+    iconClass = 'fa-file-video';
+  } else if (/\.(mp3)$/i.test(fixedFileUrl)) {
+    iconClass = 'fa-file-audio';
+  }
+
+  fileIcon.className = `fas ${iconClass} file-icon`;
+  fileWrapper.appendChild(fileIcon);
+
+  const fileLink = document.createElement('a');
+  fileLink.href = fixedFileUrl;
+  fileLink.target = '_blank';
+  fileLink.className = 'attachment-file';
+
+  fileWrapper.appendChild(fileLink);
+
+  return fileWrapper;
+}
+
 // 🆕 Thêm hàm này để hiển thị tin nhắn mới từ WebSocket
 function appendMessageToUI(msg) {
   const currentUser = getCurrentUser();
@@ -198,22 +242,8 @@ function appendMessageToUI(msg) {
     attContainer.className = 'attachments';
 
     msg.attachments.forEach((att) => {
-      const fixedFileUrl = att.file_url.startsWith('http') ? att.file_url : `${config.baseURL}/${att.file_url.replace(/^\/+/, '')}`;
-
-      if (/\.(jpg|jpeg|png|gif)$/i.test(fixedFileUrl)) {
-        const img = document.createElement('img');
-        img.src = fixedFileUrl;
-        img.className = 'attachment-img';
-        img.alt = 'Ảnh đính kèm';
-        attContainer.appendChild(img);
-      } else {
-        const fileLink = document.createElement('a');
-        fileLink.href = fixedFileUrl;
-        fileLink.textContent = 'Tải file';
-        fileLink.target = '_blank';
-        fileLink.className = 'attachment-file';
-        attContainer.appendChild(fileLink);
-      }
+      const attachmentEl = createAttachmentElement(att);
+      attContainer.appendChild(attachmentEl);
     });
 
     messageDiv.appendChild(attContainer);
@@ -221,7 +251,13 @@ function appendMessageToUI(msg) {
 
   const time = document.createElement('span');
   time.className = 'timestamp';
-  time.textContent = new Date(msg.timestamp).toLocaleString();
+  const date = new Date(msg.timestamp);
+  const vnTime = new Date(date.getTime() + 7 * 60 * 60 * 1000); // Cộng thêm 7 tiếng
+  const hours = vnTime.getHours().toString().padStart(2, '0');
+  const minutes = vnTime.getMinutes().toString().padStart(2, '0');
+  const day = vnTime.getDate().toString().padStart(2, '0');
+  const month = (vnTime.getMonth() + 1).toString().padStart(2, '0');
+  time.textContent = `${hours}:${minutes} ${day}/${month}`;
   messageDiv.appendChild(time);
 
   chatContent.appendChild(messageDiv);
@@ -256,22 +292,8 @@ function appendMessageToTop(msg, currentUser) {
     attContainer.className = 'attachments';
 
     msg.attachments.forEach((att) => {
-      const fixedFileUrl = att.file_url.startsWith('http') ? att.file_url : `${config.baseURL}/${att.file_url.replace(/^\/+/, '')}`;
-
-      if (/\.(jpg|jpeg|png|gif)$/i.test(fixedFileUrl)) {
-        const img = document.createElement('img');
-        img.src = fixedFileUrl;
-        img.className = 'attachment-img';
-        img.alt = 'Ảnh đính kèm';
-        attContainer.appendChild(img);
-      } else {
-        const fileLink = document.createElement('a');
-        fileLink.href = fixedFileUrl;
-        fileLink.textContent = 'Tải file';
-        fileLink.target = '_blank';
-        fileLink.className = 'attachment-file';
-        attContainer.appendChild(fileLink);
-      }
+      const attachmentEl = createAttachmentElement(att);
+      attContainer.appendChild(attachmentEl);
     });
 
     messageDiv.appendChild(attContainer);
@@ -279,7 +301,13 @@ function appendMessageToTop(msg, currentUser) {
 
   const time = document.createElement('span');
   time.className = 'timestamp';
-  time.textContent = new Date(msg.timestamp).toLocaleString();
+  const date = new Date(msg.timestamp);
+  const vnTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+  const hours = vnTime.getHours().toString().padStart(2, '0');
+  const minutes = vnTime.getMinutes().toString().padStart(2, '0');
+  const day = vnTime.getDate().toString().padStart(2, '0');
+  const month = (vnTime.getMonth() + 1).toString().padStart(2, '0');
+  time.textContent = `${hours}:${minutes} ${day}/${month}`;
   messageDiv.appendChild(time);
 
   chatContent.insertBefore(messageDiv, chatContent.firstChild);
@@ -431,7 +459,6 @@ function connectWebSocket() {
           if (msg.attachments && msg.attachments.length > 0) {
             alert(`Bạn vừa nhận được tin nhắn có ${msg.attachments.length} file đính kèm.\nTrang sẽ tự động tải lại để hiển thị file.`);
 
-            isReloadConfirmed = true;
             localStorage.setItem('lastConversationId', currentConversationId);
             window.location.href = window.location.href;
           } else {
@@ -455,27 +482,6 @@ function connectWebSocket() {
     console.error('⚠️ Lỗi WebSocket:', error);
   };
 }
-
-// Thêm event listener để ngăn reload tự động
-window.addEventListener('beforeunload', (e) => {
-  if (!isReloadConfirmed) {
-    e.preventDefault();
-    e.returnValue = '';
-  }
-});
-
-// Sửa lại phần khởi tạo khi trang load
-document.addEventListener('DOMContentLoaded', () => {
-  // Kiểm tra xem có conversationId được lưu từ lần reload trước không
-  const lastConversationId = localStorage.getItem('lastConversationId');
-  if (lastConversationId) {
-    currentConversationId = lastConversationId;
-    localStorage.removeItem('lastConversationId'); // Xóa sau khi đã lấy
-  }
-
-  loadConversations();
-  connectWebSocket();
-});
 
 window.logout = logout;
 window.sendMessage = sendMessage;
@@ -501,11 +507,18 @@ async function showUserInfo(username) {
       const users = await response.json();
       const userData = users[0];
       if (userData) {
-        document.getElementById('user-avatar').src = userData.avatar
+        const avatarUrl = userData.avatar
           ? userData.avatar.startsWith('http')
             ? userData.avatar
             : `${config.baseURL}/${userData.avatar.replace(/^\/+/, '')}`
           : '../../assets/image/private-chat-default.jpg';
+
+        const avatarImg = document.getElementById('user-avatar');
+        avatarImg.src = avatarUrl;
+        avatarImg.onerror = () => {
+          avatarImg.src = '../../assets/image/private-chat-default.jpg';
+        };
+
         document.getElementById('user-username').textContent = `${userData.username}`;
         document.getElementById('user-nickname').textContent = userData.nickname || 'string';
         document.getElementById('user-email').textContent = userData.email || 'user@example.com';
@@ -521,3 +534,69 @@ async function showUserInfo(username) {
 
 // Thêm vào window để có thể gọi từ HTML
 window.closeUserInfoModal = closeUserInfoModal;
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Kiểm tra xem có conversationId được lưu từ lần reload trước không
+  const lastConversationId = localStorage.getItem('lastConversationId');
+  if (lastConversationId) {
+    currentConversationId = lastConversationId;
+    localStorage.removeItem('lastConversationId'); // Xóa sau khi đã lấy
+  }
+
+  loadConversations();
+  connectWebSocket();
+
+  // Khởi tạo context menu cho file đính kèm
+  initContextMenu({
+    selector: '.has-context',
+    items: [
+      { action: 'download', label: 'Tải xuống' },
+      { action: 'copy', label: 'Sao chép liên kết' },
+    ],
+    onAction: (action, fileUrl, element) => {
+      switch (action) {
+        case 'download': {
+          try {
+            // Tách conversation_id và filename từ URL gốc
+            const urlParts = new URL(fileUrl).pathname.split('/');
+            const conversationIdIndex = urlParts.indexOf('conversations') + 1;
+            const conversationId = urlParts[conversationIdIndex];
+            const filename = urlParts.pop();
+
+            const downloadApiUrl = `${config.baseURL}/conversations/download/${conversationId}/${filename}`;
+
+            const a = document.createElement('a');
+            a.href = downloadApiUrl;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          } catch (e) {
+            console.error('Tải file thất bại:', e);
+            toast({ title: 'Lỗi', message: 'Không thể tải file', type: 'error' });
+          }
+          break;
+        }
+
+        case 'copy':
+          navigator.clipboard
+            .writeText(fileUrl)
+            .then(() => {
+              toast({ title: 'Thành công!', message: 'Đã sao chép liên kết thành công!', type: 'success' });
+            })
+            .catch(() => {
+              toast({ title: 'Sao chép thất bại', type: 'error' });
+            });
+          break;
+      }
+    },
+  });
+
+  // Ngăn context menu toàn trang, chỉ cho phép ở .has-context
+  document.addEventListener('contextmenu', function (e) {
+    if (!e.target.closest('.has-context')) {
+      e.preventDefault();
+    }
+  });
+});
