@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mini Chat</title>
-    <link rel="stylesheet" href="../../css/users/chat.css" />
+    <link rel="stylesheet" href="chat.css" />
     <link rel="stylesheet" href="../../css/modal-overlay.css" />
     <link rel="stylesheet" href="../../css/toast.css" />
     <link rel="stylesheet" href="../../css/context-menu.css" />
@@ -103,18 +103,19 @@
 
     <footer>
       <div class="footer-icons">
-        <button onclick="info()">
+        <a href="thongtin.html" title="Thông tin cá nhân">
           <i class="fas fa-user"></i>
-        </button>
+        </a>
         <button onclick="msg()" class="message-icon">
           <i class="fas fa-comment-dots"></i>
         </button>
       </div>
-
+    
       <button class="logout-button" onclick="logout()" title="Đăng xuất">
         <i class="fas fa-sign-out-alt"></i>
       </button>
     </footer>
+    
 
     <!-- Modal hiển thị ảnh -->
     <div id="image-modal" class="image-modal">
@@ -169,3 +170,4 @@
     </button>
   </body>
 </html>
+
