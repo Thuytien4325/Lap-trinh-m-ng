@@ -9,7 +9,10 @@
     <link rel="stylesheet" href="../../css/toast.css" />
     <link rel="stylesheet" href="../../css/context-menu.css" />
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    />
 
     <script type="module" src="../../js/auth/auth-check.js"></script>
     <script type="module" src="../../js/users/chat.js"></script>
@@ -25,7 +28,7 @@
         </button>
 
         <!-- Nút Thông báo -->
-        <button onclick="toggleNotiList()" title="Thông báo">
+        <button onclick="showNotifications()" title="Thông báo">
           <i class="fas fa-bell"></i>
         </button>
 
@@ -38,108 +41,28 @@
         <button onclick="toggleFriendsList()" title="Hiển thị danh sách bạn bè">
           <i class="fas fa-user-friends"></i>
         </button>
-
-        <!-- Nút Yêu cầu kết bạn -->
-        <button onclick="toggleFriendRequestsList()" title="Yêu cầu kết bạn">
-          <i class="fas fa-user-clock"></i>
-        </button>
       </div>
-      <aside id="conversation-list" class="conversation-list">
-        <h3>Danh sách trò chuyện</h3>
-
+      <aside id="sidebar" class="sidebar">
+        <div class="profile"></div>
         <input type="text" class="search" placeholder="Tìm kiếm" />
         <div class="button-group">
-          <button onclick="openCreateModal('private')" class="add-user-btn">
+          <button onclick="addUser()" class="add-user-btn">
             <i class="fa fa-user-plus"></i>
             <span>Thêm Người Dùng</span>
           </button>
-
-          <button onclick="openCreateModal('group')" class="add-group-btn">
+          <button onclick="addGroupChat()" class="add-group-btn">
             <i class="fa fa-users"></i>
-            <span>Tạo nhóm</span>
+            <span>Thêm Nhóm</span>
           </button>
         </div>
 
         <!-- Danh sách cuộc trò chuyện -->
-        <ul class="chat-list">
-          <li class="no-results" style="display: none; text-align: center; padding: 10px; color: #999">Không tìm thấy cuộc trò chuyện nào.</li>
-        </ul>
-      </aside>
-
-      <!-- Danh sách bạn bè -->
-      <aside id="friend-list" class="friend-list" style="display: none">
-        <h3>Danh sách bạn bè</h3>
-        <input type="text" class="search" placeholder="Tìm kiếm bạn bè..." />
-        <div class="toggle-wrapper">
-          <label class="toggle-switch">
-            <input type="checkbox" id="search-by-nickname" />
-            <span class="slider"></span>
-          </label>
-          <span id="search-label">Username</span>
-        </div>
-        <ul class="friend-items">
-          <!-- Các bạn bè sẽ được render ở đây -->
-        </ul>
-      </aside>
-
-      <!-- Danh sách thông báo -->
-      <aside id="noti-list" class="noti-list" style="display: none">
-        <h3>Thông báo</h3>
-        <div class="noti-filters">
-          <label>
-            <input type="checkbox" id="filter-unread" />
-            Chưa đọc
-          </label>
-          <label>
-            <input type="checkbox" id="filter-system" />
-            Từ hệ thống
-          </label>
-          <label>
-            <select id="filter-sort">
-              <option value="true" selected>Mới nhất trước</option>
-              <option value="false">Cũ nhất trước</option>
-            </select>
-          </label>
-          <button id="apply-filters">Lọc</button>
-        </div>
-        <div class="noti-toolbar">
-          <label>
-            <input type="checkbox" id="select-all-noti" />
-            Chọn tất cả
-          </label>
-          <div class="noti-actions">
-            <button onclick="markSelectedNoti('read')">Đã đọc</button>
-            <button onclick="markSelectedNoti('unread')">Chưa đọc</button>
-            <button onclick="deleteSelectedNoti()">Xoá</button>
-          </div>
-        </div>
-
-        <ul id="noti-items" class="noti-items">
-          <!-- Thông báo sẽ được render ở đây -->
-        </ul>
-      </aside>
-
-      <!-- Danh sách yêu cầu kết bạn -->
-      <aside id="friend-request-list" class="friend-request-list" style="display: none">
-        <h3>Yêu cầu kết bạn</h3>
-
-        <div class="request-section">
-          <h4>Yêu cầu đến</h4>
-          <ul id="received-requests" class="request-items"></ul>
-        </div>
-
-        <div class="request-section">
-          <h4>Đã gửi</h4>
-          <ul id="sent-requests" class="request-items"></ul>
-        </div>
+        <ul class="chat-list"></ul>
       </aside>
 
       <main class="chat-window">
         <div id="chat-header" class="chat-header">
           <span id="conversation-name">Cuộc trò chuyện</span>
-          <button class="info-button" onclick="toggleConversationInfo()" title="Thông tin cuộc trò chuyện">
-            <i class="fas fa-info-circle"></i>
-          </button>
         </div>
         <div id="chat-content" class="chat-content"></div>
 
@@ -147,69 +70,52 @@
           <label for="image-upload" class="file-label">
             <i class="fa fa-image"></i>
           </label>
-          <input type="file" id="image-upload" accept=".jpg,.jpeg,.png" onchange="sendImage(event)" hidden />
+          <input
+            type="file"
+            id="image-upload"
+            accept=".jpg,.jpeg,.png"
+            onchange="sendImage(event)"
+            hidden
+          />
 
           <label for="file-upload" class="file-label">
             <i class="fa fa-file"></i>
           </label>
-          <input type="file" id="file-upload" accept=".pdf,.mp4,.mp3" onchange="sendFile(event)" hidden />
+          <input
+            type="file"
+            id="file-upload"
+            accept=".pdf,.mp4,.mp3"
+            onchange="sendFile(event)"
+            hidden
+          />
 
-          <input type="text" class="chat-input" placeholder="Nhập tin nhắn..." />
+          <input
+            type="text"
+            class="chat-input"
+            placeholder="Nhập tin nhắn..."
+          />
           <button class="send-button" onclick="sendMessage()">
             <i class="fa fa-paper-plane"></i>
           </button>
         </div>
       </main>
-
-      <aside id="conversation-info-sidebar" class="conversation-info-sidebar" style="display: none">
-        <div class="sidebar-header">
-          <h3>Thông tin cuộc trò chuyện</h3>
-          <button onclick="toggleConversationInfo()">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-
-        <div class="conversation-avatar">
-          <img id="conversation-avatar" src="../../assets/image/group-chat-default.jpg" alt="Avatar" />
-        </div>
-
-        <div class="conversation-name" id="conversation-title">Tên cuộc trò chuyện</div>
-
-        <div class="member-list-section">
-          <h4>Thành viên</h4>
-          <ul id="conversation-members" class="member-list"></ul>
-
-          <div class="member-actions">
-            <button onclick="openAddMemberModal()">
-              <i class="fa fa-user-plus"></i>
-              Thêm thành viên
-            </button>
-          </div>
-        </div>
-
-        <div class="conversation-actions">
-          <button onclick="confirmDeleteConversation()" class="danger-btn">
-            <i class="fa fa-trash"></i>
-            Xóa cuộc trò chuyện
-          </button>
-        </div>
-      </aside>
     </div>
 
     <footer>
       <div class="footer-icons">
-        <a href="thongtin.html" title="Thông tin cá nhân">
+        <button onclick="window.location.href='thongtin.html'">
           <i class="fas fa-user"></i>
-        </a>
+        </button>
         <button onclick="msg()" class="message-icon">
           <i class="fas fa-comment-dots"></i>
         </button>
       </div>
-
+    
       <button class="logout-button" onclick="logout()" title="Đăng xuất">
         <i class="fas fa-sign-out-alt"></i>
       </button>
     </footer>
+    
 
     <!-- Modal hiển thị ảnh -->
     <div id="image-modal" class="image-modal">
@@ -220,9 +126,16 @@
     <!-- Modal hiển thị thông tin người dùng -->
     <div id="user-info-modal" class="user-modal">
       <div class="user-modal-content">
-        <span class="user-modal-close" onclick="closeUserInfoModal()">&times;</span>
+        <span class="user-modal-close" onclick="closeUserInfoModal()"
+          >&times;</span
+        >
         <div class="user-info-container">
-          <img id="user-avatar" class="user-avatar" src="../../assets/image/private-chat-default.jpg" alt="Avatar" />
+          <img
+            id="user-avatar"
+            class="user-avatar"
+            src="../../assets/image/private-chat-default.jpg"
+            alt="Avatar"
+          />
           <div class="user-details">
             <div class="user-info-item">
               <i class="fas fa-at"></i>
@@ -241,7 +154,11 @@
       </div>
     </div>
 
-    <div id="file-context-menu" class="context-menu" style="display: none; position: absolute; z-index: 1000">
+    <div
+      id="file-context-menu"
+      class="context-menu"
+      style="display: none; position: absolute; z-index: 1000"
+    >
       <ul>
         <li id="download-file">Tải xuống</li>
         <li id="open-file">Mở file</li>
@@ -251,23 +168,5 @@
     <button id="scrollToBottomBtn" title="Cuộn xuống">
       <i class="fas fa-arrow-down"></i>
     </button>
-
-    <!-- Modal tạo cuộc trò chuyện / nhóm -->
-    <div id="create-conversation-modal" class="user-modal">
-      <div class="user-modal-content">
-        <span class="user-modal-close" onclick="closeCreateModal()">&times;</span>
-        <h3 id="create-modal-title" style="text-align: center">Tạo cuộc trò chuyện</h3>
-
-        <div class="user-info-container">
-          <input id="conversation-username" class="chat-input" placeholder="Tên người dùng (private) hoặc danh sách (group)" />
-          <input id="conversation-group-name" class="chat-input" placeholder="Tên nhóm (chỉ với group)" style="display: none" />
-
-          <button onclick="submitCreateConversation()" class="add-user-btn" style="margin-top: 10px">
-            <i class="fa fa-plus"></i>
-            Xác nhận
-          </button>
-        </div>
-      </div>
-    </div>
   </body>
 </html>
