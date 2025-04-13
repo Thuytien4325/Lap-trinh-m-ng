@@ -782,6 +782,8 @@ function openCreateModal(type) {
   // Hiện hoặc ẩn ô nhập tên nhóm
   document.getElementById('conversation-group-name').style.display = type === 'group' ? 'block' : 'none';
 
+  document.getElementById('conversation-username').placeholder = type === 'group' ? 'Danh sách bạn bè' : 'Tên bạn bè';
+
   // Xoá dữ liệu cũ
   document.getElementById('conversation-username').value = '';
   document.getElementById('conversation-group-name').value = '';

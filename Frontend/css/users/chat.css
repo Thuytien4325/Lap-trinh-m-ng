@@ -401,6 +401,23 @@ button:hover {
   background: #fff;
 }
 
+.chat-input::placeholder {
+  text-align: center;
+}
+
+.chat-input::-webkit-input-placeholder {
+  text-align: center;
+}
+.chat-input:-moz-placeholder {
+  text-align: center;
+}
+.chat-input::-moz-placeholder {
+  text-align: center;
+}
+.chat-input:-ms-input-placeholder {
+  text-align: center;
+}
+
 /* Button group trong sidebar */
 .button-group {
   display: flex;
@@ -676,6 +693,7 @@ footer {
 
 .user-info-container {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 20px;
 }
