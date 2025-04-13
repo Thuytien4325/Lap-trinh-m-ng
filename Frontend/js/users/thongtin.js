@@ -61,12 +61,6 @@ async function fetchUserInfo(token) {
       document.getElementById('user-username').textContent = userData.username || '';
       document.getElementById('user-nickname').textContent = userData.nickname || 'Chưa có';
       document.getElementById('user-email').textContent = userData.email || 'user@example.com';
-
-      if (userData.created_at_UTC) {
-        const date = new Date(userData.created_at_UTC);
-        const formattedDate = formatVNTime(date.getTime());
-        document.getElementById('create-at').textContent = formattedDate;
-      }
     }
   } catch (error) {
     console.error('Lỗi khi lấy thông tin người dùng:', error);
@@ -82,7 +76,7 @@ function openUpdatePopup(token) {
           <label>Nickname:</label>
           <input type="text" id="nickname-input" placeholder="Nhập nickname mới"/><br><br>
           <label>Email:</label>
-          <input type="email" id="email-input" required autocomplete="email" placeholder="Nhập email mới"/><br><br>
+          <input type="email" id="email-input" autocomplete="email" placeholder="Nhập email mới"/><br><br>
           <label>Chọn ảnh đại diện:</label>
           <input type="file" id="avatar-modal-upload" accept=".jpg,.jpeg,.png"/><br><br>
         </form>
@@ -126,9 +120,30 @@ function handleUpdate(token) {
     const nickname = nicknameInput.value.trim();
     const email = emailInput.value.trim();
 
+    // Kiểm tra định dạng email nếu có nhập
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast({
+        title: 'Lỗi',
+        message: 'Email không hợp lệ. Vui lòng nhập đúng định dạng!',
+        type: 'error',
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Nếu không có gì để cập nhật
+    if (!nickname && !email && !avatarFile) {
+      toast({
+        title: 'Cảnh báo',
+        message: 'Vui lòng nhập ít nhất một thông tin để cập nhật!',
+        type: 'warning',
+        duration: 3000,
+      });
+      return;
+    }
+
     const formData = new FormData();
     if (avatarFile) formData.append('avatar_file', avatarFile);
-    else formData.append('avatar_file', new Blob());
 
     const query = [];
     if (nickname) query.push(`nickname=${encodeURIComponent(nickname)}`);
@@ -165,7 +180,7 @@ function handleUpdate(token) {
           duration: 3000,
         });
       });
-  }, 50); // Đợi DOM cập nhật popup (50ms là đủ an toàn)
+  }, 50); // Đợi DOM cập nhật popup
 }
 
 function closePopup() {
@@ -174,3 +189,26 @@ function closePopup() {
     popupOverlay.remove();
   }
 }
+
+function logout() {
+  createModal({
+    title: 'Xác nhận đăng xuất',
+    message: 'Bạn có chắc chắn muốn đăng xuất không?',
+    primaryButtonText: 'Đăng xuất',
+    secondaryButtonText: 'Hủy',
+    showSecondaryButton: true,
+    onPrimary: () => {
+      localStorage.clear();
+      toast({
+        title: 'Đăng xuất thành công!',
+        message: 'Đang đăng xuất...',
+        type: 'success',
+      });
+      setTimeout(() => {
+        window.location.href = '../auth/login.html';
+      }, 1500);
+    },
+  });
+}
+
+window.logout = logout;

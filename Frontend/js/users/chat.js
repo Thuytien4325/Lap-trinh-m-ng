@@ -1397,7 +1397,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const lastConversationId = localStorage.getItem('lastConversationId');
   if (lastConversationId) {
     currentConversationId = lastConversationId;
-    localStorage.removeItem('lastConversationId'); // Xóa sau khi đã lấy
+    localStorage.removeItem('lastConversationId');
   }
 
   loadConversations();
