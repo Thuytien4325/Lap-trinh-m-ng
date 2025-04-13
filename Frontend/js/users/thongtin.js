@@ -1,8 +1,20 @@
-import { toast, createModal, formatVNTime } from '../untils.js';
+import { toast, createModal } from '../untils.js';
 import config from '../config.js';
 
 let avatarFile = null;
 
+export function formatVNTime(timestamp) {
+  const date = new Date(timestamp);
+  const formatter = new Intl.DateTimeFormat('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+  });
+
+  return formatter.format(date);
+}
 document.addEventListener('DOMContentLoaded', () => {
   const token = localStorage.getItem('access_token');
   if (!token) {
