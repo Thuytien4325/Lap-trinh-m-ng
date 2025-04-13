@@ -74,7 +74,9 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    access_token = create_access_token(data={"sub": new_user.username})
+    access_token = create_access_token(
+        data={"sub": new_user.username, "user_id": new_user.user_id}
+    )
     refresh_token = create_refresh_token(data={"sub": new_user.username})
 
     # Trả về đúng `TokenSchema`

@@ -80,7 +80,7 @@ class Message(Base):
 
     message_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     sender_id = Column(
-        Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False
+        Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=True
     )
     conversation_id = Column(
         Integer,

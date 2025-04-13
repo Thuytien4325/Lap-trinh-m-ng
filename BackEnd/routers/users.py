@@ -298,10 +298,6 @@ async def delete_user(
         models.Message.sender_id == current_user.user_id
     ).update({"sender_id": None})
 
-    db.query(models.Message).filter(
-        models.Message.receiver_id == current_user.user_id
-    ).update({"receiver_id": None})
-
     # Set id_target trong Report và Warning thành None
     db.query(models.Report).filter(
         models.Report.reporter_username == current_user.username

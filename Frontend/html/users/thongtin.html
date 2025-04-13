@@ -6,7 +6,8 @@
     <title>Trang Thông Tin Cá Nhân</title>
     <link rel="stylesheet" href="../../css/users/thongtin.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <script src="../Dang ky tai khoan/services/auth-check.js"></script>
+    <script type="module" src="../../js/auth/auth-check.js"></script>
+    <script type="module" src="../../js/users/thongtin.js"></script>
   </head>
   <body>
     <div class="profile-container">
@@ -18,33 +19,11 @@
           </label>
           <input type="file" id="avatar-upload" style="display: none" />
         </div>
-        <h2 class="name">Nguyễn Văn A</h2>
-        <p class="username">@nguyenvana</p>
-        <p class="bio">Lập trình viên yêu thích công nghệ và sáng tạo.</p>
-        <div class="info">
-          <p style="margin-bottom: 15px">
-            <strong>Email:</strong>
-            nguyenvana@example.com
-          </p>
-          <p style="margin-bottom: 15px">
-            <strong>Số điện thoại:</strong>
-            +84 123 456 789
-          </p>
-          <p style="margin-bottom: 15px">
-            <strong>Địa chỉ:</strong>
-            123 Đường ABC, TP. Hồ Chí Minh
-          </p>
-          <p style="margin-bottom: 15px">
-            <strong>Ngày sinh:</strong>
-            01/01/1990
-          </p>
-          <p style="margin-bottom: 15px">
-            <strong>Nghề nghiệp:</strong>
-            Software Engineer
-          </p>
-        </div>
+        <h2 class="name"></h2>
+        <p class="username"></p>
+        <div class="info"></div>
         <div class="button-container" style="margin-top: auto; text-align: center">
-          <button class="edit-btn">Chỉnh sửa thông tin</button>
+          <button class="edit-btn">Cập nhật thông tin</button>
         </div>
       </div>
     </div>
