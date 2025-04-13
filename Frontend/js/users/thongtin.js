@@ -24,116 +24,153 @@ document.addEventListener('DOMContentLoaded', () => {
       type: 'error',
       duration: 3000,
     });
-    window.location.href = '/login.html';
+    window.location.href = '/';
     return;
   }
 
   fetchUserInfo(token);
 
-  document.querySelector('.edit-btn').addEventListener('click', () => openUpdateModal(token));
-  document.getElementById('avatar-upload').addEventListener('change', handleAvatarChange);
+  document.querySelector('.edit-btn').addEventListener('click', () => openUpdatePopup(token));
 });
 
-function fetchUserInfo(token) {
-  fetch(`${config.baseURL}/users/`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-    .then((res) => res.json())
-    .then((user) => {
-      document.querySelector('.name').textContent = user.nickname || user.username;
-      document.querySelector('.username').textContent = `@${user.username}`;
-      document.querySelector('.info').innerHTML = `
-        <p><strong>Email:</strong> ${user.email}</p>
-        <p><strong>Tham gia:</strong> ${new Date(user.created_at_UTC).toLocaleDateString()}</p>
-        <p><strong>Hoạt động gần nhất:</strong> ${formatVNTime(user.last_active_UTC)}</p>
-      `;
-
-      const avatar = document.querySelector('.avatar');
-      avatar.src = user.avatar_url ? `${config.baseURL}/${user.avatar_url.replace(/^\/+/, '')}` : '../../assets/image/private-chat-default.jpg';
-      avatar.onerror = () => {
-        avatar.src = '../../assets/image/private-chat-default.jpg';
-      };
-    })
-    .catch((err) => {
-      toast({
-        title: 'Lỗi',
-        message: 'Không thể tải thông tin người dùng.',
-        type: 'error',
-        duration: 3000,
-      });
-      console.error(err);
+async function fetchUserInfo(token) {
+  try {
+    const response = await fetch(`${config.baseURL}/users/`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
+
+    if (response.ok) {
+      const userData = await response.json();
+
+      const avatarUrl = userData.avatar
+        ? userData.avatar.startsWith('http')
+          ? userData.avatar
+          : `${config.baseURL}/${userData.avatar.replace(/^\/+/, '')}`
+        : '../../assets/image/private-chat-default.jpg';
+
+      const avatarImg = document.querySelector('.avatar');
+      if (avatarImg) {
+        avatarImg.src = avatarUrl;
+        avatarImg.onerror = () => {
+          avatarImg.src = '../../assets/image/private-chat-default.jpg';
+        };
+      }
+
+      document.getElementById('user-username').textContent = userData.username || '';
+      document.getElementById('user-nickname').textContent = userData.nickname || 'Chưa có';
+      document.getElementById('user-email').textContent = userData.email || 'user@example.com';
+
+      if (userData.created_at_UTC) {
+        const date = new Date(userData.created_at_UTC);
+        const formattedDate = formatVNTime(date.getTime());
+        document.getElementById('create-at').textContent = formattedDate;
+      }
+    }
+  } catch (error) {
+    console.error('Lỗi khi lấy thông tin người dùng:', error);
+  }
 }
 
-function handleAvatarChange(e) {
-  avatarFile = e.target.files[0];
-}
+function openUpdatePopup(token) {
+  const popupHTML = `
+    <div class="popup-overlay">
+      <div class="popup-container">
+        <h2>Cập nhật thông tin</h2>
+        <form id="update-form" enctype="multipart/form-data">
+          <label>Nickname:</label>
+          <input type="text" id="nickname-input" placeholder="Nhập nickname mới"/><br><br>
+          <label>Email:</label>
+          <input type="email" id="email-input" required autocomplete="email" placeholder="Nhập email mới"/><br><br>
+          <label>Chọn ảnh đại diện:</label>
+          <input type="file" id="avatar-modal-upload" accept=".jpg,.jpeg,.png"/><br><br>
+        </form>
+        <button id="save-btn">Lưu</button>
+        <button id="cancel-btn">Hủy</button>
+      </div>
+    </div>
+  `;
 
-function openUpdateModal(token) {
-  createModal({
-    title: 'Cập nhật thông tin',
-    message: `
-      <form id="update-form" enctype="multipart/form-data">
-        <label>Nickname:</label>
-        <input type="text" id="nickname-input" placeholder="Nhập nickname mới"/><br><br>
-        <label>Email:</label>
-        <input type="email" id="email-input" placeholder="Nhập email mới"/><br><br>
-        <label>Chọn ảnh đại diện:</label>
-        <input type="file" id="avatar-modal-upload"/><br><br>
-      </form>
-    `,
-    primaryButtonText: 'Lưu',
-    onPrimary: () => handleUpdate(token),
-    showSecondaryButton: true,
-    secondaryButtonText: 'Hủy',
-  });
+  // Thêm popup vào body
+  document.body.insertAdjacentHTML('beforeend', popupHTML);
 
-  // Gắn sự kiện chọn avatar
+  // Bắt sự kiện chọn avatar
   setTimeout(() => {
-    document.getElementById('avatar-modal-upload').addEventListener('change', (e) => {
+    const fileInput = document.getElementById('avatar-modal-upload');
+    fileInput?.addEventListener('change', (e) => {
       avatarFile = e.target.files[0];
     });
   }, 0);
+
+  // Lắng nghe sự kiện cho các nút
+  document.getElementById('save-btn').addEventListener('click', () => handleUpdate(token));
+  document.getElementById('cancel-btn').addEventListener('click', closePopup);
 }
 
 function handleUpdate(token) {
-  const nickname = document.getElementById('nickname-input').value;
-  const email = document.getElementById('email-input').value;
+  setTimeout(() => {
+    const nicknameInput = document.getElementById('nickname-input');
+    const emailInput = document.getElementById('email-input');
 
-  const formData = new FormData();
-  if (avatarFile) formData.append('avatar_file', avatarFile);
-
-  const query = [];
-  if (nickname) query.push(`nickname=${encodeURIComponent(nickname)}`);
-  if (email) query.push(`email=${encodeURIComponent(email)}`);
-  const queryString = query.length ? '?' + query.join('&') : '';
-
-  fetch(`${config.baseURL}/users/${queryString}`, {
-    method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
-  })
-    .then(async (res) => {
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Cập nhật thất bại.');
-      toast({
-        title: 'Thành công',
-        message: data.message || 'Cập nhật thông tin thành công!',
-        type: 'success',
-        duration: 3000,
-      });
-      fetchUserInfo(token); // reload lại avatar và info
-    })
-    .catch((err) => {
+    if (!nicknameInput || !emailInput) {
       toast({
         title: 'Lỗi',
-        message: err.message,
+        message: 'Không tìm thấy form cập nhật. Vui lòng thử lại!',
         type: 'error',
         duration: 3000,
       });
-    });
+      return;
+    }
+
+    const nickname = nicknameInput.value.trim();
+    const email = emailInput.value.trim();
+
+    const formData = new FormData();
+    if (avatarFile) formData.append('avatar_file', avatarFile);
+    else formData.append('avatar_file', new Blob());
+
+    const query = [];
+    if (nickname) query.push(`nickname=${encodeURIComponent(nickname)}`);
+    if (email) query.push(`email=${encodeURIComponent(email)}`);
+    const queryString = query.length ? `?${query.join('&')}` : '';
+
+    fetch(`${config.baseURL}/users/${queryString}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Cập nhật thất bại.');
+
+        toast({
+          title: 'Thành công',
+          message: data.message || 'Cập nhật thông tin thành công!',
+          type: 'success',
+          duration: 3000,
+        });
+
+        avatarFile = null;
+        fetchUserInfo(token);
+        closePopup(); // Đóng popup khi thành công
+      })
+      .catch((err) => {
+        toast({
+          title: 'Lỗi',
+          message: err.message || 'Đã xảy ra lỗi khi cập nhật.',
+          type: 'error',
+          duration: 3000,
+        });
+      });
+  }, 50); // Đợi DOM cập nhật popup (50ms là đủ an toàn)
+}
+
+function closePopup() {
+  const popupOverlay = document.querySelector('.popup-overlay');
+  if (popupOverlay) {
+    popupOverlay.remove();
+  }
 }

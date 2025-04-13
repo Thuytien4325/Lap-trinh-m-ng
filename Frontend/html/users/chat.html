@@ -87,17 +87,11 @@
         <h3>Thông báo</h3>
         <div class="noti-filters">
           <label>
-            <input type="checkbox" id="filter-unread" />
-            Chưa đọc
-          </label>
-          <label>
-            <input type="checkbox" id="filter-system" />
-            Từ hệ thống
-          </label>
-          <label>
-            <select id="filter-sort">
-              <option value="true" selected>Mới nhất trước</option>
-              <option value="false">Cũ nhất trước</option>
+            <select id="filter-select">
+              <option value="newest" selected>Mới nhất</option>
+              <option value="oldest">Cũ nhất</option>
+              <option value="unread">Chưa đọc</option>
+              <option value="system">Từ hệ thống</option>
             </select>
           </label>
           <button id="apply-filters">Lọc</button>

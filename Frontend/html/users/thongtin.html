@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trang Thông Tin Cá Nhân</title>
     <link rel="stylesheet" href="../../css/users/thongtin.css" />
+    <link rel="stylesheet" href="../../css/modal-overlay.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <script type="module" src="../../js/auth/auth-check.js"></script>
     <script type="module" src="../../js/users/thongtin.js"></script>
@@ -12,16 +13,25 @@
   <body>
     <div class="profile-container">
       <div class="profile-card">
-        <div class="avatar-container">
-          <img src="avatar.png" alt="Avatar" class="avatar" />
-          <label for="avatar-upload" class="camera-icon">
-            <i class="fa fa-camera"></i>
-          </label>
-          <input type="file" id="avatar-upload" style="display: none" />
+        <img src="../../assets/image/private-chat-default.jpg" alt="Avatar" class="avatar" />
+        <div class="user-details">
+          <div class="user-info-item">
+            <i class="fas fa-at"></i>
+            <span id="user-username"></span>
+          </div>
+          <div class="user-info-item">
+            <i class="fas fa-user"></i>
+            <span id="user-nickname"></span>
+          </div>
+          <div class="user-info-item">
+            <i class="fas fa-envelope"></i>
+            <span id="user-email"></span>
+          </div>
+          <div class="user-info-item">
+            <i class="fas fa-calendar-days"></i>
+            <span id="create-at"></span>
+          </div>
         </div>
-        <h2 class="name"></h2>
-        <p class="username"></p>
-        <div class="info"></div>
         <div class="button-container" style="margin-top: auto; text-align: center">
           <button class="edit-btn">Cập nhật thông tin</button>
         </div>

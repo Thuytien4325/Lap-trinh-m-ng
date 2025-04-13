@@ -1186,7 +1186,7 @@ async function loadNotifications(filters = {}) {
 
     const data = await res.json();
 
-    const notifications = Array.isArray(data) ? data : data.notifications; // <== thêm chỗ này
+    const notifications = Array.isArray(data) ? data : data.notifications;
     renderNotifications(notifications);
   } catch (err) {
     console.error('Lỗi khi tải thông báo:', err);
@@ -1350,15 +1350,31 @@ async function checkUnreadNotifications() {
 }
 
 document.getElementById('apply-filters').addEventListener('click', () => {
-  const unreadOnly = document.getElementById('filter-unread').checked;
-  const fromSystem = document.getElementById('filter-system').checked;
-  const newestFirst = document.getElementById('filter-sort').value === 'true';
+  const filterValue = document.getElementById('filter-select').value;
 
-  loadNotifications({
-    unread_only: unreadOnly,
-    from_system: fromSystem,
-    newest_first: newestFirst,
-  });
+  // Mặc định các giá trị
+  const filters = {
+    unread_only: false,
+    from_system: false,
+    newest_first: true,
+  };
+
+  switch (filterValue) {
+    case 'oldest':
+      filters.newest_first = false;
+      break;
+    case 'unread':
+      filters.unread_only = true;
+      break;
+    case 'system':
+      filters.from_system = true;
+      break;
+    default:
+      // 'newest' hoặc không xác định
+      break;
+  }
+
+  loadNotifications(filters);
 });
 
 function toggleConversationInfo() {
