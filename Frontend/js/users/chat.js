@@ -24,6 +24,13 @@ function getCurrentUser() {
   }
 }
 
+function createUnreadIndicator() {
+  const dot = document.createElement('span');
+  dot.className = 'unread-dot';
+  dot.title = 'Bạn có tin nhắn chưa đọc';
+  return dot;
+}
+
 // Load cuộc trò chuyện
 async function loadConversations() {
   const token = localStorage.getItem('access_token');
@@ -69,10 +76,33 @@ async function loadConversations() {
         li.dataset.conversationId = conv.conversation_id;
         li.dataset.conversationName = conv.name || `Cuộc trò chuyện ${conv.conversation_id}`;
 
-        li.onclick = () => {
+        console.log('conv', conv.is_read);
+
+        if (conv.is_read === false) {
+          const unreadDot = createUnreadIndicator();
+          li.appendChild(unreadDot);
+        }
+
+        li.onclick = async () => {
           const id = li.dataset.conversationId;
           const name = li.dataset.conversationName;
+
           currentConversationId = id;
+
+          try {
+            await fetch(`${config.baseURL}/conversations/conversations/${id}/mark-read`, {
+              method: 'PUT',
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+              },
+            });
+
+            const dot = li.querySelector('.unread-dot');
+            if (dot) dot.remove();
+          } catch (err) {
+            console.warn('Không thể mark-read conversation:', err);
+          }
+
           loadMessages(id, name, true);
         };
 
@@ -109,6 +139,110 @@ async function loadConversations() {
       const latestConversation = conversations[0];
       currentConversationId = latestConversation.conversation_id;
       loadMessages(latestConversation.conversation_id, latestConversation.name || `Cuộc trò chuyện ${latestConversation.conversation_id}`, true);
+    }
+  } catch (error) {
+    console.error('Lỗi khi fetch:', error);
+  }
+}
+
+async function loadConversationsForWebSocket() {
+  const token = localStorage.getItem('access_token');
+  if (!token) {
+    console.error('Không có token đăng nhập');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${config.baseURL}/conversations/`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.error('Lỗi khi gọi API:', response.status);
+      return;
+    }
+
+    const conversations = await response.json();
+
+    conversations.sort((a, b) => {
+      const timeA = a.last_message_time ? new Date(a.last_message_time) : new Date(0);
+      const timeB = b.last_message_time ? new Date(b.last_message_time) : new Date(0);
+      return timeB - timeA;
+    });
+
+    const chatList = document.querySelector('.chat-list');
+    const noResultItem = chatList.querySelector('.no-results');
+    chatList.innerHTML = '';
+    if (noResultItem) {
+      chatList.appendChild(noResultItem);
+    }
+
+    if (conversations.length > 0) {
+      conversations.forEach((conv) => {
+        const li = document.createElement('li');
+        li.className = 'chat-item';
+        li.dataset.id = conv.conversation_id;
+        li.dataset.conversationId = conv.conversation_id;
+        li.dataset.conversationName = conv.name || `Cuộc trò chuyện ${conv.conversation_id}`;
+
+        if (conv.is_read === false) {
+          const unreadDot = createUnreadIndicator();
+          li.appendChild(unreadDot);
+        }
+
+        li.onclick = async () => {
+          const id = li.dataset.conversationId;
+          const name = li.dataset.conversationName;
+          currentConversationId = id;
+
+          try {
+            await fetch(`${config.baseURL}/conversations/conversations/${id}/mark-read`, {
+              method: 'PUT',
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            const dot = li.querySelector('.unread-dot');
+            if (dot) dot.remove();
+          } catch (err) {
+            console.warn('Không thể mark-read conversation:', err);
+          }
+
+          loadMessages(id, name, true);
+        };
+
+        const avatar = document.createElement('img');
+        avatar.className = 'avatar';
+        const fixedAvatarUrl = conv.avatar_url
+          ? conv.avatar_url.startsWith('http')
+            ? conv.avatar_url
+            : `${config.baseURL}${conv.avatar_url.replace(/^\/+/, '')}`
+          : conv.type === 'group'
+          ? '../../assets/image/group-chat-default.jpg'
+          : '../../assets/image/private-chat-default.jpg';
+
+        avatar.src = fixedAvatarUrl;
+        avatar.alt = 'avatar';
+
+        const nameContainer = document.createElement('span');
+        nameContainer.className = 'chat-name';
+
+        const typeIcon = document.createElement('i');
+        typeIcon.className = 'type-icon fas ' + (conv.type === 'group' ? 'fa-users' : 'fa-user');
+
+        const nameText = document.createTextNode(' ' + (conv.name || `Cuộc trò chuyện ${conv.conversation_id}`));
+
+        nameContainer.appendChild(typeIcon);
+        nameContainer.appendChild(nameText);
+
+        li.appendChild(avatar);
+        li.appendChild(nameContainer);
+        chatList.appendChild(li);
+      });
     }
   } catch (error) {
     console.error('Lỗi khi fetch:', error);
@@ -164,6 +298,15 @@ async function loadMessages(conversationId, conversationName, isInitial = true) 
         chatContent.scrollTop = chatContent.scrollHeight;
       }, 0);
     }
+
+    // if (isInitial) {
+    //   fetch(`${config.baseURL}/conversations/conversations/${conversationId}/mark-read`, {
+    //     method: 'PUT',
+    //     headers: {
+    //       Authorization: `Bearer ${token}`,
+    //     },
+    //   }).catch((e) => console.error('Đánh dấu đã đọc conversation thất bại:', e));
+    // }
 
     messageOffset += messages.length;
   } catch (error) {
@@ -266,6 +409,7 @@ function appendMessageToUI(msg) {
   const isCurrentUser = msg.sender_id === currentUser.user_id;
   const messageDiv = document.createElement('div');
   messageDiv.classList.add('message', isCurrentUser ? 'sent' : 'received');
+  messageDiv.dataset.messageId = msg.message_id;
 
   if (!isCurrentUser) {
     const senderName = document.createElement('div');
@@ -292,6 +436,13 @@ function appendMessageToUI(msg) {
     });
 
     messageDiv.appendChild(attContainer);
+  }
+
+  if (!msg.is_read && !isCurrentUser) {
+    const unreadLabel = document.createElement('div');
+    unreadLabel.className = 'unread-label';
+    unreadLabel.textContent = 'Chưa đọc';
+    messageDiv.appendChild(unreadLabel);
   }
 
   const time = document.createElement('span');
@@ -316,7 +467,7 @@ function appendMessageToTop(msg, currentUser) {
   const isCurrentUser = msg.sender_id === currentUser.user_id;
   const messageDiv = document.createElement('div');
   messageDiv.classList.add('message', isCurrentUser ? 'sent' : 'received');
-
+  messageDiv.dataset.messageId = msg.message_id;
   if (!isCurrentUser) {
     const senderName = document.createElement('div');
     senderName.className = 'sender-name';
@@ -342,6 +493,13 @@ function appendMessageToTop(msg, currentUser) {
     });
 
     messageDiv.appendChild(attContainer);
+  }
+
+  if (!msg.is_read && !isCurrentUser) {
+    const unreadLabel = document.createElement('div');
+    unreadLabel.className = 'unread-label';
+    unreadLabel.textContent = 'Chưa đọc';
+    messageDiv.appendChild(unreadLabel);
   }
 
   const time = document.createElement('span');
@@ -527,7 +685,7 @@ function connectWebSocket() {
             appendMessageToUI(msg);
           }
         } else {
-          loadConversations();
+          loadConversationsForWebSocket();
         }
       }
     } catch (error) {
@@ -552,6 +710,49 @@ function connectWebSocket() {
 //   }
 // });
 
+function setupMarkMessagesReadOnClick() {
+  const chatContent = document.getElementById('chat-content');
+  if (!chatContent) return;
+
+  chatContent.addEventListener('click', async () => {
+    if (!currentConversationId) return;
+
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      // Lấy tất cả các tin nhắn chưa đọc trong cuộc trò chuyện hiện tại
+      const unreadMessages = chatContent.querySelectorAll('.unread-label');
+      if (unreadMessages.length === 0) {
+        console.log('✅ Không có tin nhắn chưa đọc');
+        return;
+      }
+
+      // Duyệt qua tất cả tin nhắn chưa đọc và gửi yêu cầu PUT cho từng tin nhắn
+      for (const unreadMessage of unreadMessages) {
+        const messageDiv = unreadMessage.closest('.message');
+        if (!messageDiv) continue;
+
+        const messageId = messageDiv.dataset.messageId;
+        if (!messageId) continue;
+
+        // Gửi yêu cầu PUT để đánh dấu tin nhắn là đã đọc
+        await fetch(`${config.baseURL}/messages/mark-read/${messageId}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        // Xóa thẻ 'unread-label' trong UI sau khi đánh dấu là đã đọc
+        unreadMessage.remove();
+      }
+    } catch (err) {
+      console.warn('❌ Lỗi khi đánh dấu tin nhắn đã đọc:', err);
+    }
+  });
+}
+
 // Sửa lại phần khởi tạo khi trang load
 document.addEventListener('DOMContentLoaded', () => {
   // Kiểm tra xem có conversationId được lưu từ lần reload trước không
@@ -563,6 +764,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadConversations();
   connectWebSocket();
+  setupMarkMessagesReadOnClick();
 });
 
 // Thêm hàm đóng modal thông tin người dùng

@@ -460,6 +460,7 @@ async def get_conversations(
                 "name": convo.name,
                 "avatar_url": convo.avatar_url,
                 "created_at_UTC": convo.created_at_UTC,
+                "is_read": convo.is_read,
                 "last_message_time": last_message_time,
                 "group_members": group_members,
             }

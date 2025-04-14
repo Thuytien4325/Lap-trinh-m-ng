@@ -64,6 +64,8 @@ async def send_message(
     db.commit()
     db.refresh(new_message)
 
+    conversation.is_read = False
+    db.commit()
     # Tạo thư mục riêng cho cuộc hội thoại nếu chưa có
     conversation_dir = os.path.join(CONVERSATION_ATTACHMENTS_DIR, str(conversation_id))
     os.makedirs(conversation_dir, exist_ok=True)
