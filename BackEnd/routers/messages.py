@@ -58,6 +58,7 @@ async def send_message(
         conversation_id=conversation_id,
         content=content or "",  # Nếu không có nội dung thì gán chuỗi rỗng
         timestamp=datetime.now(timezone.utc),
+        is_read=False,
     )
     db.add(new_message)
     db.commit()
@@ -110,6 +111,7 @@ async def send_message(
         "sender_nickname": current_user.nickname,
         "content": new_message.content,
         "timestamp": new_message.timestamp.isoformat(),
+        "is_read": new_message.is_read,
         "attachments": file_urls,
     }
 
@@ -138,6 +140,7 @@ async def send_message(
         "sender_nickname": current_user.nickname,
         "content": new_message.content,
         "timestamp": new_message.timestamp.isoformat(),
+        "is_read": new_message.is_read,
         "attachments": [
             {"file_url": url, "file_type": att.file_type}
             for url, att in zip(
@@ -205,6 +208,7 @@ async def get_messages(
                 "sender_nickname": sender.nickname,
                 "content": msg.content,
                 "timestamp": msg.timestamp,
+                "is_read": msg.is_read,
                 "attachments": [
                     {"file_url": att.file_url, "file_type": att.file_type}
                     for att in attachments
@@ -346,3 +350,47 @@ async def clear_conversation(
 
     # Trả về thông báo thành công
     return {"message": "Tất cả tin nhắn và file đính kèm đã được xóa thành công"}
+
+
+@messages_router.put("/mark-read/{message_id}")
+async def mark_message_as_read(
+    message_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Tìm tin nhắn trong cơ sở dữ liệu
+    message = db.query(Message).filter(Message.message_id == message_id).first()
+
+    if not message:
+        raise HTTPException(status_code=404, detail="Tin nhắn không tồn tại")
+
+    # Kiểm tra xem người dùng có phải là thành viên của cuộc trò chuyện không
+    conversation = (
+        db.query(Conversation)
+        .filter(Conversation.conversation_id == message.conversation_id)
+        .first()
+    )
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Cuộc hội thoại không tồn tại")
+
+    is_member = (
+        db.query(GroupMember)
+        .filter(
+            GroupMember.conversation_id == message.conversation_id,
+            GroupMember.username == current_user.username,
+        )
+        .first()
+    )
+
+    if not is_member:
+        raise HTTPException(
+            status_code=403, detail="Bạn không phải là thành viên của nhóm này"
+        )
+
+    # Cập nhật trạng thái is_read của tin nhắn
+    message.is_read = True
+    db.commit()
+
+    # Trả về kết quả thành công
+    return {"message": "Tin nhắn đã được đánh dấu là đã đọc"}

@@ -55,6 +55,7 @@ class Conversation(Base):
     name = Column(String(255), nullable=True)
     avatar_url = Column(String(255), nullable=True)
     type = Column(Enum("private", "group", name="conversation_type"), nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False)
     created_at_UTC = Column(DateTime(timezone=True), server_default=func.now())
 
     group_members = relationship("GroupMember", back_populates="conversation")
@@ -89,6 +90,7 @@ class Message(Base):
     )
     content = Column(Text, nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    is_read = Column(Boolean, default=False, nullable=False)
 
     sender = relationship(
         "User", foreign_keys=[sender_id], back_populates="sent_messages"

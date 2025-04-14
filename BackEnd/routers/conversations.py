@@ -89,8 +89,7 @@ async def create_conversation(
 
         if existing_conversation:
             raise HTTPException(
-                status_code=400,
-                detail="Cuộc trò chuyện với người này đã tồn tại."
+                status_code=400, detail="Cuộc trò chuyện với người này đã tồn tại."
             )
 
         new_conversation = Conversation(
@@ -98,6 +97,7 @@ async def create_conversation(
             name=f"{current_user.username} & {recipient.username}",
             avatar_url=None,
             created_at_UTC=datetime.now(timezone.utc),
+            is_read=False,
         )
         db.add(new_conversation)
         db.commit()
@@ -178,6 +178,7 @@ async def create_conversation(
             name=name,
             avatar_url=None,
             created_at_UTC=datetime.now(timezone.utc),
+            is_read=False,
         )
         db.add(new_conversation)
         db.commit()
@@ -1129,3 +1130,22 @@ def download_file(conversation_id: int, filename: str):
         media_type="application/octet-stream",
         filename=filename,
     )
+
+
+@conversation_router.put("/conversations/{conversation_id}/mark-read")
+async def mark_conversation_as_read(
+    conversation_id: int, db: Session = Depends(get_db)
+):
+    conversation = (
+        db.query(Conversation)
+        .filter(Conversation.conversation_id == conversation_id)
+        .first()
+    )
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Cuộc trò chuyện không tồn tại!")
+
+    conversation.is_read = True
+    db.commit()
+
+    return {"message": "Thành công"}
