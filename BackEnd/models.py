@@ -165,6 +165,7 @@ class Notification(Base):
     message = Column(String(255), nullable=False)
     type = Column(
         Enum(
+            "conversations",
             "friend_request",
             "friend_accept",
             "friend_reject",

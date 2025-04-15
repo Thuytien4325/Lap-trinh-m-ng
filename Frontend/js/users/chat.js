@@ -76,8 +76,6 @@ async function loadConversations() {
         li.dataset.conversationId = conv.conversation_id;
         li.dataset.conversationName = conv.name || `Cuộc trò chuyện ${conv.conversation_id}`;
 
-        console.log('conv', conv.is_read);
-
         if (conv.is_read === false) {
           const unreadDot = createUnreadIndicator();
           li.appendChild(unreadDot);
@@ -1474,14 +1472,17 @@ async function onClickNotification(noti) {
     });
 
     // 2. Điều hướng theo loại thông báo
-    const table = noti.related_table;
+    console.log('noti', noti);
+    const table = noti.type;
     const targetId = noti.related_id;
-
+    console.log('table', table, 'targetId', targetId);
     if (table === 'conversations') {
       setCurrentConversation(targetId); // Tự động vào cuộc trò chuyện
     } else if (table === 'friend_requests') {
       toggleFriendRequestsList();
     } else if (table === 'friends') {
+      toggleFriendsList();
+    } else if (table === 'friend_accept') {
       toggleFriendsList();
     }
 
