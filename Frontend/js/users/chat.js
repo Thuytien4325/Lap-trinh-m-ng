@@ -756,11 +756,23 @@ function setupMarkMessagesReadOnClick() {
 
 // Sửa lại phần khởi tạo khi trang load
 document.addEventListener('DOMContentLoaded', () => {
+  // Thêm event listener cho input chat
+  const chatInput = document.querySelector('.chat-input');
+  if (chatInput) {
+    chatInput.addEventListener('keydown', function (e) {
+      // Kiểm tra nếu nhấn Enter và không nhấn Shift (để cho phép xuống dòng bằng Shift+Enter)
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault(); // Ngăn không cho xuống dòng mặc định
+        sendMessage(); // Gọi hàm gửi tin nhắn
+      }
+    });
+  }
+
   // Kiểm tra xem có conversationId được lưu từ lần reload trước không
   const lastConversationId = localStorage.getItem('lastConversationId');
   if (lastConversationId) {
     currentConversationId = lastConversationId;
-    localStorage.removeItem('lastConversationId'); // Xóa sau khi đã lấy
+    localStorage.removeItem('lastConversationId');
   }
 
   loadConversations();
@@ -1608,6 +1620,18 @@ function toggleConversationInfo() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Thêm event listener cho input chat
+  const chatInput = document.querySelector('.chat-input');
+  if (chatInput) {
+    chatInput.addEventListener('keydown', function (e) {
+      // Kiểm tra nếu nhấn Enter và không nhấn Shift (để cho phép xuống dòng bằng Shift+Enter)
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault(); // Ngăn không cho xuống dòng mặc định
+        sendMessage(); // Gọi hàm gửi tin nhắn
+      }
+    });
+  }
+
   // Kiểm tra xem có conversationId được lưu từ lần reload trước không
   const lastConversationId = localStorage.getItem('lastConversationId');
   if (lastConversationId) {
