@@ -102,6 +102,12 @@ async function loadConversations() {
           }
 
           loadMessages(id, name, true);
+
+          // Kiểm tra xem sidebar có đang mở không
+          const sidebar = document.getElementById('conversation-info-sidebar');
+          if (sidebar.style.display === 'flex') {
+            loadConversationInfo(); // Gọi hàm để cập nhật thông tin
+          }
         };
 
         const avatar = document.createElement('img');
@@ -256,6 +262,8 @@ async function loadMessages(conversationId, conversationName, isInitial = true) 
   const chatContent = document.getElementById('chat-content');
 
   if (isInitial) {
+    const chatHeader = document.getElementById('chat-header');
+    chatHeader.dataset.id = conversationId;
     document.getElementById('conversation-name').textContent = conversationName;
     chatContent.innerHTML = '';
     messageOffset = 0;
@@ -297,16 +305,13 @@ async function loadMessages(conversationId, conversationName, isInitial = true) 
       }, 0);
     }
 
-    // if (isInitial) {
-    //   fetch(`${config.baseURL}/conversations/conversations/${conversationId}/mark-read`, {
-    //     method: 'PUT',
-    //     headers: {
-    //       Authorization: `Bearer ${token}`,
-    //     },
-    //   }).catch((e) => console.error('Đánh dấu đã đọc conversation thất bại:', e));
-    // }
-
     messageOffset += messages.length;
+
+    // Cập nhật thông tin cuộc trò chuyện nếu sidebar đang mở
+    const sidebar = document.getElementById('conversation-info-sidebar');
+    if (sidebar.style.display === 'flex') {
+      loadConversationInfo(); // Gọi hàm để cập nhật thông tin
+    }
   } catch (error) {
     console.error('Lỗi khi fetch tin nhắn:', error);
   } finally {
@@ -1084,7 +1089,42 @@ async function submitCreateConversation() {
 
     // Tải cuộc trò chuyện mới
     currentConversationId = result.id; // Lưu ID cuộc trò chuyện mới
-    loadMessages(currentConversationId, currentConversationType === 'group' ? groupName : usernamesInput, true);
+
+    // Thêm cuộc trò chuyện mới vào đầu danh sách
+    const chatList = document.querySelector('.chat-list');
+    const li = document.createElement('li');
+    li.className = 'chat-item';
+    li.dataset.id = currentConversationId;
+    li.dataset.conversationId = currentConversationId;
+
+    // Thiết lập tên cuộc trò chuyện
+    const conversationName = currentConversationType === 'private' ? `test & ${usernamesInput}` : groupName;
+    li.dataset.conversationName = conversationName;
+
+    // Thêm dấu chấm nếu cuộc trò chuyện chưa đọc
+    const unreadDot = createUnreadIndicator();
+    li.appendChild(unreadDot);
+
+    li.onclick = async () => {
+      currentConversationId = currentConversationId; // Cập nhật ID cuộc trò chuyện
+      loadMessages(currentConversationId, conversationName, true);
+    };
+
+    const avatar = document.createElement('img');
+    avatar.className = 'avatar';
+    avatar.src = currentConversationType === 'group' ? '../../assets/image/group-chat-default.jpg' : '../../assets/image/private-chat-default.jpg';
+    avatar.alt = 'avatar';
+
+    const nameContainer = document.createElement('span');
+    nameContainer.className = 'chat-name';
+    const nameText = document.createTextNode(' ' + conversationName);
+    nameContainer.appendChild(nameText);
+
+    li.appendChild(avatar);
+    li.appendChild(nameContainer);
+    chatList.insertBefore(li, chatList.firstChild); // Thêm vào đầu danh sách
+
+    loadMessages(currentConversationId, conversationName, true);
   } catch (error) {
     console.error('Lỗi khi fetch:', error);
     toast({
@@ -1610,134 +1650,250 @@ function toggleConversationInfo() {
   if (sidebar.style.display === 'none' || sidebar.classList.contains('hiding')) {
     sidebar.classList.remove('hiding');
     sidebar.style.display = 'flex';
+    // Tải thông tin cuộc trò chuyện khi mở sidebar
+    if (currentConversationId) {
+      loadConversationInfo();
+    }
   } else {
     sidebar.classList.add('hiding');
     setTimeout(() => {
       sidebar.style.display = 'none';
       sidebar.classList.remove('hiding');
-    }, 300); // match thời gian trong transition CSS
+    }, 300);
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Thêm event listener cho input chat
-  const chatInput = document.querySelector('.chat-input');
-  if (chatInput) {
-    chatInput.addEventListener('keydown', function (e) {
-      // Kiểm tra nếu nhấn Enter và không nhấn Shift (để cho phép xuống dòng bằng Shift+Enter)
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault(); // Ngăn không cho xuống dòng mặc định
-        sendMessage(); // Gọi hàm gửi tin nhắn
-      }
+// Hàm lấy thông tin cuộc trò chuyện và danh sách thành viên
+async function loadConversationInfo() {
+  const token = localStorage.getItem('access_token');
+  if (!token) return;
+
+  // Lấy ID từ thuộc tính data-id của chat-header
+  const chatHeader = document.getElementById('chat-header');
+  const conversationId = chatHeader.dataset.id;
+
+  try {
+    const response = await fetch(`${config.baseURL}/conversations/${conversationId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
     });
-  }
 
-  // Kiểm tra xem có conversationId được lưu từ lần reload trước không
-  const lastConversationId = localStorage.getItem('lastConversationId');
-  if (lastConversationId) {
-    currentConversationId = lastConversationId;
-    localStorage.removeItem('lastConversationId');
-  }
+    if (!response.ok) {
+      throw new Error('Không thể tải thông tin cuộc trò chuyện');
+    }
 
-  loadConversations();
-  connectWebSocket();
+    const conversation = await response.json();
 
-  // Khởi tạo context menu cho file đính kèm
-  initContextMenu({
-    selector: '.has-context',
-    items: [
-      { action: 'download', label: 'Tải xuống' },
-      { action: 'copy', label: 'Sao chép liên kết' },
-    ],
-    onAction: (action, fileUrl, element) => {
-      switch (action) {
-        case 'download': {
-          try {
-            const urlParts = new URL(fileUrl).pathname.split('/');
-            const conversationIdIndex = urlParts.indexOf('conversations') + 1;
-            const conversationId = urlParts[conversationIdIndex];
-            const filename = urlParts.pop();
-            const isImage = /\.(jpg|jpeg|png|gif)$/i.test(filename);
+    // Cập nhật UI với thông tin cuộc trò chuyện
+    document.getElementById('conversation-title').textContent = `${conversation.name} (ID: ${conversationId})`;
+    document.getElementById('conversation-avatar').src = conversation.avatar_url
+      ? `${config.baseURL}/${conversation.avatar_url.replace(/^\/+/, '')}`
+      : '../../assets/image/group-chat-default.jpg';
 
-            const downloadUrl = isImage ? `${config.baseURL}/conversations/download/${conversationId}/${filename}` : fileUrl;
+    // Render danh sách thành viên
+    const memberList = document.getElementById('conversation-members');
+    memberList.innerHTML = '';
 
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = filename;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+    if (conversation.group_members) {
+      conversation.group_members.forEach((member) => {
+        const li = document.createElement('li');
+        li.className = 'member-item';
 
-            setTimeout(() => {
-              toast({
-                title: 'Đã gửi yêu cầu tải',
-                message: 'Nếu trình duyệt hỏi vị trí lưu, vui lòng xác nhận.',
-                type: 'info',
-              });
-            }, 300);
-          } catch (e) {
-            console.error('Tải file thất bại:', e);
-            toast({
-              title: 'Lỗi',
-              message: 'Không thể tải file',
-              type: 'error',
-            });
-          }
-          break;
+        const memberInfo = document.createElement('div');
+        memberInfo.className = 'member-info';
+        memberInfo.innerHTML = `
+          <span>${member.nickname || member.username}</span>
+          <small>${member.role === 'admin' ? '(Quản trị viên)' : ''}</small>
+        `;
+
+        li.appendChild(memberInfo);
+
+        // Nếu người dùng là admin, hiển thị nút xóa thành viên
+        if (getCurrentUser().username === conversation.group_members.find((m) => m.role === 'admin')?.username && member.role !== 'admin') {
+          const removeBtn = document.createElement('button');
+          removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+          removeBtn.className = 'remove-member-btn';
+          removeBtn.onclick = () => removeMember(conversationId, member.username);
+          li.appendChild(removeBtn);
         }
 
-        case 'copy':
-          navigator.clipboard
-            .writeText(fileUrl)
-            .then(() => {
-              toast({
-                title: 'Thành công!',
-                message: 'Đã sao chép liên kết thành công!',
-                type: 'success',
-              });
-            })
-            .catch(() => {
-              toast({ title: 'Sao chép thất bại', type: 'error' });
-            });
-          break;
+        memberList.appendChild(li);
+      });
+    }
+  } catch (error) {
+    console.error('Lỗi khi tải thông tin cuộc trò chuyện:', error);
+    toast({
+      title: 'Lỗi',
+      message: 'Không thể tải thông tin cuộc trò chuyện',
+      type: 'error',
+    });
+  }
+}
+
+// Hàm thêm thành viên mới
+async function addMember(conversationId, username) {
+  const token = localStorage.getItem('access_token');
+  if (!token) return;
+
+  try {
+    const response = await fetch(`${config.baseURL}/conversations/${conversationId}/members?new_member_username=${username}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      toast({
+        title: 'Lỗi',
+        message: result.detail || 'Không thể thêm thành viên vào nhóm',
+        type: 'error',
+      });
+      return;
+    }
+
+    toast({
+      title: 'Thành công',
+      message: 'Đã thêm thành viên vào nhóm',
+      type: 'success',
+    });
+
+    // Cập nhật lại danh sách thành viên
+    loadConversationInfo();
+  } catch (error) {
+    console.error('Lỗi khi thêm thành viên:', error);
+    toast({
+      title: 'Lỗi',
+      message: 'Không thể kết nối đến máy chủ',
+      type: 'error',
+    });
+  }
+}
+
+// Hàm xóa thành viên
+async function removeMember(conversationId, username) {
+  const token = localStorage.getItem('access_token');
+  if (!token) return;
+
+  try {
+    const response = await fetch(`${config.baseURL}/conversations/${conversationId}/members/${username}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const result = await response.json();
+      toast({
+        title: 'Lỗi',
+        message: result.detail || 'Không thể xóa thành viên khỏi nhóm',
+        type: 'error',
+      });
+      return;
+    }
+
+    toast({
+      title: 'Thành công',
+      message: 'Đã xóa thành viên khỏi nhóm',
+      type: 'success',
+    });
+
+    // Cập nhật lại danh sách thành viên
+    loadConversationInfo();
+  } catch (error) {
+    console.error('Lỗi khi xóa thành viên:', error);
+    toast({
+      title: 'Lỗi',
+      message: 'Không thể kết nối đến máy chủ',
+      type: 'error',
+    });
+  }
+}
+
+// Hàm xóa cuộc trò chuyện
+async function deleteConversation(conversationId) {
+  const token = localStorage.getItem('access_token');
+  if (!token) return;
+
+  try {
+    const response = await fetch(`${config.baseURL}/conversations/${conversationId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const result = await response.json();
+      toast({
+        title: 'Lỗi',
+        message: result.detail || 'Không thể xóa cuộc trò chuyện',
+        type: 'error',
+      });
+      return;
+    }
+
+    toast({
+      title: 'Thành công',
+      message: 'Đã xóa cuộc trò chuyện',
+      type: 'success',
+    });
+
+    // Đóng sidebar thông tin
+    toggleConversationInfo();
+
+    // Cập nhật lại danh sách cuộc trò chuyện
+    loadConversations();
+  } catch (error) {
+    console.error('Lỗi khi xóa cuộc trò chuyện:', error);
+    toast({
+      title: 'Lỗi',
+      message: 'Không thể kết nối đến máy chủ',
+      type: 'error',
+    });
+  }
+}
+
+// Hàm mở modal thêm thành viên
+function openAddMemberModal() {
+  createModal({
+    title: 'Thêm thành viên',
+    message: 'Nhập tên người dùng cần thêm:',
+    primaryButtonText: 'Thêm',
+    secondaryButtonText: 'Hủy',
+    showInput: true,
+    inputPlaceholder: 'Tên người dùng',
+    onPrimary: (username) => {
+      if (username.trim()) {
+        addMember(currentConversationId, username.trim());
       }
     },
   });
+}
 
-  document.querySelector('.conversation-list .search').addEventListener('input', function (e) {
-    const searchValue = e.target.value.toLowerCase().trim();
-    const chatItems = document.querySelectorAll('.chat-list .chat-item');
-    const noResultItem = document.querySelector('.chat-list .no-results');
-
-    let visibleCount = 0;
-
-    chatItems.forEach((item) => {
-      const name = item.dataset.conversationName?.toLowerCase() || '';
-      if (name.includes(searchValue)) {
-        item.style.display = 'flex';
-        visibleCount++;
-      } else {
-        item.style.display = 'none';
-      }
-    });
-
-    // Hiển thị dòng "Không tìm thấy" nếu không có mục nào khớp
-    if (visibleCount === 0) {
-      noResultItem.style.display = 'block';
-    } else {
-      noResultItem.style.display = 'none';
-    }
+// Hàm xác nhận xóa cuộc trò chuyện
+function confirmDeleteConversation() {
+  createModal({
+    title: 'Xác nhận xóa',
+    message: 'Bạn có chắc chắn muốn xóa cuộc trò chuyện này không?',
+    primaryButtonText: 'Xóa',
+    secondaryButtonText: 'Hủy',
+    showSecondaryButton: true,
+    onPrimary: () => {
+      deleteConversation(currentConversationId);
+    },
   });
+}
 
-  // Ngăn context menu toàn trang, chỉ cho phép ở .has-context
-  // document.addEventListener('contextmenu', function (e) {
-  //   if (!e.target.closest('.has-context')) {
-  //     e.preventDefault();
-  //   }
-  // });
-});
-
+// Thêm vào window để có thể gọi từ HTML
 window.logout = logout;
 window.sendMessage = sendMessage;
 window.sendImage = sendImage;
@@ -1754,3 +1910,34 @@ window.markSelectedNoti = markSelectedNoti;
 window.deleteSelectedNoti = deleteSelectedNoti;
 window.checkUnreadNotifications = checkUnreadNotifications;
 window.toggleConversationInfo = toggleConversationInfo;
+window.openAddMemberModal = openAddMemberModal;
+window.confirmDeleteConversation = confirmDeleteConversation;
+
+// Hàm tìm kiếm cuộc hội thoại
+function searchConversations() {
+  const searchInput = document.querySelector('#conversation-list .search');
+  const filter = searchInput.value.toLowerCase();
+  const chatList = document.querySelector('.chat-list');
+  const chatItems = chatList.querySelectorAll('.chat-item');
+
+  let hasResults = false; // Biến để kiểm tra có kết quả hay không
+
+  chatItems.forEach((item) => {
+    const conversationName = item.dataset.conversationName.toLowerCase();
+    if (conversationName.includes(filter)) {
+      item.style.display = ''; // Hiện cuộc hội thoại
+      hasResults = true; // Có ít nhất một kết quả
+    } else {
+      item.style.display = 'none'; // Ẩn cuộc hội thoại
+    }
+  });
+
+  // Hiển thị thông báo nếu không tìm thấy cuộc hội thoại nào
+  const noResultItem = chatList.querySelector('.no-results');
+  if (noResultItem) {
+    noResultItem.style.display = hasResults ? 'none' : 'block';
+  }
+}
+
+// Gắn sự kiện cho ô tìm kiếm
+document.querySelector('#conversation-list .search').addEventListener('input', searchConversations);

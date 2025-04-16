@@ -49,50 +49,86 @@ export function createModal({
   onSecondary = null,
   onClose = null,
   showSecondaryButton = false,
+  showInput = false,
+  inputPlaceholder = '',
 }) {
   const existing = document.querySelector('.modal-overlay');
   if (existing) existing.remove();
 
-  const modalHTML = `
-    <div class="modal-overlay show">
-      <div class="modal">
-        <div class="close-btn"><i class="fa-solid fa-xmark"></i></div>
-        <div class="modal-header">
-          <h3>${title}</h3>
-        </div>
-        <div class="modal-content">
-          <p>${message}</p>
-        </div>
-        <div class="modal-buttons">
-          ${showSecondaryButton ? `<button class="btn btn-secondary btn-secondary-action">${secondaryButtonText}</button>` : ''}
-          <button class="btn btn-primary btn-primary-action">${primaryButtonText}</button>
-        </div>
-      </div>
-    </div>
-  `;
+  const modalOverlay = document.createElement('div');
+  modalOverlay.className = 'modal-overlay';
 
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = modalHTML.trim();
-  const modalEl = wrapper.firstElementChild;
-  document.body.appendChild(modalEl);
+  const modalContent = document.createElement('div');
+  modalContent.className = 'modal';
+
+  const closeBtn = document.createElement('div');
+  closeBtn.className = 'close-btn';
+  closeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+
+  const modalHeader = document.createElement('div');
+  modalHeader.className = 'modal-header';
+
+  const modalTitle = document.createElement('h3');
+  modalTitle.textContent = title;
+
+  const modalMessage = document.createElement('p');
+  modalMessage.textContent = message;
+
+  const buttonContainer = document.createElement('div');
+  buttonContainer.className = 'modal-buttons';
+
+  let inputElement = null;
+  if (showInput) {
+    inputElement = document.createElement('input');
+    inputElement.type = 'text';
+    inputElement.className = 'modal-input';
+    inputElement.placeholder = inputPlaceholder;
+  }
+
+  const primaryButton = document.createElement('button');
+  primaryButton.className = 'btn btn-primary btn-primary-action';
+  primaryButton.textContent = primaryButtonText;
+  primaryButton.onclick = () => {
+    if (showInput) {
+      onPrimary(inputElement.value);
+    } else {
+      onPrimary();
+    }
+    modalOverlay.remove();
+  };
+
+  if (showSecondaryButton && secondaryButtonText) {
+    const secondaryButton = document.createElement('button');
+    secondaryButton.className = 'btn btn-secondary btn-secondary-action';
+    secondaryButton.textContent = secondaryButtonText;
+    secondaryButton.onclick = () => {
+      if (onSecondary) onSecondary();
+      modalOverlay.remove();
+    };
+    buttonContainer.appendChild(secondaryButton);
+  }
+
+  buttonContainer.appendChild(primaryButton);
+  modalContent.appendChild(closeBtn);
+  modalContent.appendChild(modalHeader);
+  modalContent.appendChild(modalMessage);
+
+  if (showInput) {
+    modalContent.appendChild(inputElement);
+  }
+
+  modalContent.appendChild(buttonContainer);
+  modalOverlay.appendChild(modalContent);
+  document.body.appendChild(modalOverlay);
 
   // Nút đóng (X)
-  modalEl.querySelector('.close-btn').onclick = () => {
-    modalEl.remove();
+  closeBtn.onclick = () => {
+    modalOverlay.remove();
     if (typeof onClose === 'function') onClose();
   };
 
-  // Nút chính
-  modalEl.querySelector('.btn-primary-action').onclick = () => {
-    modalEl.remove();
-    if (typeof onPrimary === 'function') onPrimary();
-  };
-
-  // Nút phụ nếu có
-  if (showSecondaryButton) {
-    modalEl.querySelector('.btn-secondary-action').onclick = () => {
-      modalEl.remove();
-      if (typeof onSecondary === 'function') onSecondary();
-    };
+  // Focus vào input nếu có
+  if (inputElement) {
+    setTimeout(() => inputElement.focus(), 0);
   }
 }
