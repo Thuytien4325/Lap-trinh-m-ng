@@ -1,73 +1,98 @@
 <!DOCTYPE html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
+<head>
+    <meta charset="UTF-8">
     <title>Bảng điều khiển</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <link rel="stylesheet" href="../../css/admin/report.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="report.css">
 
     <!-- JS -->
-    <script src="../../js/admin/dashboard.js" defer></script>
+    <script src="services/dashboard.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  </head>
-  <body>
+</head>
+<body>
     <!-- Header -->
     <header>
-      <div class="logo">
-        <img src="../../assets/image/logo.jpg" alt="Chat Logo" />
-      </div>
-      <button type="button" class="custom-close-outside" id="closeLogin" aria-label="Close">×</button>
+        <div class="logo">
+            <img src="../Dang ky tai khoan/assets/image/logo.jpg" alt="Chat Logo">
+        </div>
+        <button type="button" class="custom-close-outside" id="closeLogin" aria-label="Close">×</button>
     </header>
 
     <!-- Main Content Area -->
     <div class="container">
-      <!-- Sidebar -->
-      <nav>
-        <ul>
-          <li>
-            <a href="#" data-page="report/report.html" class="active">
-              <i class="fas fa-home"></i>
-              Bảng điều khiển
-            </a>
-          </li>
-          <li>
-            <a href="#" data-page="users.html">
-              <i class="fas fa-warning"></i>
-              Xử lí vi phạm
-            </a>
-          </li>
-        </ul>
-      </nav>
+        <!-- Sidebar -->
+        <nav>
+            <ul>
+                <li><a href="#" data-page="report/report.html" class="active"><i class="fas fa-home"></i>Bảng điều khiển</a></li>
+                <li><a href="#" data-page="users/user.html"><i class="fas fa-warning"></i>Xử lí vi phạm</a></li>
+            </ul>
+        </nav>
 
-      <!-- Main Content -->
-      <main id="main-content">
-        <!-- Nội dung Dashboard -->
-        <section class="dashboard">
-          <h1>Báo cáo tổng quan</h1>
-          <div class="report-columns">
-            <div class="report-card">
-              <i class="fas fa-user"></i>
-              <h2>Tổng số người dùng</h2>
-              <p id="total-user">0</p>
-            </div>
-            <div class="report-card">
-              <i class="fas fa-user-check"></i>
-              <h2>Người dùng trực tuyến</h2>
-              <p id="online-users">0</p>
-            </div>
-            <div class="report-card">
-              <i class="fas fa-users-cog"></i>
-              <h2>Số nhóm được khởi tạo</h2>
-              <p id="total-groups">0</p>
-            </div>
-          </div>
-        </section>
-      </main>
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Nội dung Dashboard -->
+            <section class="dashboard">
+                <h1>Báo cáo tổng quan</h1>
+                <div class="report-columns">
+                    <div class="report-card">
+                        <i class="fas fa-user"></i>
+                        <h2>Tổng số người dùng</h2>
+                        <p id="total-user">0</p>
+                    </div>
+                    <div class="report-card">
+                        <i class="fas fa-user-check"></i>
+                        <h2>Người dùng trực tuyến</h2>
+                        <p id="online-users">0</p>
+                    </div>
+                    <div class="report-card">
+                        <i class="fas fa-users-cog"></i>
+                        <h2>Số nhóm được khởi tạo</h2>
+                        <p id="total-groups">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Danh sách Báo cáo và Thông báo -->
+            <section class="report-list">
+                <h2>📢 Danh sách Báo cáo</h2>
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Loại</th>
+                            <th>Người báo cáo</th>
+                            <th>Mô tả</th>
+                            <th>Tiêu đề</th>
+                            <th>Mức độ</th>
+                            <th>Ngày tạo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dữ liệu sẽ được thêm động -->
+                    </tbody>
+                </table>
+
+                <h2>🔔 Danh sách Thông báo</h2>
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nội dung</th>
+                            <th>Ngày tạo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dữ liệu sẽ được thêm động -->
+                    </tbody>
+                </table>
+            </section>
+        </main>
     </div>
 
     <!-- Footer -->
     <footer>
-      <small class="footer-text">© Created by Nhóm 2</small>
+        <small class="footer-text">© Created by Nhóm 2</small>
     </footer>
-  </body>
+</body>
 </html>
