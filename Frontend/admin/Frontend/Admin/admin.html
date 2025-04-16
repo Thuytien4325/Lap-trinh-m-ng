@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Trang quản lí</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="admin.css">
+
+    <style>
+        .nav-button {
+            text-decoration: none;
+        }
+    </style>
+
+    <!-- JS -->
+    <script src="services/dashboard.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <img src="../Dang ky tai khoan/assets/image/logo.jpg" alt="Chat Logo">
+        </div>
+        <button type="button" class="custom-close-outside" id="closeLogin" aria-label="Close">×</button>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="container">
+        <!-- Sidebar -->
+        <nav>
+            <ul>
+                <li><a href="#" class="nav-button active" data-page="dashboard.html"><i class="fas fa-home"></i>Bảng điều khiển</a></li>
+                <li><a href="#" class="nav-button" data-page="users.html"><i class="fas fa-users"></i>Users</a></li>
+                <li><a href="#" class="nav-button" data-page="groups.html"><i class="fas fa-user-friends"></i>Groups</a></li>
+                <li><a href="#" class="nav-button" data-page="report.html"><i class="fas fa-file-alt"></i>Reports</a></li>
+                <li><a href="#" class="nav-button" data-page="process.html"><i class="fas fa-cogs"></i>Process</a></li>
+                <li><a href="#" class="nav-button" id="logout-button"><i class="fas fa-sign-out-alt"></i>Logout</a></li>
+            </ul>
+        </nav>
+        
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Nội dung sẽ được load vào đây -->
+        </main>
+    </div>
+    
+    <!-- Footer -->
+    <footer>
+        <small class="footer-text">© Created by Nhóm 2</small>
+    </footer>
+</body>
+</html>

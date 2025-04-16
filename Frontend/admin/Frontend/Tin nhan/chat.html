@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Chat</title>
+    <link rel="stylesheet" href="chat.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="profile"></div>
+            <input type="text" class="search" placeholder="Tìm kiếm">
+            <div class="button-group">
+                <button onclick="addUser()" class="add-user-btn">
+                    <i class="fa fa-user-plus"></i>
+                    <span>Thêm Người Dùng</span>
+                </button>
+                <button onclick="addGroupChat()" class="add-group-btn">
+                    <i class="fa fa-users"></i>
+                    <span>Thêm Nhóm</span>
+                </button>
+            </div>
+            <ul class="chat-list"></ul>
+        </aside>
+        <main class="chat-window">
+            <div id="chat-header" class="chat-header">Cuộc trò chuyện</div>
+            <div id="chat-content" class="chat-content"></div>
+            <div class="chat-input-container">
+                <label for="image-upload" class="file-label">
+                    <i class="fa fa-image"></i>
+                </label>
+                <input type="file" id="image-upload" accept="image/*" onchange="sendImage(event)" style="display: none;">
+                
+                <label for="file-upload" class="file-label">
+                    <i class="fa fa-file"></i>
+                </label>
+                <input type="file" id="file-upload" onchange="sendFile(event)" style="display: none;">
+                
+                <input type="text" class="chat-input" placeholder="Nhập tin nhắn...">
+                
+                <button class="send-button" onclick="sendMessage()">
+                    <i class="fa fa-paper-plane"></i>
+                </button>
+            </div>
+        </main>
+    </div>
+    <footer>
+        <div class="footer-icons">
+            <i class="fas fa-user"></i>
+            <i class="fas fa-comment-dots message-icon"></i> 
+        </div>
+        <button class="logout-button" onclick="logout()" title="Đăng xuất">
+            <i class="fas fa-sign-out-alt"></i>
+        </button>
+    </footer>
+    
+</body>
+</html>

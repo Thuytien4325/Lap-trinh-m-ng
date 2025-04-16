@@ -1,0 +1,200 @@
+/* Reset CSS */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Background chung */
+body {
+    background: linear-gradient(135deg, #fdf6e3, #fae1bb);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* HEADER */
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #e6ac50;
+    padding: 12px 20px;
+    color: white;
+}
+
+.logo img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+h5 {
+    font-size: 16px;
+    flex-grow: 1;
+    text-align: center;
+}
+
+/* Nút đóng */
+.custom-close-outside {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.custom-close-outside:hover {
+    color: #ffcc80;
+}
+
+/* CONTAINER */
+.container {
+    display: flex;
+    flex: 1;
+    max-width: 1200px;
+    margin: 20px auto;
+    width: 90%;
+    background: #fff9e6;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+/* SIDEBAR */
+nav {
+    width: 250px;
+    background: #fce8b6;
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    border-right: 3px solid #e0c085;
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+nav ul li {
+    padding: 10px 20px;
+}
+
+.nav-button {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    color: #5a4a2f;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    transition: background 0.3s, transform 0.2s;
+    border-radius: 12px;
+    padding: 10px;
+    cursor: pointer;
+}
+
+.nav-button i {
+    margin-right: 10px;
+    font-size: 18px;
+}
+
+.nav-button:hover {
+    background: #ffefc2;
+    transform: scale(1.05);
+}
+
+/* Tùy chỉnh màu sắc cho từng mục trong sidebar */
+.nav-button[data-page="dashboard.html"] {
+    background: #3498db; /* Màu xanh dương cho Bảng điều khiển */
+    color: white;
+}
+.nav-button[data-page="dashboard.html"]:hover {
+    background: #2980b9;
+}
+
+.nav-button[data-page="users.html"] {
+    background: #e74c3c; /* Màu đỏ cho Users */
+    color: white;
+}
+.nav-button[data-page="users.html"]:hover {
+    background: #c0392b;
+}
+
+.nav-button[data-page="groups.html"] {
+    background: #2ecc71; /* Màu xanh lá cho Groups */
+    color: white;
+}
+.nav-button[data-page="groups.html"]:hover {
+    background: #27ae60;
+}
+
+.nav-button[data-page="report.html"] {
+    background: #f1c40f; /* Màu vàng cho Reports */
+    color: white;
+}
+.nav-button[data-page="report.html"]:hover {
+    background: #d4ac0d;
+}
+
+.nav-button[data-page="process.html"] {
+    background: #9b59b6; /* Màu tím cho Process */
+    color: white;
+}
+.nav-button[data-page="process.html"]:hover {
+    background: #8e44ad;
+}
+
+#logout-button {
+    background: #e67e22; /* Màu cam cho Logout */
+    color: white;
+}
+#logout-button:hover {
+    background: #d35400;
+}
+
+.nav-button.active {
+    background-color: #f39c12 !important;
+    color: white !important;
+    font-weight: bold;
+}
+
+/* MAIN CONTENT */
+main {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: #fff9e6;
+    border-radius: 0 20px 20px 0;
+}
+
+/* FOOTER */
+footer {
+    text-align: center;
+    padding: 10px;
+    font-size: 14px;
+    color: #5a4a2f;
+    background: #e6ac50;
+    margin-top: auto;
+}
+
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+        width: 90%;
+        margin: 10px auto;
+    }
+
+    nav {
+        width: 100%;
+        border-right: none;
+        border-bottom: 3px solid #e0c085;
+    }
+
+    main {
+        border-radius: 0 0 20px 20px;
+    }
+}
