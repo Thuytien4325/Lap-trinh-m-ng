@@ -610,6 +610,7 @@ function sendImage(event) {
     const shouldReload = confirm('Bạn vừa gửi tệp đính kèm.\nTải lại trang để cập nhật?');
     if (shouldReload) {
       localStorage.setItem('lastConversationId', currentConversationId);
+      window.location.reload();
     } else {
       localStorage.setItem('lastConversationId', currentConversationId);
     }
@@ -626,6 +627,7 @@ function sendFile(event) {
     const shouldReload = confirm('Bạn vừa gửi tệp đính kèm.\nTải lại trang để cập nhật?');
     if (shouldReload) {
       localStorage.setItem('lastConversationId', currentConversationId);
+      window.location.reload();
     } else {
       localStorage.setItem('lastConversationId', currentConversationId);
     }
@@ -676,6 +678,7 @@ function connectWebSocket() {
             const shouldReload = confirm('Bạn vừa nhận được tệp đính kèm.\nTải lại trang để cập nhật?');
             if (shouldReload) {
               localStorage.setItem('lastConversationId', currentConversationId);
+              window.location.reload();
             } else {
               localStorage.setItem('lastConversationId', currentConversationId);
             }
@@ -701,10 +704,10 @@ function connectWebSocket() {
   };
 }
 
-// window.addEventListener("beforeunload", (e) => {
+// window.addEventListener('beforeunload', (e) => {
 //   if (!isReloadConfirmed) {
 //     e.preventDefault();
-//     e.returnValue = "";
+//     e.returnValue = '';
 //   }
 // });
 
