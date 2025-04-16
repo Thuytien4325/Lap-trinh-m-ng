@@ -195,7 +195,9 @@ async def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)
 
 
 @auth_router.post("/password/reset-request")
-async def reset_password_request(email: EmailStr, db: Session = Depends(get_db)):
+async def reset_password_request(
+    email: EmailStr, base_url: str, db: Session = Depends(get_db)
+):
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="Không tìm thấy người dùng!")
@@ -206,7 +208,7 @@ async def reset_password_request(email: EmailStr, db: Session = Depends(get_db))
 
     reset_code = create_reset_token(db, user.user_id)
     try:
-        send_reset_email(user.email, reset_code)
+        send_reset_email(user.email, reset_code, base_url)
     except Exception as e:
         raise HTTPException(
             status_code=500, detail="Không thể gửi email, vui lòng thử lại sau!"

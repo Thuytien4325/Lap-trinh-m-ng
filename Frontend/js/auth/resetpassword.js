@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const response = await fetch(`${config.API_BASE_URL}/auth/password/reset-confirm`, {
+      const response = await fetch(`${config.baseURL}/auth/password/reset-confirm`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

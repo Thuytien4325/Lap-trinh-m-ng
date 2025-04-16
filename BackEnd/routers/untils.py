@@ -106,14 +106,12 @@ def create_reset_token(db: Session, user_id: int):
     return reset_uuid
 
 
-def send_reset_email(to_email: str, reset_uuid: str):
+def send_reset_email(to_email: str, reset_uuid: str, base_url: str):
     if not EMAIL_SENDER or not EMAIL_PASSWORD:
         raise HTTPException(
             status_code=500, detail="Email sender credentials are missing!"
         )
-    reset_link = (
-        f"http://127.0.0.1:5500/Frontend/html/auth/resetpass.html?uuid={reset_uuid}"
-    )
+    reset_link = f"{base_url}/html/auth/resetpass.html?uuid={reset_uuid}"
     subject = "Reset your password"
     msg = MIMEMultipart()
     msg["From"] = EMAIL_SENDER
