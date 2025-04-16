@@ -70,20 +70,26 @@ async function fetchUserInfo(token) {
 function openUpdatePopup(token) {
   const popupHTML = `
     <div class="popup-overlay">
-      <div class="popup-container">
-        <h2>Cập nhật thông tin</h2>
-        <form id="update-form" enctype="multipart/form-data">
-          <label>Nickname:</label>
-          <input type="text" id="nickname-input" placeholder="Nhập nickname mới"/><br><br>
-          <label>Email:</label>
-          <input type="email" id="email-input" autocomplete="email" placeholder="Nhập email mới"/><br><br>
-          <label>Chọn ảnh đại diện:</label>
-          <input type="file" id="avatar-modal-upload" accept=".jpg,.jpeg,.png"/><br><br>
-        </form>
-        <button id="save-btn">Lưu</button>
-        <button id="cancel-btn">Hủy</button>
+  <div class="popup-container">
+    <h2>Cập nhật thông tin</h2>
+    <form id="update-form" enctype="multipart/form-data">
+      <div class="input-group">
+        <label for="nickname-input">Nickname:</label>
+        <input type="text" id="nickname-input" placeholder="Nhập nickname mới" />
       </div>
-    </div>
+      <div class="input-group">
+        <label for="email-input">Email:</label>
+        <input type="email" id="email-input" autocomplete="email" placeholder="Nhập email mới" />
+      </div>
+      <div class="input-group">
+        <label for="avatar-modal-upload">Chọn ảnh đại diện:</label>
+        <input type="file" id="avatar-modal-upload" accept=".jpg,.jpeg,.png" />
+      </div>
+    </form>
+    <button id="save-btn">Lưu</button>
+    <button id="cancel-btn">Hủy</button>
+  </div>
+</div>
   `;
 
   // Thêm popup vào body
@@ -100,6 +106,16 @@ function openUpdatePopup(token) {
   // Lắng nghe sự kiện cho các nút
   document.getElementById('save-btn').addEventListener('click', () => handleUpdate(token));
   document.getElementById('cancel-btn').addEventListener('click', closePopup);
+
+  document.getElementById('update-form').addEventListener('keydown', (event) => {
+    console.log(event.key);
+    if (event.key === 'Enter') {
+      event.preventDefault(); // Ngăn chặn hành vi mặc định của Enter
+      handleUpdate(token); // Gọi hàm lưu
+    } else if (event.key === 'Escape') {
+      closePopup(); // Gọi hàm hủy
+    }
+  });
 }
 
 function handleUpdate(token) {

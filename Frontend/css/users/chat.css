@@ -118,12 +118,13 @@ body {
 
 .noti-item.unread::before {
   content: '●';
-  color: #ff9800;
+  color: red;
   margin-right: 6px;
   font-size: 12px;
   vertical-align: middle;
 }
 
+/* Icon đỏ trên thanh sidebar khi có thông báo chưa đọc */
 .sidebar-toggle-container i.has-unread::after {
   content: '';
   width: 8px;
@@ -135,24 +136,68 @@ body {
   top: 6px;
   right: 6px;
 }
+
+.noti-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* Hàng 1: select + nút lọc */
+.noti-filters .filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Style cho select */
+.noti-filters select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #fff7e6; /* nền vàng nhạt */
+  font-size: 14px;
+  outline: none;
+  transition: border 0.3s ease;
+}
+
+.noti-filters select:focus {
+  border-color: #e6ac50;
+}
+
+#apply-filters {
+  padding: 6px 12px;
+  background-color: #e6ac50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#apply-filters:hover {
+  background-color: #ffcc80;
+}
+
+/* Hàng 2: Đã đọc + Chưa đọc + Xoá + Chọn tất cả */
 .noti-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-  gap: 8px;
+  flex-direction: row;
+  gap: 12px;
   font-size: 14px;
 }
 
-.noti-toolbar label {
+.noti-actions {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  gap: 10px;
 }
 
 .noti-actions button {
-  margin-left: 4px;
-  padding: 4px 8px;
+  padding: 4px 10px;
   border: none;
   background: #e6ac50;
   color: white;
@@ -166,6 +211,15 @@ body {
   background: #ffcc80;
 }
 
+/* Vùng chọn tất cả */
+.select-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+/* Thẻ noti-item */
 .noti-item {
   display: flex;
   align-items: center;
@@ -176,21 +230,6 @@ body {
 .noti-item input[type='checkbox'] {
   margin-right: 5px;
 }
-
-.noti-filters {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-.noti-filters label {
-  font-size: 14px;
-}
-.noti-filters select,
-.noti-filters button {
-  padding: 4px 8px;
-}
-
 .request-section {
   flex: 1;
   margin-bottom: 15px;

@@ -123,6 +123,7 @@ footer {
   border-radius: 12px;
   transition: background 0.3s, transform 0.2s;
   cursor: pointer;
+  box-shadow: none;
 }
 
 .footer-icons button:hover {
@@ -152,6 +153,7 @@ footer {
   transition: background 0.3s ease, transform 0.2s ease;
   position: absolute; /* Đặt logout ở góc phải */
   right: 20px; /* Khoảng cách từ mép phải */
+  box-shadow: none;
 }
 
 .logout-button i {
@@ -265,14 +267,52 @@ footer {
   padding: 20px;
   border-radius: 12px;
   width: 100%;
-  max-width: 400px;
+  max-width: 450px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   text-align: center;
   position: relative;
 }
 
-/* Popup Button */
-button {
+/* Container cho label và input */
+.input-group {
+  display: flex;
+  align-items: center; /* Căn giữa theo chiều dọc */
+  margin-top: 10px; /* Khoảng cách giữa các nhóm */
+}
+
+/* Style cho label */
+.input-group label {
+  flex: 1; /* Chiếm 1 phần không gian */
+  font-size: 14px; /* Kích thước chữ */
+  color: #5a4a2f; /* Màu chữ */
+  margin-right: 10px; /* Khoảng cách giữa label và input */
+}
+
+/* Cập nhật cho input, textarea, select */
+.popup-container input,
+.popup-container textarea,
+.popup-container select {
+  flex: 2; /* Chiếm 2 phần không gian */
+  padding: 10px 12px;
+  border: 1px solid #e0b96a; /* viền vàng nhạt */
+  background-color: #fff8dc; /* nền vàng nhạt */
+  border-radius: 6px; /* bo góc nhẹ */
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  height: 40px; /* Đặt chiều cao cố định cho input */
+}
+
+/* Khi người dùng click/focus vào input */
+.popup-container input:focus,
+.popup-container textarea:focus,
+.popup-container select:focus {
+  border-color: #d4a73e; /* viền đậm hơn khi focus */
+  box-shadow: 0 0 4px rgba(212, 167, 62, 0.5);
+}
+
+/* Nút Lưu và Hủy */
+.popup-container button {
   background-color: #dea856;
   color: white;
   border: none;
@@ -281,22 +321,19 @@ button {
   cursor: pointer;
   font-size: 16px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  margin-top: 10px;
+  margin-top: 10px; /* Khoảng cách giữa các nút */
+  transition: background 0.3s, transform 0.2s;
 }
 
-button:hover {
+.popup-container button:hover {
   background-color: #d09340;
 }
 
-button:active {
-  transform: scale(0.98);
-}
-
-button#cancel-btn {
+#cancel-btn {
   background-color: #d93a3a;
-  margin-left: 10px;
+  margin-left: 10px; /* Khoảng cách giữa nút Lưu và Hủy */
 }
 
-button#cancel-btn:hover {
+#cancel-btn:hover {
   background-color: #c02727;
 }

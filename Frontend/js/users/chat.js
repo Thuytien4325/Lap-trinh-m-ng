@@ -1009,6 +1009,15 @@ function openCreateModal(type) {
   document.getElementById('conversation-group-name').value = '';
 
   document.getElementById('create-conversation-modal').style.display = 'flex';
+
+  document.getElementById('create-conversation-modal').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault(); // Ngăn chặn hành vi mặc định của Enter
+      submitCreateConversation(); // Gọi hàm gửi
+    } else if (event.key === 'Escape') {
+      closeCreateModal(); // Gọi hàm hủy
+    }
+  });
 }
 
 function closeCreateModal() {
