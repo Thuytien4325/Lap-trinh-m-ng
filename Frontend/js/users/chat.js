@@ -1036,7 +1036,11 @@ async function submitCreateConversation() {
       members.forEach((username) => query.append('username', username));
     }
 
-    if (groupName) query.append('name', groupName);
+    if (groupName) {
+      query.append('name', groupName);
+    }
+  } else if (currentConversationType === 'private') {
+    query.append('username', usernamesInput);
   }
 
   try {
@@ -1052,7 +1056,7 @@ async function submitCreateConversation() {
 
     if (!response.ok) {
       toast({
-        title: `Lỗi`,
+        title: 'Lỗi',
         message: result.detail || 'Có lỗi xảy ra.',
         type: 'error',
       });
@@ -1065,7 +1069,10 @@ async function submitCreateConversation() {
       message: currentConversationType === 'group' ? 'Đã tạo nhóm!' : 'Đã tạo cuộc trò chuyện!',
       type: 'success',
     });
-    loadConversations();
+
+    // Tải cuộc trò chuyện mới
+    currentConversationId = result.id; // Lưu ID cuộc trò chuyện mới
+    loadMessages(currentConversationId, currentConversationType === 'group' ? groupName : usernamesInput, true);
   } catch (error) {
     console.error('Lỗi khi fetch:', error);
     toast({
