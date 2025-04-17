@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Trang quản lí</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="../../css/admin/admin.css" />
+    <style>
+      .nav-button {
+        text-decoration: none;
+      }
+    </style>
+    <!-- JS -->
+    <script src="../../js/admin/dashboard.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <header>
+      <div class="logo">
+        <img src="../../assets/image/logo.jpg" alt="Chat Logo" />
+      </div>
+      <h5>Trang quản lý Admin</h5>
+      <button type="button" class="custom-close-outside" id="closeLogin" aria-label="Close">×</button>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="container">
+      <!-- Sidebar -->
+      <nav>
+        <ul>
+          <li>
+            <button class="nav-button active" data-page="dashboard.html">
+              <i class="fas fa-home"></i>
+              Bảng điều khiển
+            </button>
+          </li>
+          <li>
+            <button class="nav-button" data-page="users.html">
+              <i class="fas fa-users"></i>
+              Người dùng
+            </button>
+          </li>
+          <li>
+            <button class="nav-button" data-page="groups.html">
+              <i class="fas fa-users-cog"></i>
+              Nhóm chat
+            </button>
+          </li>
+          <li>
+            <button class="nav-button" data-page="reports.html">
+              <i class="fas fa-warning"></i>
+              Xử lí vi phạm
+            </button>
+          </li>
+          <li>
+            <button class="nav-button" data-page="settings.html">
+              <i class="fas fa-cog"></i>
+              Cài đặt
+            </button>
+          </li>
+          <li>
+            <button class="nav-button" data-page="banned_users.html">
+              <i class="fas fa-ban"></i>
+              Người dùng bị cấm
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Main Content -->
+      <main id="main-content">
+        <!-- Nội dung sẽ được load vào đây -->
+      </main>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <small class="footer-text">© Created by Nhóm 2</small>
+    </footer>
+  </body>
+</html>
