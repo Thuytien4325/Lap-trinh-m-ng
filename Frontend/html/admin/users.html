@@ -1,2 +1,160 @@
-<h2>Quản lý người dùng</h2>
-<p>Danh sách người dùng sẽ hiển thị tại đây...</p>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Bảng điều khiển</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="../../css/admin/users.css">
+  <link rel="stylesheet" href="../../css/toast.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="../../js/admin/dashboard.js" defer></script>
+  <style>
+    /* Thêm một chút responsive CSS */
+    .container {
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .content-wrapper {
+      display: flex;
+    }
+
+    nav {
+      width: 200px;
+    }
+
+    main {
+      flex: 1;
+      padding: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .content-wrapper {
+        flex-direction: column;
+      }
+
+      nav ul {
+        display: flex;
+        flex-wrap: wrap;
+      }
+
+      nav ul li {
+        flex: 1 0 50%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <img src="../../assets/image/logo.jpg" alt="Chat Logo">
+    </div>
+    <button type="button" class="custom-close-outside" id="closeLogin" aria-label="Close">×</button>
+  </header>
+
+  <!-- Main Content Area -->
+  <div class="container">
+    <div class="content-wrapper">
+      <!-- Sidebar -->
+      <nav>
+        <ul>
+          <li><a href="report.html" data-page="report/report.html" ><i class="fas fa-home"></i> Bảng điều khiển</a></li>
+          <li><a href="users.html" data-page="users/user.html"class="active"><i class="fas fa-warning"></i> Xử lí vi phạm</a></li>
+        </ul>
+      </nav>
+
+      <!-- Main Content -->
+      <main>
+        <h1>Xử lý vi phạm</h1>
+
+        <!-- Bộ chọn loại -->
+        <div class="selector-wrapper">
+          <label for="reportType">Chọn loại tố cáo:</label>
+          <select id="reportType">
+            <option value="user" selected>Người dùng bị tố cáo</option>
+            <option value="group">Nhóm bị tố cáo</option>
+          </select>
+          <button id="filterBtn">Lọc</button>
+        </div>
+
+        <!-- USER section -->
+        <div id="userSection">
+          <div class="search-bar">
+            <input type="text" id="searchUserInput" placeholder="Tìm kiếm user bị tố cáo">
+          </div>
+
+          <table class="report-table" id="userTable">
+            <thead>
+              <tr>
+                <th>User bị tố cáo</th>
+                <th>Người báo cáo</th>
+                <th>Lý do</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>user123</td>
+                <td>reporterA</td>
+                <td>Spam tin nhắn</td>
+                <td><button class="ban-btn">Ban</button></td>
+              </tr>
+              <tr>
+                <td>user456</td>
+                <td>reporterB</td>
+                <td>Ngôn ngữ không phù hợp</td>
+                <td><button class="ban-btn">Ban</button></td>
+              </tr>
+              <tr>
+                <td>user789</td>
+                <td>reporterC</td>
+                <td>Quấy rối người dùng khác</td>
+                <td><button class="ban-btn">Ban</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- GROUP section -->
+        <div id="groupSection" style="display: none;">
+          <table class="report-table" id="groupTable">
+            <thead>
+              <tr>
+                <th>Nhóm bị tố cáo</th>
+                <th>Người báo cáo</th>
+                <th>Lý do</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Group A</td>
+                <td>userX</td>
+                <td>Chia sẻ nội dung không phù hợp</td>
+                <td><button class="ban-btn">Ban</button></td>
+              </tr>
+              <tr>
+                <td>Group B</td>
+                <td>userY</td>
+                <td>Spam mời tham gia</td>
+                <td><button class="ban-btn">Ban</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <small class="footer-text">© Created by Nhóm 1</small>
+  </footer>
+
+ 
+</body>
+</html>

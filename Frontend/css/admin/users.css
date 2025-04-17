@@ -1,0 +1,267 @@
+/* Reset CSS */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Background chung */
+body {
+    background: linear-gradient(135deg, #fdf6e3, #fae1bb);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* HEADER */
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #e6ac50;
+    padding: 10px 18px;
+    color: white;
+}
+
+.logo img {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.custom-close-outside {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.custom-close-outside:hover {
+    color: #ffcc80;
+}
+
+/* CONTAINER */
+.container {
+    display: flex;
+    flex: 1;
+    max-width: 1200px;
+    margin: 15px auto;
+    width: 90%;
+    background: #fff9e6;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* SIDEBAR */
+nav {
+    width: 250px;
+    background: #fce8b6;
+    padding-top: 12px;
+    display: flex;
+    flex-direction: column;
+    border-right: 2px solid #e0c085;
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+nav ul li {
+    padding: 8px 15px;
+}
+
+nav ul li a {
+    text-decoration: none;
+    color: #5a4a2f;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    transition: background 0.3s, transform 0.2s;
+    border-radius: 10px;
+    padding: 8px;
+}
+
+nav ul li a i {
+    margin-right: 10px;
+    font-size: 18px;
+}
+
+nav ul li a:hover {
+    background: #ffefc2;
+    transform: scale(1.05);
+}
+
+nav ul li a.active {
+    font-weight: bold;
+    background: #ffefc2;
+    color: #e6ac50;
+    transform: scale(1.05);
+}
+
+/* MAIN CONTENT */
+main {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: #fff9e6;
+    border-radius: 0 12px 12px 0;
+}
+
+main h1 {
+    font-size: 22px;
+    color: #5a4a2f;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* SELECTOR */
+.selector-wrapper {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.selector-wrapper select,
+.selector-wrapper button {
+    padding: 6px 12px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #e0c085;
+}
+
+.selector-wrapper button {
+    background: #e6ac50;
+    color: white;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.selector-wrapper button:hover {
+    background: #d79936;
+}
+
+/* SEARCH BAR */
+.search-bar {
+    margin-bottom: 10px;
+}
+
+.search-bar input {
+    padding: 8px 12px;
+    width: 100%;
+    max-width: 400px;
+    font-size: 14px;
+    border: 1px solid #dcb46c;
+    border-radius: 6px;
+}
+
+/* TABLE */
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.report-table th,
+.report-table td {
+    border: 1px solid #e0c085;
+    padding: 10px;
+    text-align: left;
+    font-size: 14px;
+    color: #5a4a2f;
+}
+
+.report-table th {
+    background: #fae1bb;
+}
+
+.report-table tr:nth-child(even) {
+    background: #fff3d0;
+}
+
+/* BAN BUTTON */
+.ban-btn {
+    background: #d9534f;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.ban-btn:hover {
+    background: #c9302c;
+}
+
+/* FOOTER */
+footer {
+    text-align: center;
+    padding: 8px;
+    font-size: 12px;
+    color: #5a4a2f;
+    background: #e6ac50;
+    margin-top: auto;
+}
+
+/* RESPONSIVE */
+@media (max-width: 992px) {
+    .container {
+        flex-direction: column;
+    }
+
+    nav {
+        width: 100%;
+        border-right: none;
+        border-bottom: 2px solid #e0c085;
+    }
+
+    nav ul {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    nav ul li {
+        flex: 1 0 50%;
+        text-align: center;
+    }
+
+    main {
+        border-radius: 0 0 12px 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .selector-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .search-bar input {
+        width: 100%;
+    }
+
+    .ban-btn {
+        width: 100%;
+    }
+}
+@media (max-width: 768px) {
+  .container, .content-wrapper {
+    flex-direction: column;
+  }
+
+  nav ul {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  nav ul li {
+    flex: 1 0 50%;
+  }
+}

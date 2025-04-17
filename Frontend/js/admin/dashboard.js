@@ -71,3 +71,59 @@ function updateChart(users, messages, settings) {
     options: { responsive: true, scales: { y: { beginAtZero: true } } },
   });
 }
+
+
+
+  // Xử lý tố cáo
+  function initReportHandling() {
+    const reportType = document.getElementById('reportType');
+    const filterBtn = document.getElementById('filterBtn');
+
+    const userSection = document.getElementById('userSection');
+    const groupSection = document.getElementById('groupSection');
+
+    const searchUserInput = document.getElementById('searchUserInput');
+    const userTable = document.getElementById('userTable');
+
+    // Thêm sự kiện click cho nút lọc
+    filterBtn?.addEventListener('click', handleFilter);
+
+    // Thêm sự kiện input cho ô tìm kiếm người dùng
+    searchUserInput?.addEventListener('input', handleSearchUser);
+
+    // Xử lý sự kiện click cho các nút Ban
+    document.querySelectorAll('.ban-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const row = btn.closest('tr');
+        const name = row.querySelector('td')?.textContent;
+        showToast(`${name} đã bị ban.`);
+        row.remove();
+      });
+    });
+  }
+
+  function handleFilter() {
+    const value = document.getElementById("reportType").value;
+    document.getElementById("userSection").style.display = value === "user" ? "block" : "none";
+    document.getElementById("groupSection").style.display = value === "group" ? "block" : "none";
+  }
+
+  function handleSearchUser() {
+    const filter = document.getElementById("searchUserInput").value.toLowerCase();
+    document.querySelectorAll("#userTable tbody tr").forEach(row => {
+      const username = row.children[0].textContent.toLowerCase();
+      row.style.display = username.includes(filter) ? "" : "none";
+    });
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.innerHTML = `<div class="toast">${message}</div>`;
+    setTimeout(() => {
+      toast.innerHTML = '';
+    }, 3000);
+  }
+
+  // Gọi hàm khởi tạo khi trang đã tải xong
+  window.onload = initReportHandling;
+
