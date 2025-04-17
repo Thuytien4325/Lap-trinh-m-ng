@@ -820,12 +820,80 @@ async function showUserInfo(username) {
         document.getElementById('user-nickname').textContent = userData.nickname || 'string';
         document.getElementById('user-email').textContent = userData.email || 'user@example.com';
 
+        // Lấy danh sách bạn chung
+        const mutualFriends = await getMutualFriends(username);
+        const mutualCount = mutualFriends.length;
+
+        // Hiển thị thông tin bạn chung
+        const mutualFriendsContainer = document.getElementById('mutual-friends-container');
+        mutualFriendsContainer.innerHTML = '';
+
+        if (mutualCount > 0) {
+          const mutualTitle = document.createElement('h3');
+          mutualTitle.textContent = `${mutualCount} bạn chung`;
+          mutualFriendsContainer.appendChild(mutualTitle);
+
+          const mutualList = document.createElement('div');
+          mutualList.className = 'mutual-friends-list';
+
+          mutualFriends.forEach((friend) => {
+            const friendItem = document.createElement('div');
+            friendItem.className = 'mutual-friend-item';
+
+            const friendAvatar = document.createElement('img');
+            friendAvatar.src = friend.avatar
+              ? `${config.baseURL}/${friend.avatar.replace(/^\/+/, '')}`
+              : '../../assets/image/private-chat-default.jpg';
+            friendAvatar.alt = 'avatar';
+            friendAvatar.className = 'mutual-friend-avatar';
+            friendAvatar.onerror = () => {
+              friendAvatar.src = '../../assets/image/private-chat-default.jpg';
+            };
+
+            const friendName = document.createElement('span');
+            friendName.className = 'mutual-friend-name';
+            friendName.textContent = friend.nickname || friend.username;
+
+            friendItem.appendChild(friendAvatar);
+            friendItem.appendChild(friendName);
+            mutualList.appendChild(friendItem);
+          });
+
+          mutualFriendsContainer.appendChild(mutualList);
+        } else {
+          mutualFriendsContainer.innerHTML = '<p class="no-mutual-friends">Không có bạn chung</p>';
+        }
+
+        // Thêm nút thêm bạn nếu chưa kết bạn
+        console.log(userData.status);
+        const addFriendBtn = document.getElementById('add-friend-btn');
+        if (userData.status === 'Chưa kết bạn') {
+          addFriendBtn.style.display = 'block';
+          addFriendBtn.onclick = () => addFriend(username);
+        } else {
+          addFriendBtn.style.display = 'none';
+        }
+
+        // Thêm nút hủy kết bạn nếu đã là bạn
+        const unfriendBtn = document.getElementById('unfriend-btn');
+        if (userData.status === 'Bạn bè') {
+          unfriendBtn.style.display = 'block';
+          unfriendBtn.onclick = () => unfriend(username);
+        } else {
+          unfriendBtn.style.display = 'none';
+        }
+
         // Sử dụng flex để căn giữa modal
         document.getElementById('user-info-modal').style.display = 'flex';
       }
     }
   } catch (error) {
     console.error('Lỗi khi lấy thông tin người dùng:', error);
+    toast({
+      title: 'Lỗi',
+      message: 'Không thể tải thông tin người dùng',
+      type: 'error',
+    });
   }
 }
 
@@ -1156,6 +1224,81 @@ searchToggle.addEventListener('change', () => {
   friendSearchInput.dispatchEvent(new Event('input')); // Gọi lại tìm kiếm
 });
 
+// Hàm lấy danh sách bạn chung
+async function getMutualFriends(username) {
+  const token = localStorage.getItem('access_token');
+  if (!token) return [];
+
+  try {
+    const response = await fetch(`${config.baseURL}/friends/mutual?username=${username}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Không thể lấy danh sách bạn chung');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách bạn chung:', error);
+    return [];
+  }
+}
+
+// Hàm hủy kết bạn
+async function unfriend(username) {
+  const token = localStorage.getItem('access_token');
+  if (!token) {
+    toast({
+      title: 'Lỗi',
+      message: 'Bạn chưa đăng nhập',
+      type: 'error',
+    });
+    return;
+  }
+
+  try {
+    const response = await fetch(`${config.baseURL}/friends/friends/${username}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const result = await response.json();
+      toast({
+        title: 'Lỗi',
+        message: result.detail || 'Không thể hủy kết bạn',
+        type: 'error',
+      });
+      return;
+    }
+
+    toast({
+      title: 'Thành công',
+      message: 'Đã hủy kết bạn',
+      type: 'success',
+    });
+
+    // Cập nhật lại danh sách bạn bè
+    loadFriendList();
+  } catch (error) {
+    console.error('Lỗi khi hủy kết bạn:', error);
+    toast({
+      title: 'Lỗi',
+      message: 'Không thể kết nối đến máy chủ',
+      type: 'error',
+    });
+  }
+}
+
+// Cập nhật hàm hiển thị danh sách bạn bè
 friendSearchInput.addEventListener('input', async function (e) {
   const query = e.target.value.trim();
   const token = localStorage.getItem('access_token');
@@ -1179,7 +1322,7 @@ friendSearchInput.addEventListener('input', async function (e) {
         return;
       }
 
-      friends.forEach((user) => {
+      for (const user of friends) {
         const li = document.createElement('li');
         li.className = 'friend-item';
 
@@ -1195,11 +1338,35 @@ friendSearchInput.addEventListener('input', async function (e) {
         name.className = 'friend-name';
         name.textContent = `${user.nickname || 'Không có nickname'} (@${user.username})`;
 
+        // Lấy danh sách bạn chung
+        const mutualFriends = await getMutualFriends(user.username);
+        const mutualCount = mutualFriends.length;
+
+        const actions = document.createElement('div');
+        actions.className = 'friend-actions';
+
+        // Nút hủy kết bạn
+        const unfriendBtn = document.createElement('button');
+        unfriendBtn.innerHTML = '<i class="fas fa-user-minus"></i>';
+        unfriendBtn.className = 'unfriend-btn';
+        unfriendBtn.title = 'Hủy kết bạn';
+        unfriendBtn.onclick = () => unfriend(user.username);
+
         info.appendChild(name);
+        // Chỉ hiển thị số bạn chung nếu có
+        if (mutualCount > 0) {
+          const mutualInfo = document.createElement('div');
+          mutualInfo.className = 'mutual-friends';
+          mutualInfo.textContent = `${mutualCount} bạn chung`;
+          info.appendChild(mutualInfo);
+        }
+
         li.appendChild(avatar);
         li.appendChild(info);
+        li.appendChild(actions);
+        actions.appendChild(unfriendBtn);
         friendListContainer.appendChild(li);
-      });
+      }
     } else {
       // Tìm kiếm người dùng
       const searchByNickname = searchToggle.checked;
@@ -1216,7 +1383,7 @@ friendSearchInput.addEventListener('input', async function (e) {
         return;
       }
 
-      users.forEach((user) => {
+      for (const user of users) {
         const li = document.createElement('li');
         li.className = 'friend-item';
 
@@ -1231,6 +1398,10 @@ friendSearchInput.addEventListener('input', async function (e) {
         const name = document.createElement('div');
         name.className = 'friend-name';
         name.textContent = `${user.nickname || 'Không có nickname'} (@${user.username})`;
+
+        // Lấy danh sách bạn chung cho kết quả tìm kiếm
+        const mutualFriends = await getMutualFriends(user.username);
+        const mutualCount = mutualFriends.length;
 
         const status = document.createElement('div');
         status.className = 'friend-status';
@@ -1249,11 +1420,19 @@ friendSearchInput.addEventListener('input', async function (e) {
 
         info.appendChild(name);
         info.appendChild(status);
+        // Chỉ hiển thị số bạn chung nếu có
+        if (mutualCount > 0) {
+          const mutualInfo = document.createElement('div');
+          mutualInfo.className = 'mutual-friends';
+          mutualInfo.textContent = `${mutualCount} bạn chung`;
+          info.appendChild(mutualInfo);
+        }
+
         li.appendChild(avatar);
         li.appendChild(info);
         li.appendChild(addBtn);
         friendListContainer.appendChild(li);
-      });
+      }
     }
   } catch (error) {
     console.error('Lỗi khi tải danh sách bạn bè:', error);
@@ -1262,9 +1441,80 @@ friendSearchInput.addEventListener('input', async function (e) {
 });
 
 // Gọi thủ công khi mở danh sách bạn bè
-function loadFriendList() {
-  friendSearchInput.value = '';
-  friendSearchInput.dispatchEvent(new Event('input'));
+async function loadFriendList() {
+  console.log('Load friend list');
+  const friendList = document.querySelector('.friend-items');
+  friendList.innerHTML = '';
+
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      console.error('Không tìm thấy token');
+      return;
+    }
+
+    const response = await fetch('http://127.0.0.1:8000/friends/friends', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Lỗi khi tải danh sách bạn bè');
+    }
+
+    const friends = await response.json();
+
+    for (const friend of friends) {
+      const friendItem = document.createElement('li');
+      friendItem.className = 'friend-item';
+      friendItem.onclick = () => showUserInfo(friend.username);
+
+      const friendInfo = document.createElement('div');
+      friendInfo.className = 'friend-info';
+
+      const avatar = document.createElement('img');
+      avatar.src = friend.avatar || '../../assets/image/private-chat-default.jpg';
+      avatar.alt = 'avatar';
+      avatar.className = 'avatar';
+
+      const info = document.createElement('div');
+      info.className = 'info';
+
+      const name = document.createElement('div');
+      name.className = 'name';
+      name.textContent = friend.nickname || friend.username;
+
+      const mutualFriends = await getMutualFriends(friend.username);
+      const mutualCount = mutualFriends.length;
+
+      info.appendChild(name);
+      if (mutualCount > 0) {
+        const mutualInfo = document.createElement('div');
+        mutualInfo.className = 'mutual-friends';
+        mutualInfo.textContent = `${mutualCount} bạn chung`;
+        info.appendChild(mutualInfo);
+      }
+
+      friendInfo.appendChild(avatar);
+      friendInfo.appendChild(info);
+      friendItem.appendChild(friendInfo);
+
+      const unfriendBtn = document.createElement('button');
+      unfriendBtn.className = 'unfriend-btn';
+      unfriendBtn.innerHTML = '<i class="fas fa-user-minus"></i>';
+      unfriendBtn.onclick = (e) => {
+        e.stopPropagation();
+        unfriend(friend.username);
+      };
+
+      friendItem.appendChild(unfriendBtn);
+      friendList.appendChild(friendItem);
+    }
+  } catch (error) {
+    console.error('Lỗi khi tải danh sách bạn bè:', error);
+    showToast('Có lỗi xảy ra khi tải danh sách bạn bè', 'error');
+  }
 }
 
 // Hàm gọi API thêm bạn
@@ -1695,8 +1945,25 @@ async function loadConversationInfo() {
 
     const conversation = await response.json();
 
+    // Ẩn nút thêm thành viên nếu là cuộc trò chuyện private
+    const addMemberBtn = document.querySelector('.member-actions');
+
+    if (addMemberBtn) {
+      addMemberBtn.style.display = conversation.type === 'private' ? 'none' : 'block';
+    }
+
+    // Kiểm tra xem người dùng hiện tại có phải là admin không
+    const currentUser = getCurrentUser();
+    const isAdmin = conversation.group_members?.find((m) => m.username === currentUser.username)?.role === 'admin';
+
+    // Ẩn nút xóa group nếu không phải admin
+    const deleteBtn = document.querySelector('.conversation-actions .danger-btn');
+    if (deleteBtn) {
+      deleteBtn.style.display = isAdmin ? 'block' : 'none';
+    }
+
     // Cập nhật UI với thông tin cuộc trò chuyện
-    document.getElementById('conversation-title').textContent = `${conversation.name} (ID: ${conversationId})`;
+    document.getElementById('conversation-title').textContent = `${conversation.name}`;
     document.getElementById('conversation-avatar').src = conversation.avatar_url
       ? `${config.baseURL}/${conversation.avatar_url.replace(/^\/+/, '')}`
       : '../../assets/image/group-chat-default.jpg';
@@ -1706,26 +1973,53 @@ async function loadConversationInfo() {
     memberList.innerHTML = '';
 
     if (conversation.group_members) {
-      conversation.group_members.forEach((member) => {
+      // Sắp xếp thành viên: admin trước, sau đó đến thành viên thường
+      const sortedMembers = [...conversation.group_members].sort((a, b) => {
+        if (a.role === 'admin' && b.role !== 'admin') return -1;
+        if (a.role !== 'admin' && b.role === 'admin') return 1;
+        return 0;
+      });
+
+      sortedMembers.forEach((member) => {
         const li = document.createElement('li');
         li.className = 'member-item';
 
         const memberInfo = document.createElement('div');
         memberInfo.className = 'member-info';
+
+        // Thêm chữ "(Tôi)" nếu là người dùng hiện tại
+        const isCurrentUser = member.username === currentUser.username;
+        const displayName = isCurrentUser ? `${member.nickname || member.username} (Tôi)` : member.nickname || member.username;
+
         memberInfo.innerHTML = `
-          <span>${member.nickname || member.username}</span>
+          <span>${displayName}</span>
           <small>${member.role === 'admin' ? '(Quản trị viên)' : ''}</small>
         `;
 
         li.appendChild(memberInfo);
 
-        // Nếu người dùng là admin, hiển thị nút xóa thành viên
-        if (getCurrentUser().username === conversation.group_members.find((m) => m.role === 'admin')?.username && member.role !== 'admin') {
+        // Nếu người dùng là admin, hiển thị các nút quản lý
+        if (isAdmin && member.role !== 'admin') {
+          const actions = document.createElement('div');
+          actions.className = 'member-actions';
+
+          // Nút chỉ định làm admin
+          const makeAdminBtn = document.createElement('button');
+          makeAdminBtn.innerHTML = '<i class="fas fa-crown"></i>';
+          makeAdminBtn.className = 'make-admin-btn';
+          makeAdminBtn.title = 'Chỉ định làm admin';
+          makeAdminBtn.onclick = () => makeAdmin(conversationId, member.username);
+          actions.appendChild(makeAdminBtn);
+
+          // Nút xóa thành viên
           const removeBtn = document.createElement('button');
           removeBtn.innerHTML = '<i class="fas fa-times"></i>';
           removeBtn.className = 'remove-member-btn';
+          removeBtn.title = 'Xóa thành viên';
           removeBtn.onclick = () => removeMember(conversationId, member.username);
-          li.appendChild(removeBtn);
+          actions.appendChild(removeBtn);
+
+          li.appendChild(actions);
         }
 
         memberList.appendChild(li);
@@ -1739,6 +2033,57 @@ async function loadConversationInfo() {
       type: 'error',
     });
   }
+}
+
+// Hàm chỉ định thành viên làm admin
+async function makeAdmin(conversationId, username) {
+  createModal({
+    title: 'Xác nhận chỉ định admin',
+    message: `Bạn có chắc chắn muốn chỉ định ${username} làm quản trị viên không?`,
+    primaryButtonText: 'Xác nhận',
+    secondaryButtonText: 'Hủy',
+    showSecondaryButton: true,
+    onPrimary: async () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      try {
+        const response = await fetch(`${config.baseURL}/conversations/${conversationId}/members/${username}/admin`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const result = await response.json();
+          toast({
+            title: 'Lỗi',
+            message: result.detail || 'Không thể chỉ định admin',
+            type: 'error',
+          });
+          return;
+        }
+
+        toast({
+          title: 'Thành công',
+          message: 'Đã chỉ định admin thành công',
+          type: 'success',
+        });
+
+        // Cập nhật lại danh sách thành viên
+        loadConversationInfo();
+      } catch (error) {
+        console.error('Lỗi khi chỉ định admin:', error);
+        toast({
+          title: 'Lỗi',
+          message: 'Không thể kết nối đến máy chủ',
+          type: 'error',
+        });
+      }
+    },
+  });
 }
 
 // Hàm thêm thành viên mới
@@ -1786,89 +2131,107 @@ async function addMember(conversationId, username) {
 
 // Hàm xóa thành viên
 async function removeMember(conversationId, username) {
-  const token = localStorage.getItem('access_token');
-  if (!token) return;
+  createModal({
+    title: 'Xác nhận xóa thành viên',
+    message: `Bạn có chắc chắn muốn xóa ${username} khỏi nhóm không?`,
+    primaryButtonText: 'Xóa',
+    secondaryButtonText: 'Hủy',
+    showSecondaryButton: true,
+    onPrimary: async () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
 
-  try {
-    const response = await fetch(`${config.baseURL}/conversations/${conversationId}/members/${username}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    });
+      try {
+        const response = await fetch(`${config.baseURL}/conversations/${conversationId}/members/${username}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+          },
+        });
 
-    if (!response.ok) {
-      const result = await response.json();
-      toast({
-        title: 'Lỗi',
-        message: result.detail || 'Không thể xóa thành viên khỏi nhóm',
-        type: 'error',
-      });
-      return;
-    }
+        if (!response.ok) {
+          const result = await response.json();
+          toast({
+            title: 'Lỗi',
+            message: result.detail || 'Không thể xóa thành viên khỏi nhóm',
+            type: 'error',
+          });
+          return;
+        }
 
-    toast({
-      title: 'Thành công',
-      message: 'Đã xóa thành viên khỏi nhóm',
-      type: 'success',
-    });
+        toast({
+          title: 'Thành công',
+          message: 'Đã xóa thành viên khỏi nhóm',
+          type: 'success',
+        });
 
-    // Cập nhật lại danh sách thành viên
-    loadConversationInfo();
-  } catch (error) {
-    console.error('Lỗi khi xóa thành viên:', error);
-    toast({
-      title: 'Lỗi',
-      message: 'Không thể kết nối đến máy chủ',
-      type: 'error',
-    });
-  }
+        // Cập nhật lại danh sách thành viên
+        loadConversationInfo();
+      } catch (error) {
+        console.error('Lỗi khi xóa thành viên:', error);
+        toast({
+          title: 'Lỗi',
+          message: 'Không thể kết nối đến máy chủ',
+          type: 'error',
+        });
+      }
+    },
+  });
 }
 
 // Hàm xóa cuộc trò chuyện
 async function deleteConversation(conversationId) {
-  const token = localStorage.getItem('access_token');
-  if (!token) return;
+  createModal({
+    title: 'Xác nhận xóa cuộc trò chuyện',
+    message: 'Bạn có chắc chắn muốn xóa cuộc trò chuyện này không? Hành động này không thể hoàn tác.',
+    primaryButtonText: 'Xóa',
+    secondaryButtonText: 'Hủy',
+    showSecondaryButton: true,
+    onPrimary: async () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
 
-  try {
-    const response = await fetch(`${config.baseURL}/conversations/${conversationId}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    });
+      try {
+        const response = await fetch(`${config.baseURL}/conversations/${conversationId}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+          },
+        });
 
-    if (!response.ok) {
-      const result = await response.json();
-      toast({
-        title: 'Lỗi',
-        message: result.detail || 'Không thể xóa cuộc trò chuyện',
-        type: 'error',
-      });
-      return;
-    }
+        if (!response.ok) {
+          const result = await response.json();
+          toast({
+            title: 'Lỗi',
+            message: result.detail || 'Không thể xóa cuộc trò chuyện',
+            type: 'error',
+          });
+          return;
+        }
 
-    toast({
-      title: 'Thành công',
-      message: 'Đã xóa cuộc trò chuyện',
-      type: 'success',
-    });
+        toast({
+          title: 'Thành công',
+          message: 'Đã xóa cuộc trò chuyện',
+          type: 'success',
+        });
 
-    // Đóng sidebar thông tin
-    toggleConversationInfo();
+        // Đóng sidebar thông tin
+        toggleConversationInfo();
 
-    // Cập nhật lại danh sách cuộc trò chuyện
-    loadConversations();
-  } catch (error) {
-    console.error('Lỗi khi xóa cuộc trò chuyện:', error);
-    toast({
-      title: 'Lỗi',
-      message: 'Không thể kết nối đến máy chủ',
-      type: 'error',
-    });
-  }
+        // Cập nhật lại danh sách cuộc trò chuyện
+        loadConversations();
+      } catch (error) {
+        console.error('Lỗi khi xóa cuộc trò chuyện:', error);
+        toast({
+          title: 'Lỗi',
+          message: 'Không thể kết nối đến máy chủ',
+          type: 'error',
+        });
+      }
+    },
+  });
 }
 
 // Hàm mở modal thêm thành viên
@@ -1884,20 +2247,6 @@ function openAddMemberModal() {
       if (username.trim()) {
         addMember(currentConversationId, username.trim());
       }
-    },
-  });
-}
-
-// Hàm xác nhận xóa cuộc trò chuyện
-function confirmDeleteConversation() {
-  createModal({
-    title: 'Xác nhận xóa',
-    message: 'Bạn có chắc chắn muốn xóa cuộc trò chuyện này không?',
-    primaryButtonText: 'Xóa',
-    secondaryButtonText: 'Hủy',
-    showSecondaryButton: true,
-    onPrimary: () => {
-      deleteConversation(currentConversationId);
     },
   });
 }
@@ -1920,7 +2269,8 @@ window.deleteSelectedNoti = deleteSelectedNoti;
 window.checkUnreadNotifications = checkUnreadNotifications;
 window.toggleConversationInfo = toggleConversationInfo;
 window.openAddMemberModal = openAddMemberModal;
-window.confirmDeleteConversation = confirmDeleteConversation;
+window.confirmDeleteConversation = deleteConversation;
+window.makeAdmin = makeAdmin;
 
 // Hàm tìm kiếm cuộc hội thoại
 function searchConversations() {
