@@ -201,3 +201,19 @@ class ConversationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Schema đổi mật khẩu
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8)
+
+    @validator("new_password")
+    def validate_new_password(cls, value):
+        if not any(c.isalpha() for c in value):
+            raise ValueError("Mật khẩu phải chứa ít nhất một chữ cái.")
+        if not any(c.isdigit() for c in value):
+            raise ValueError("Mật khẩu phải chứa ít nhất một số.")
+        if not any(c in "@$!%*?&" for c in value):
+            raise ValueError("Mật khẩu phải chứa ít nhất một ký tự đặc biệt (@$!%*?&).")
+        return value
