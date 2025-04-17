@@ -1286,6 +1286,9 @@ async function unfriend(username) {
       type: 'success',
     });
 
+    // Đóng modal thông tin người dùng nếu đang mở
+    closeUserInfoModal();
+
     // Cập nhật lại danh sách bạn bè
     loadFriendList();
   } catch (error) {
@@ -1300,6 +1303,7 @@ async function unfriend(username) {
 
 // Cập nhật hàm hiển thị danh sách bạn bè
 friendSearchInput.addEventListener('input', async function (e) {
+  console.log('test');
   const query = e.target.value.trim();
   const token = localStorage.getItem('access_token');
   if (!token) return;
@@ -1326,6 +1330,9 @@ friendSearchInput.addEventListener('input', async function (e) {
         const li = document.createElement('li');
         li.className = 'friend-item';
 
+        // Thêm sự kiện click để hiển thị modal thông tin
+        li.onclick = () => showUserInfo(user.username);
+
         const avatar = document.createElement('img');
         avatar.src = user.avatar ? `${config.baseURL}/${user.avatar.replace(/^\/+/, '')}` : '../../assets/image/private-chat-default.jpg';
         avatar.alt = 'avatar';
@@ -1350,7 +1357,10 @@ friendSearchInput.addEventListener('input', async function (e) {
         unfriendBtn.innerHTML = '<i class="fas fa-user-minus"></i>';
         unfriendBtn.className = 'unfriend-btn';
         unfriendBtn.title = 'Hủy kết bạn';
-        unfriendBtn.onclick = () => unfriend(user.username);
+        unfriendBtn.onclick = (e) => {
+          e.stopPropagation(); // Ngăn sự kiện click lan ra phần tử cha
+          unfriend(user.username);
+        };
 
         info.appendChild(name);
         // Chỉ hiển thị số bạn chung nếu có
@@ -1387,6 +1397,9 @@ friendSearchInput.addEventListener('input', async function (e) {
         const li = document.createElement('li');
         li.className = 'friend-item';
 
+        // Thêm sự kiện click để hiển thị modal thông tin
+        li.onclick = () => showUserInfo(user.username);
+
         const avatar = document.createElement('img');
         avatar.src = user.avatar ? `${config.baseURL}/${user.avatar.replace(/^\/+/, '')}` : '../../assets/image/private-chat-default.jpg';
         avatar.alt = 'avatar';
@@ -1414,7 +1427,8 @@ friendSearchInput.addEventListener('input', async function (e) {
         addBtn.disabled = user.status !== 'Chưa kết bạn';
         if (addBtn.disabled) addBtn.style.opacity = '0.4';
 
-        addBtn.onclick = () => {
+        addBtn.onclick = (e) => {
+          e.stopPropagation(); // Ngăn sự kiện click lan ra phần tử cha
           if (!addBtn.disabled) addFriend(user.username);
         };
 
@@ -1546,6 +1560,10 @@ async function addFriend(username) {
         message: `Đã gửi lời mời kết bạn đến @${username}`,
         type: 'success',
       });
+
+      // Đóng modal thông tin người dùng nếu đang mở
+      closeUserInfoModal();
+
       friendSearchInput.dispatchEvent(new Event('input'));
     } else {
       toast({
@@ -1562,6 +1580,44 @@ async function addFriend(username) {
       type: 'error',
     });
   }
+}
+
+async function deleteFriendRequest(requestId) {
+  const token = localStorage.getItem('access_token');
+  if (!token) {
+    toast({ title: 'Lỗi', message: 'Bạn chưa đăng nhập.', type: 'error' });
+    return;
+  }
+
+  createModal({
+    title: 'Xác nhận hủy yêu cầu',
+    message: 'Bạn có chắc chắn muốn hủy yêu cầu kết bạn này không?',
+    primaryButtonText: 'Hủy yêu cầu',
+    secondaryButtonText: 'Đóng',
+    showSecondaryButton: true,
+    onPrimary: async () => {
+      try {
+        const res = await fetch(`${config.baseURL}/friend-requests/${requestId}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+          },
+        });
+
+        if (res.ok) {
+          toast({ title: 'Thành công', message: 'Đã hủy yêu cầu kết bạn.', type: 'success' });
+          await loadFriendRequests(); // Refresh lại danh sách
+        } else {
+          const data = await res.json();
+          toast({ title: 'Lỗi', message: data.detail || 'Không thể hủy yêu cầu.', type: 'error' });
+        }
+      } catch (err) {
+        console.error('Lỗi khi hủy yêu cầu:', err);
+        toast({ title: 'Lỗi', message: 'Có lỗi xảy ra khi hủy yêu cầu.', type: 'error' });
+      }
+    },
+  });
 }
 
 // Hàm xử lí yêu cầu kết bạn
@@ -1633,12 +1689,18 @@ async function loadFriendRequests() {
         info.className = 'username';
         info.textContent = `${req.receiver_nickname || req.receiver_username} (@${req.receiver_username})`;
 
-        const status = document.createElement('div');
-        status.className = 'actions';
-        status.innerHTML = `<span style="color:#aaa">Chờ xác nhận</span>`;
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.innerHTML = '<i class="fas fa-trash-alt" style="color:gray"></i>';
+        cancelBtn.title = 'Hủy yêu cầu';
+        cancelBtn.onclick = () => deleteFriendRequest(req.id);
+
+        actions.appendChild(cancelBtn);
 
         li.appendChild(info);
-        li.appendChild(status);
+        li.appendChild(actions);
         sentList.appendChild(li);
       });
     }
