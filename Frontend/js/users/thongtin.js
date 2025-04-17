@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchUserInfo(token);
 
   document.querySelector('.edit-btn').addEventListener('click', () => openUpdatePopup(token));
+  document.querySelector('.change-password-btn').addEventListener('click', () => openChangePasswordModal(token));
 });
 
 async function fetchUserInfo(token) {
@@ -228,3 +229,157 @@ function logout() {
 }
 
 window.logout = logout;
+
+function openChangePasswordModal(token) {
+  const modalHTML = `
+    <div class="popup-overlay">
+      <div class="popup-container">
+        <h2>Đổi mật khẩu</h2>
+        <form id="change-password-form">
+          <div class="input-group">
+            <label for="current-password">Mật khẩu hiện tại:</label>
+            <div class="password-field">
+              <input type="password" id="current-password" placeholder="Nhập mật khẩu hiện tại" required />
+              <i class="fa fa-eye-slash toggle-password" data-target="current-password"></i>
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="new-password">Mật khẩu mới:</label>
+            <div class="password-field">
+              <input type="password" id="new-password" placeholder="Nhập mật khẩu mới" required />
+              <i class="fa fa-eye-slash toggle-password" data-target="new-password"></i>
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="confirm-password">Xác nhận mật khẩu:</label>
+            <div class="password-field">
+              <input type="password" id="confirm-password" placeholder="Nhập lại mật khẩu mới" required />
+              <i class="fa fa-eye-slash toggle-password" data-target="confirm-password"></i>
+            </div>
+          </div>
+          <div class="password-rules">
+            Mật khẩu phải có ít nhất:
+            <ul>
+              <li>8 ký tự</li>
+              <li>1 chữ cái viết hoa</li>
+              <li>1 số</li>
+              <li>1 ký tự đặc biệt (@$!%*?&)</li>
+            </ul>
+          </div>
+        </form>
+        <button id="save-password-btn">Lưu</button>
+        <button id="cancel-password-btn">Hủy</button>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+  // Lắng nghe sự kiện cho các nút
+  document.getElementById('save-password-btn').addEventListener('click', () => handleChangePassword(token));
+  document.getElementById('cancel-password-btn').addEventListener('click', closePopup);
+
+  // Bắt sự kiện Enter và Escape
+  document.getElementById('change-password-form').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleChangePassword(token);
+    } else if (event.key === 'Escape') {
+      closePopup();
+    }
+  });
+
+  // Xử lý hiển thị/ẩn mật khẩu
+  document.querySelectorAll('.toggle-password').forEach((icon) => {
+    icon.addEventListener('click', () => {
+      const targetId = icon.getAttribute('data-target');
+      const inputField = document.getElementById(targetId);
+
+      if (inputField.type === 'password') {
+        inputField.type = 'text';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      } else {
+        inputField.type = 'password';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      }
+    });
+  });
+}
+
+function handleChangePassword(token) {
+  const currentPassword = document.getElementById('current-password').value;
+  const newPassword = document.getElementById('new-password').value;
+  const confirmPassword = document.getElementById('confirm-password').value;
+
+  // Kiểm tra mật khẩu trống
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    toast({
+      title: 'Lỗi',
+      message: 'Vui lòng điền đầy đủ thông tin!',
+      type: 'error',
+      duration: 3000,
+    });
+    return;
+  }
+
+  // Kiểm tra mật khẩu mới và xác nhận mật khẩu
+  if (newPassword !== confirmPassword) {
+    toast({
+      title: 'Lỗi',
+      message: 'Mật khẩu mới và xác nhận mật khẩu không khớp!',
+      type: 'error',
+      duration: 3000,
+    });
+    return;
+  }
+
+  // Kiểm tra định dạng mật khẩu
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (!passwordRegex.test(newPassword)) {
+    toast({
+      title: 'Lỗi',
+      message: 'Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ cái, số và ký tự đặc biệt (@$!%*?&)!',
+      type: 'error',
+      duration: 3000,
+    });
+    return;
+  }
+
+  // Gửi request đổi mật khẩu
+  fetch(`${config.baseURL}/users/password/change`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+  })
+    .then(async (response) => {
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || 'Đổi mật khẩu thất bại');
+      }
+
+      toast({
+        title: 'Thành công',
+        message: 'Đổi mật khẩu thành công!',
+        type: 'success',
+        duration: 3000,
+      });
+
+      closePopup();
+    })
+    .catch((error) => {
+      toast({
+        title: 'Lỗi',
+        message: error.message,
+        type: 'error',
+        duration: 3000,
+      });
+    });
+}

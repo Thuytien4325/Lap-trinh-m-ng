@@ -11,10 +11,12 @@ from routers.auth import ALGORITHM, SECRET_KEY, oauth2_scheme
 from routers.untils import (
     AVATARS_USER_DIR,
     get_current_user,
+    hash_password,
+    pwd_context,
     update_last_active_dependency,
 )
 from routers.websocket import websocket_manager
-from schemas import UserProfile, UserResponse, UserWithFriendStatus
+from schemas import ChangePassword, UserProfile, UserResponse, UserWithFriendStatus
 from sqlalchemy.orm import Session
 
 # Tạo router
@@ -579,10 +581,55 @@ async def check_user_ban(
         }
 
     return {"is_banned": False, "message": "Người dùng không bị ban."}
-    if active_bans:
-        return {
-            "is_banned": True,
-            "active_bans": active_bans,
-        }
 
-    return {"is_banned": False, "message": "Người dùng không bị ban."}
+
+@users_router.post(
+    "/password/change",
+    dependencies=[Depends(update_last_active_dependency)],
+)
+async def change_password(
+    request: ChangePassword,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Kiểm tra mật khẩu cũ
+    if not pwd_context.verify(request.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Mật khẩu hiện tại không đúng!")
+
+    # Cập nhật mật khẩu mới
+    current_user.password_hash = hash_password(request.new_password)
+
+    try:
+        db.commit()
+        db.refresh(current_user)
+
+        # Thông báo cho người dùng
+        new_notification = models.Notification(
+            user_username=current_user.username,
+            sender_username=None,
+            message="Mật khẩu của bạn đã được thay đổi thành công.",
+            type="system",
+            related_id=0,
+            related_table=None,
+            created_at_UTC=datetime.now(timezone.utc),
+        )
+
+        db.add(new_notification)
+        db.commit()
+
+        await websocket_manager.send_notification(
+            noti_id=new_notification.id,
+            user_username=new_notification.user_username,
+            sender_username=new_notification.sender_username,
+            message=new_notification.message,
+            notification_type=new_notification.type,
+            related_id=new_notification.related_id,
+            related_table=new_notification.related_table,
+        )
+
+        return {"message": "Mật khẩu đã được thay đổi thành công!"}
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, detail="Có lỗi xảy ra, vui lòng thử lại sau!"
+        )
