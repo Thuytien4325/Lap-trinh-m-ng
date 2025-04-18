@@ -65,6 +65,7 @@ class UserProfile(BaseModel):
 
 
 class UserWithFriendStatus(BaseModel):
+    user_id: int
     username: str
     nickname: Optional[str]
     email: Optional[str]

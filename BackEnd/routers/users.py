@@ -125,6 +125,7 @@ async def search_users(
 
         results.append(
             UserWithFriendStatus(
+                user_id=user.user_id,
                 username=user.username,
                 nickname=user.nickname,
                 email=user.email,

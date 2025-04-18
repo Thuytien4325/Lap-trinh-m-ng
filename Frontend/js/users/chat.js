@@ -810,6 +810,11 @@ async function showUserInfo(username) {
             : `${config.baseURL}/${userData.avatar.replace(/^\/+/, '')}`
           : '../../assets/image/private-chat-default.jpg';
 
+        const modal = document.getElementById('user-info-modal');
+        modal.dataset.username = userData.username;
+        modal.dataset.userId = userData.user_id;
+        console.log('User ID:', userData.user_id);
+
         const avatarImg = document.getElementById('user-avatar');
         avatarImg.src = avatarUrl;
         avatarImg.onerror = () => {
@@ -865,7 +870,6 @@ async function showUserInfo(username) {
         }
 
         // Thêm nút thêm bạn nếu chưa kết bạn
-        console.log(userData.status);
         const addFriendBtn = document.getElementById('add-friend-btn');
         if (userData.status === 'Chưa kết bạn') {
           addFriendBtn.style.display = 'block';
@@ -884,7 +888,7 @@ async function showUserInfo(username) {
         }
 
         // Sử dụng flex để căn giữa modal
-        document.getElementById('user-info-modal').style.display = 'flex';
+        modal.style.display = 'flex';
       }
     }
   } catch (error) {
@@ -941,13 +945,14 @@ function toggleChatList() {
   const notiList = document.getElementById('noti-list');
   const friendList = document.getElementById('friend-list');
   const requestList = document.getElementById('friend-request-list');
+  const reportList = document.getElementById('reports-list');
   if (!chatList) return;
 
   const currentDisplay = window.getComputedStyle(chatList).display;
 
   if (currentDisplay === 'none') {
     // Ẩn 3 panel còn lại
-    [notiList, friendList, requestList].forEach((el) => {
+    [notiList, friendList, requestList, reportList].forEach((el) => {
       el.classList.add('hiding');
       setTimeout(() => (el.style.display = 'none'), 300);
     });
@@ -969,13 +974,15 @@ async function toggleNotiList() {
   const friendList = document.getElementById('friend-list');
   const chatList = document.getElementById('conversation-list');
   const requestList = document.getElementById('friend-request-list');
+  const reportList = document.getElementById('reports-list');
+
   if (!notiList) return;
 
   const currentDisplay = window.getComputedStyle(notiList).display;
 
   if (currentDisplay === 'none') {
     // Ẩn 3 panel còn lại
-    [chatList, friendList, requestList].forEach((el) => {
+    [chatList, friendList, requestList, reportList].forEach((el) => {
       el.classList.add('hiding');
       setTimeout(() => (el.style.display = 'none'), 300);
     });
@@ -997,13 +1004,15 @@ function toggleFriendsList() {
   const notiList = document.getElementById('noti-list');
   const chatList = document.getElementById('conversation-list');
   const requestList = document.getElementById('friend-request-list');
+  const reportList = document.getElementById('reports-list');
+
   if (!friendList) return;
 
   const currentDisplay = window.getComputedStyle(friendList).display;
 
   if (currentDisplay === 'none') {
     // Ẩn các panel còn lại
-    [notiList, chatList, requestList].forEach((el) => {
+    [notiList, chatList, requestList, reportList].forEach((el) => {
       el.classList.add('hiding');
       setTimeout(() => (el.style.display = 'none'), 300);
     });
@@ -1029,6 +1038,7 @@ async function toggleFriendRequestsList() {
   const friendList = document.getElementById('friend-list');
   const notiList = document.getElementById('noti-list');
   const chatList = document.getElementById('conversation-list');
+  const reportList = document.getElementById('reports-list');
 
   if (!requestList) return;
 
@@ -1039,10 +1049,12 @@ async function toggleFriendRequestsList() {
     chatList.classList.add('hiding');
     friendList.classList.add('hiding');
     notiList.classList.add('hiding');
+    reportList.classList.add('hiding');
     setTimeout(() => {
       chatList.style.display = 'none';
       friendList.style.display = 'none';
       notiList.style.display = 'none';
+      reportList.style.display = 'none';
     }, 300);
 
     // Hiện request list
@@ -2006,6 +2018,10 @@ async function loadConversationInfo() {
     }
 
     const conversation = await response.json();
+
+    // Thêm conversation ID vào data attribute của sidebar
+    const sidebar = document.getElementById('conversation-info-sidebar');
+    sidebar.dataset.conversationId = conversationId;
 
     // Ẩn nút thêm thành viên nếu là cuộc trò chuyện private
     const addMemberBtn = document.querySelector('.member-actions');

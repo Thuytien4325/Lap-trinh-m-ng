@@ -691,6 +691,7 @@ footer {
   background-color: rgba(0, 0, 0, 0.7);
   justify-content: center;
   align-items: center;
+  z-index: 9000000;
 }
 
 .user-modal-content {
@@ -934,7 +935,6 @@ footer {
 
 /* Sidebar thông tin cuộc trò chuyện */
 .conversation-info-sidebar {
-  width: 280px;
   background: #fce8b6;
   padding: 20px;
   display: none;
@@ -1175,29 +1175,290 @@ footer {
 /* Container cho các nút tương tác */
 .user-actions {
   display: flex;
+  flex-direction: column;
   gap: 10px;
   padding-top: 15px;
   border-top: 1px solid #eee;
 }
 
 .action-btn {
-  flex: 1;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-}
-
-.unfriend-btn {
-  background: #f44336;
+  padding: 8px 16px;
+  margin: 5px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  width: 100%;
+  background-color: #4caf50;
   color: white;
 }
 
 .action-btn:hover {
   opacity: 0.9;
+}
+
+.action-btn i {
+  margin-right: 8px;
+}
+
+.add-friend-btn {
+  background-color: #4caf50;
+}
+
+.unfriend-btn {
+  background-color: #f44336;
+}
+
+.report-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  margin: 5px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  width: 100%;
+  background-color: #ff9800;
+  color: white;
+}
+
+.report-btn:hover {
+  opacity: 0.9;
+}
+
+.report-btn i {
+  margin-right: 8px;
+}
+
+.danger-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  margin: 5px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  width: 100%;
+  background-color: #f44336;
+  color: white;
+}
+
+.danger-btn:hover {
+  opacity: 0.9;
+}
+
+.danger-btn i {
+  margin-right: 8px;
+}
+
+/* Form báo cáo */
+.report-form {
+  padding: 15px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #5a4a2f;
+  font-weight: 500;
+}
+
+.report-textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e0c085;
+  border-radius: 8px;
+  resize: vertical;
+  min-height: 100px;
+  background-color: #fff;
+  font-size: 14px;
+}
+
+.report-textarea:focus {
+  outline: none;
+  border-color: #e6ac50;
+  box-shadow: 0 0 5px rgba(230, 172, 80, 0.3);
+}
+
+.report-select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #e0c085;
+  border-radius: 8px;
+  background-color: #fff;
+  font-size: 14px;
+}
+
+.report-select:focus {
+  outline: none;
+  border-color: #e6ac50;
+  box-shadow: 0 0 5px rgba(230, 172, 80, 0.3);
+}
+
+.submit-report-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #e6ac50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.submit-report-btn:hover {
+  background-color: #ffcc80;
+}
+
+.submit-report-btn i {
+  font-size: 16px;
+}
+
+/* Danh sách báo cáo */
+.reports-list {
+  width: 280px;
+  background: #fce8b6;
+  padding: 20px;
+  display: none;
+  flex-direction: column;
+  border-right: 3px solid #e0c085;
+  transition: opacity 0.8s ease, width 0.2s ease;
+  opacity: 1;
+}
+
+/* Ẩn mượt khi toggle */
+.reports-list.hiding {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.reports-list h3 {
+  text-align: center;
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #5a4a2f;
+}
+
+/* Bộ lọc báo cáo */
+.report-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background: #fff9e6;
+  border-radius: 8px;
+}
+
+.report-filters label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #5a4a2f;
+}
+
+.report-filters input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Danh sách báo cáo */
+.report-items {
+  flex-grow: 1;
+  overflow-y: auto;
+  margin-top: 10px;
+  max-height: calc(100vh - 250px);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.report-items::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mỗi item báo cáo */
+.report-item {
+  background: #fff9e6;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid #e0c085;
+}
+
+.report-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.report-item-type {
+  font-weight: 500;
+  color: #5a4a2f;
+}
+
+.report-item-status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.report-item-status.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.report-item-status.in-progress {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.report-item-status.resolved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.report-item-content {
+  font-size: 14px;
+  color: #5a4a2f;
+  margin-bottom: 8px;
+}
+
+.report-item-content p {
+  margin-bottom: 4px;
+}
+
+.report-item-content strong {
+  color: #5a4a2f;
+}
+
+.report-item-footer {
+  font-size: 12px;
+  color: #999;
+  text-align: right;
 }
