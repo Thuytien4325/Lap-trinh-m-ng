@@ -63,8 +63,7 @@ class WebSocketManager:
         target_id: int = None,
         target_table: str = None,
         description: str = "",
-        title: str = None,
-        severity: str = None,
+        target_name: str = None,
     ):
         """Gửi thông báo báo cáo mới đến admin"""
         message = json.dumps(
@@ -72,11 +71,10 @@ class WebSocketManager:
                 "report_id": report_id,
                 "reporter_username": reporter_username,
                 "report_type": report_type,
-                "target_id": target_id,  # Dùng giá trị từ tham số
-                "target_table": target_table,  # Dùng giá trị từ tham số
+                "target_id": target_id,
+                "target_table": target_table,
+                "target_name": target_name,
                 "description": description,
-                "title": title,
-                "severity": severity,
                 "status": "pending",
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "updated_at": datetime.now(timezone.utc).isoformat(),

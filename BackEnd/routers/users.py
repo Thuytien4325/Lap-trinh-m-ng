@@ -5,7 +5,7 @@ from typing import List
 
 import models
 from database import get_db
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Path, Query, UploadFile
 from pydantic import EmailStr
 from routers.auth import ALGORITHM, SECRET_KEY, oauth2_scheme
 from routers.untils import (
@@ -16,7 +16,8 @@ from routers.untils import (
     update_last_active_dependency,
 )
 from routers.websocket import websocket_manager
-from schemas import ChangePassword, UserProfile, UserResponse, UserWithFriendStatus
+from schemas import ChangePassword, UserResponse, UserWithFriendStatus
+from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 # Tạo router
@@ -348,28 +349,23 @@ async def delete_user(
 
 @users_router.post("/report", dependencies=[Depends(update_last_active_dependency)])
 async def report(
-    report_type: str = Query(
-        ..., description="Loại báo cáo: 'user', 'group' hoặc 'bug'"
-    ),
-    target_id: int = Query(
-        None, description="ID của người dùng hoặc nhóm chat bị báo cáo (nếu có)"
-    ),
-    title: str = Query(None, description="Tiêu đề báo cáo (chỉ dùng cho bug)"),
+    report_type: str = Query(..., description="Loại báo cáo: 'user' hoặc 'group'"),
+    target_id: int = Query(..., description="ID người dùng hoặc nhóm chat bị báo cáo"),
     description: str = Query(..., description="Mô tả chi tiết về lý do báo cáo"),
-    severity: str = Query(
-        None,
-        description="Mức độ nghiêm trọng của lỗi ('low', 'medium', 'high', 'critical') - chỉ dành cho bug",
-    ),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     """
-    API để người dùng báo cáo người dùng khác, nhóm chat hoặc báo cáo lỗi (bug).
+    API để người dùng báo cáo người dùng khác hoặc nhóm chat.
     """
 
+    if report_type not in ["user", "group"]:
+        raise HTTPException(status_code=400, detail="Loại báo cáo không hợp lệ!")
+
+    target_name = None
+
+    # Báo cáo người dùng
     if report_type == "user":
-        if not target_id:
-            raise HTTPException(status_code=400, detail="Cần ID người dùng để báo cáo.")
         target_exists = (
             db.query(models.User).filter(models.User.user_id == target_id).first()
         )
@@ -380,21 +376,13 @@ async def report(
                 status_code=403, detail="Không thể báo cáo quản trị viên."
             )
         if target_exists.username == current_user.username:
-            raise HTTPException(status_code=404, detail="Không thể tự report bản thân!")
-        new_report = models.Report(
-            reporter_username=current_user.username,
-            report_type=report_type,
-            target_id=target_id,
-            target_table="users",
-            description=description,
-            status="pending",
-            created_at_UTC=datetime.now(timezone.utc),
-            updated_at_UTC=datetime.now(timezone.utc),
-        )
+            raise HTTPException(status_code=400, detail="Không thể tự report bản thân!")
 
+        target_table = "users"
+        target_name = target_exists.nickname  # Hoặc username nếu nickname không có
+
+    # Báo cáo nhóm
     elif report_type == "group":
-        if not target_id:
-            raise HTTPException(status_code=400, detail="Cần ID nhóm để báo cáo.")
         target_exists = (
             db.query(models.Conversation)
             .filter(models.Conversation.conversation_id == target_id)
@@ -402,60 +390,38 @@ async def report(
         )
         if not target_exists:
             raise HTTPException(status_code=404, detail="Nhóm không tồn tại.")
-        new_report = models.Report(
-            reporter_username=current_user.username,
-            report_type=report_type,
-            target_id=target_id,
-            target_table="conversations",
-            description=description,
-            status="pending",
-            created_at_UTC=datetime.now(timezone.utc),
-            updated_at_UTC=datetime.now(timezone.utc),
-        )
 
-    elif report_type == "bug":
-        if not title:
-            raise HTTPException(status_code=400, detail="Cần tiêu đề cho báo cáo bug.")
-        if severity not in ["low", "medium", "high", "critical"]:
-            raise HTTPException(
-                status_code=400, detail="Mức độ nghiêm trọng không hợp lệ."
-            )
-        new_report = models.Report(
-            reporter_username=current_user.username,
-            report_type="bug",
-            title=title,
-            description=description,
-            severity=severity,
-            status="pending",
-            created_at_UTC=datetime.now(timezone.utc),
-            updated_at_UTC=datetime.now(timezone.utc),
-        )
+        target_table = "conversations"
+        target_name = target_exists.name
 
-    else:
-        raise HTTPException(status_code=400, detail="Loại báo cáo không hợp lệ!")
+    # Tạo báo cáo
+    new_report = models.Report(
+        reporter_username=current_user.username,
+        report_type=report_type,
+        target_id=target_id,
+        target_table=target_table,
+        description=description,
+        status="pending",
+        created_at_UTC=datetime.now(timezone.utc),
+        updated_at_UTC=datetime.now(timezone.utc),
+    )
 
     db.add(new_report)
     db.commit()
     db.refresh(new_report)
 
+    # Gửi WebSocket đến admin với tên người/nhóm bị báo cáo
     await websocket_manager.notify_new_report(
-        report_id=new_report.report_id,  # ➜ Truyền ID của report
+        report_id=new_report.report_id,
         reporter_username=current_user.username,
         report_type=report_type,
-        target_id=target_id if report_type in ["user", "group"] else None,
-        target_table=(
-            "users"
-            if report_type == "user"
-            else "conversations" if report_type == "group" else None
-        ),
+        target_id=target_id,
+        target_table=target_table,
         description=description,
-        title=title if report_type == "bug" else None,  # ➜ Truyền title nếu là bug
-        severity=(
-            severity if report_type == "bug" else None
-        ),  # ➜ Truyền severity nếu là bug
+        target_name=target_name,
     )
 
-    # Thông báo cho admin
+    # Gửi thông báo đến admin
     admin_users = db.query(models.User).filter(models.User.is_admin == True).all()
     notifications = []
 
@@ -474,7 +440,6 @@ async def report(
 
     db.commit()
 
-    # Gửi thông báo qua WebSocket
     for notification in notifications:
         db.refresh(notification)
         await websocket_manager.send_notification(
@@ -490,6 +455,7 @@ async def report(
     return {
         "message": "Báo cáo đã được gửi thành công.",
         "report_id": new_report.report_id,
+        "target_name": target_name,  # ➜ trả về thêm target_name
     }
 
 
@@ -521,21 +487,54 @@ async def get_user_reports(
     if status_filters:
         query = query.filter(models.Report.status.in_(status_filters))
 
-    reports = query.order_by(models.Report.created_at_UTC.desc()).all()
+    # Sắp xếp theo trạng thái: đang xử lý → chưa xử lý → đã xử lý, rồi theo thời gian gần nhất
+    status_order = case(
+        (models.Report.status == "in_progress", 0),
+        (models.Report.status == "pending", 1),
+        (models.Report.status == "resolved", 2),
+        else_=3,
+    )
 
-    return [
-        {
-            "report_id": report.report_id,
-            "report_type": report.report_type,
-            "title": report.title,
-            "description": report.description,
-            "severity": report.severity,
-            "status": report.status,
-            "created_at": report.created_at_UTC,
-            "updated_at": report.updated_at_UTC,
-        }
-        for report in reports
-    ]
+    reports = query.order_by(status_order, models.Report.created_at_UTC.desc()).all()
+
+    result = []
+    for report in reports:
+        target_name = None
+
+        # Nếu là báo cáo người dùng
+        if report.report_type == "user" and report.target_table == "users":
+            user = (
+                db.query(models.User)
+                .filter(models.User.user_id == report.target_id)
+                .first()
+            )
+            if user:
+                target_name = user.nickname or user.username
+
+        # Nếu là báo cáo nhóm
+        elif report.report_type == "group" and report.target_table == "conversations":
+            conv = (
+                db.query(models.Conversation)
+                .filter(models.Conversation.conversation_id == report.target_id)
+                .first()
+            )
+            if conv:
+                target_name = conv.name
+
+        result.append(
+            {
+                "report_id": report.report_id,
+                "report_type": report.report_type,
+                "description": report.description,
+                "status": report.status,
+                "created_at": report.created_at_UTC,
+                "updated_at": report.updated_at_UTC,
+                "target_id": report.target_id,
+                "target_name": target_name,
+            }
+        )
+
+    return result
 
 
 @users_router.get("/ban-status", dependencies=[Depends(update_last_active_dependency)])
@@ -582,6 +581,38 @@ async def check_user_ban(
         }
 
     return {"is_banned": False, "message": "Người dùng không bị ban."}
+
+
+@users_router.delete(
+    "/report/{report_id}", dependencies=[Depends(update_last_active_dependency)]
+)
+async def delete_report(
+    report_id: int = Path(..., description="ID của báo cáo cần xóa"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    API để người dùng hoặc admin xóa một report cụ thể.
+    - Người dùng chỉ có thể xóa report do mình gửi.
+    - Admin có thể xóa bất kỳ report nào.
+    """
+    report = (
+        db.query(models.Report).filter(models.Report.report_id == report_id).first()
+    )
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Báo cáo không tồn tại.")
+
+    # Chỉ cho phép xóa nếu là admin hoặc người đã gửi report
+    if current_user.username != report.reporter_username and not current_user.is_admin:
+        raise HTTPException(
+            status_code=403, detail="Bạn không có quyền xóa báo cáo này."
+        )
+
+    db.delete(report)
+    db.commit()
+
+    return {"message": f"Đã xóa báo cáo có ID {report_id} thành công."}
 
 
 @users_router.post(

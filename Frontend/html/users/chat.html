@@ -134,18 +134,12 @@
         <h3>Báo cáo của tôi</h3>
 
         <div class="report-filters">
-          <label>
-            <input type="checkbox" id="filter-pending" checked />
-            Đang chờ
-          </label>
-          <label>
-            <input type="checkbox" id="filter-in-progress" checked />
-            Đang xử lý
-          </label>
-          <label>
-            <input type="checkbox" id="filter-resolved" checked />
-            Đã xử lý
-          </label>
+          <label for="report-status">Chọn trạng thái báo cáo:</label>
+          <select id="report-status" class="report-filter">
+            <option value="pending" selected>Đang chờ</option>
+            <option value="in_progress">Đang xử lý</option>
+            <option value="resolved">Đã xử lý</option>
+          </select>
         </div>
 
         <ul id="report-items" class="report-items">

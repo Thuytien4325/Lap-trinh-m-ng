@@ -1,4 +1,4 @@
-import { toast } from '../untils.js';
+import { toast, formatDate, createModal } from '../untils.js';
 import initContextMenu from '../context-menu.js';
 import config from '../config.js';
 
@@ -237,6 +237,7 @@ function closeReportModal() {
 // Gửi báo cáo
 async function submitReport() {
   const description = document.getElementById('report-description').value.trim();
+  const severity = document.getElementById('report-severity').value;
 
   if (!description) {
     toast({
@@ -248,7 +249,6 @@ async function submitReport() {
   }
 
   try {
-    // Lấy token từ localStorage
     const token = localStorage.getItem('access_token');
     if (!token) {
       throw new Error('Bạn chưa đăng nhập');
@@ -259,7 +259,6 @@ async function submitReport() {
       report_type: currentReportInfo.type === 'user' ? 'user' : 'group',
       target_id: currentReportInfo.targetId,
       description: description,
-      severity: document.getElementById('report-severity').value,
     });
 
     const url = `${config.baseURL}/users/report?${queryParams.toString()}`;
@@ -330,7 +329,7 @@ function renderReports(reports) {
   const reportItems = document.getElementById('report-items');
   if (!reportItems) return;
 
-  reportItems.innerHTML = '';
+  reportItems.innerHTML = '<li>Đang tải...</li>';
 
   reports.forEach((report) => {
     const reportItem = document.createElement('li');
@@ -342,45 +341,72 @@ function renderReports(reports) {
       resolved: 'Đã xử lý',
     };
 
+    // Chuyển đổi thời gian sang múi giờ Việt Nam (UTC+7)
+    const createdDate = new Date(report.created_at);
+    createdDate.setHours(createdDate.getHours() + 7);
+
+    const updatedDate = new Date(report.updated_at);
+    updatedDate.setHours(updatedDate.getHours() + 7);
+
     reportItem.innerHTML = `
-      <div class="report-item-header">
-        <span class="report-item-type">${report.report_type === 'user' ? 'Báo cáo người dùng' : 'Báo cáo nhóm'}</span>
-        <span class="report-item-status ${report.status}">${statusText[report.status]}</span>
-      </div>
-      <div class="report-item-content">
-        <p><strong>Mục tiêu:</strong> ${report.target_id}</p>
-        <p><strong>Mô tả:</strong> ${report.description}</p>
-        <p><strong>Mức độ:</strong> ${report.severity}</p>
-      </div>
-      <div class="report-item-footer">
-        <p>Ngày tạo: ${new Date(report.created_at).toLocaleString()}</p>
-      </div>
-    `;
+  <div class="report-item-header">
+    <span class="report-item-type">${report.report_type === 'user' ? 'Báo cáo người dùng' : 'Báo cáo nhóm'}</span>
+    <span class="report-item-status ${report.status}">${statusText[report.status]}</span>
+    <i class="fa-solid fa-trash delete-report-icon" title="Xóa báo cáo" data-id="${report.report_id}"></i>
+  </div>
+  <div class="report-item-content">
+    <p><strong>Mã báo cáo:</strong> ${report.report_id}</p>
+    <p><strong>Mục tiêu:</strong> ${report.target_name}</p>
+    <p><strong>Mô tả:</strong> ${report.description}</p>
+    <p><strong>Cập nhật vào:</strong> ${formatDate(updatedDate)}</p>
+  </div>
+  <div class="report-item-footer">
+    <p>${formatDate(createdDate)}</p>
+  </div>
+`;
 
     reportItems.appendChild(reportItem);
-  });
-}
 
-// Xử lý sự kiện khi thay đổi bộ lọc
-function setupReportFilters() {
-  const filterCheckboxes = document.querySelectorAll('.report-filter');
-  filterCheckboxes.forEach((checkbox) => {
-    checkbox.addEventListener('change', () => {
-      const visibleStatuses = Array.from(filterCheckboxes)
-        .filter((cb) => cb.checked)
-        .map((cb) => cb.value);
-
-      const reportItems = document.querySelectorAll('.report-item');
-      reportItems.forEach((item) => {
-        const status = item.classList[1];
-        item.style.display = visibleStatuses.includes(status) ? 'block' : 'none';
+    const deleteBtn = reportItem.querySelector('.delete-report-icon');
+    deleteBtn.addEventListener('click', () => {
+      createModal({
+        title: 'Xác nhận xóa báo cáo',
+        message: 'Bạn có chắc chắn muốn xóa báo cáo này không?',
+        primaryButtonText: 'Xóa',
+        onPrimary: () => {
+          deleteReport(report.report_id);
+        },
+        secondaryButtonText: 'Hủy',
+        showSecondaryButton: true,
       });
     });
   });
 }
 
+// Xử lý sự kiện khi thay đổi bộ lọc
+function setupReportFilters() {
+  const filterSelect = document.getElementById('report-status');
+
+  filterSelect.addEventListener('change', () => {
+    const selectedStatuses = Array.from(filterSelect.selectedOptions).map((option) => option.value);
+
+    const reportItems = document.querySelectorAll('.report-item');
+    reportItems.forEach((item) => {
+      const status = item.classList.contains('pending')
+        ? 'pending'
+        : item.classList.contains('in_progress')
+        ? 'in_progress'
+        : item.classList.contains('resolved')
+        ? 'resolved'
+        : '';
+
+      item.style.display = selectedStatuses.includes(status) ? 'block' : 'none';
+    });
+  });
+}
+
 // Hiển thị/ẩn danh sách báo cáo
-function toggleReportsList() {
+export default function toggleReportsList() {
   const friendList = document.getElementById('friend-list');
   const notiList = document.getElementById('noti-list');
   const chatList = document.getElementById('conversation-list');
@@ -415,6 +441,38 @@ function toggleReportsList() {
     setTimeout(() => {
       reportList.style.display = 'none';
     }, 300);
+  }
+}
+
+async function deleteReport(reportId) {
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) throw new Error('Bạn chưa đăng nhập');
+
+    const response = await fetch(`${config.baseURL}/users/report/${reportId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      toast({
+        title: 'Thành công',
+        message: 'Đã xóa báo cáo',
+        type: 'success',
+      });
+      fetchReports(); // Làm mới danh sách
+    } else {
+      const data = await response.json();
+      throw new Error(data.detail || 'Lỗi khi xóa báo cáo');
+    }
+  } catch (err) {
+    toast({
+      title: 'Lỗi',
+      message: err.message,
+      type: 'error',
+    });
   }
 }
 

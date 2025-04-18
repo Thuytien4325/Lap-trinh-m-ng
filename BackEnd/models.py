@@ -237,11 +237,6 @@ class Report(Base):
         nullable=True,
         index=True,
     )
-    title = Column(String(255), nullable=True)
-    severity = Column(
-        Enum("low", "medium", "high", "critical", name="bug_severity"),
-        nullable=True,
-    )
     description = Column(Text, nullable=False)
     status = Column(
         Enum("pending", "resolved", name="report_status"),

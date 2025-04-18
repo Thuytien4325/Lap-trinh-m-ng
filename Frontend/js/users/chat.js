@@ -1,6 +1,7 @@
-import { toast, createModal } from '../untils.js';
+import { toast, createModal, formatDateToMessage } from '../untils.js';
 import config from '../config.js';
 import initContextMenu from '../context-menu.js';
+import toggleReportsList from './report.js';
 // Các biến toàn cục
 let selectedFiles = [];
 let currentConversationId = null;
@@ -451,12 +452,8 @@ function appendMessageToUI(msg) {
   const time = document.createElement('span');
   time.className = 'timestamp';
   const date = new Date(msg.timestamp);
-  const vnTime = new Date(date.getTime() + 7 * 60 * 60 * 1000); // Cộng thêm 7 tiếng
-  const hours = vnTime.getHours().toString().padStart(2, '0');
-  const minutes = vnTime.getMinutes().toString().padStart(2, '0');
-  const day = vnTime.getDate().toString().padStart(2, '0');
-  const month = (vnTime.getMonth() + 1).toString().padStart(2, '0');
-  time.textContent = `${hours}:${minutes} ${day}/${month}`;
+  date.setHours(date.getHours() + 7); // Chuyển sang múi giờ Việt Nam
+  time.innerHTML = formatDateToMessage(date);
   messageDiv.appendChild(time);
 
   chatContent.appendChild(messageDiv);
@@ -508,12 +505,8 @@ function appendMessageToTop(msg, currentUser) {
   const time = document.createElement('span');
   time.className = 'timestamp';
   const date = new Date(msg.timestamp);
-  const vnTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
-  const hours = vnTime.getHours().toString().padStart(2, '0');
-  const minutes = vnTime.getMinutes().toString().padStart(2, '0');
-  const day = vnTime.getDate().toString().padStart(2, '0');
-  const month = (vnTime.getMonth() + 1).toString().padStart(2, '0');
-  time.textContent = `${hours}:${minutes} ${day}/${month}`;
+  date.setHours(date.getHours() + 7); // Chuyển sang múi giờ Việt Nam
+  time.innerHTML = formatDateToMessage(date);
   messageDiv.appendChild(time);
 
   chatContent.insertBefore(messageDiv, chatContent.firstChild);
@@ -1879,8 +1872,9 @@ async function onClickNotification(noti) {
       toggleFriendsList();
     } else if (table === 'friend_accept') {
       toggleFriendsList();
+    } else if (table === 'report') {
+      toggleReportsList();
     }
-
     // Làm mới lại thông báo (ẩn chấm đỏ nếu cần)
     await loadNotifications();
   } catch (err) {

@@ -1335,7 +1335,6 @@ footer {
 
 /* Danh sách báo cáo */
 .reports-list {
-  width: 280px;
   background: #fce8b6;
   padding: 20px;
   display: none;
@@ -1363,27 +1362,31 @@ footer {
 /* Bộ lọc báo cáo */
 .report-filters {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 15px;
-  padding: 10px;
-  background: #fff9e6;
-  border-radius: 8px;
-}
-
-.report-filters label {
-  display: flex;
   align-items: center;
   gap: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #5a4a2f;
+  margin-bottom: 10px;
 }
 
-.report-filters input[type='checkbox'] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
+/* Hàng 1: select + nút lọc */
+.report-filters .filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Style cho select */
+.report-filters select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #fff7e6; /* nền vàng nhạt */
+  font-size: 14px;
+  outline: none;
+  transition: border 0.3s ease;
+}
+
+.report-filters select:focus {
+  border-color: #e6ac50;
 }
 
 /* Danh sách báo cáo */
@@ -1414,6 +1417,20 @@ footer {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+  gap: 10px;
+}
+
+.delete-report-icon {
+  color: #dc3545;
+  cursor: pointer;
+  float: right;
+  margin-left: 10px;
+  font-size: 18px;
+  transition: color 0.2s ease;
+}
+
+.delete-report-icon:hover {
+  color: #a71d2a;
 }
 
 .report-item-type {
@@ -1429,8 +1446,8 @@ footer {
 }
 
 .report-item-status.pending {
-  background: #fff3cd;
-  color: #856404;
+  background: #d4edda;
+  color: #155724;
 }
 
 .report-item-status.in-progress {
@@ -1439,8 +1456,8 @@ footer {
 }
 
 .report-item-status.resolved {
-  background: #d4edda;
-  color: #155724;
+  background: #fff3cd;
+  color: #856404;
 }
 
 .report-item-content {
