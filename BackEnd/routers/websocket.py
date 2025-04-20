@@ -68,6 +68,7 @@ class WebSocketManager:
         """Gửi thông báo báo cáo mới đến admin"""
         message = json.dumps(
             {
+                "type_socket": "new_report",
                 "report_id": report_id,
                 "reporter_username": reporter_username,
                 "report_type": report_type,
@@ -95,6 +96,7 @@ class WebSocketManager:
         """Gửi thông báo đến một user cụ thể hoặc đến admin nếu user_username == 'admin'"""
         notification_data = json.dumps(
             {
+                "type_socket": "new_notification",
                 "id": noti_id,
                 "user_username": user_username,
                 "sender_username": sender_username,
@@ -128,7 +130,7 @@ class WebSocketManager:
         """Gửi tin nhắn real-time đến người nhận"""
         message = json.dumps(
             {
-                "type": "new_message",
+                "type_socket": "new_message",
                 "conversation_id": conversation_id,
                 "message": message_data,
             }

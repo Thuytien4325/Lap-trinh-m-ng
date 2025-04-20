@@ -652,22 +652,32 @@ function connectWebSocket() {
   socket.onmessage = async (event) => {
     try {
       const data = JSON.parse(event.data);
-      console.log('Tin nhắn từ WebSocket:', data);
-      if (data.type === 'url_update') {
+      console.log('Dữ liệu nhận được từ WebSocket:', data);
+
+      if (data.type_socket === 'url_update') {
         const updateEvent = new CustomEvent('url-update', {
           detail: data.data,
         });
         window.dispatchEvent(updateEvent);
       }
 
+      // Xử lý thông báo hệ thống
+      if (data.type_socket === 'new_notification') {
+        toast({
+          title: data.title || 'Thông báo',
+          message: data.message,
+          type: 'info',
+        });
+      }
+
       // Xử lý tin nhắn mới
-      if (data.type === 'new_message') {
+      if (data.type_socket === 'new_message') {
         const msg = {
           ...data.message,
           sender_nickname: data.message.sender_nickname || 'Người gửi',
           sender_username: data.message.sender_username || 'unknown',
         };
-        console.log('msg', msg);
+        console.log('Tin nhắn mới:', msg);
         // Nếu tin nhắn thuộc cuộc trò chuyện hiện tại
         if (String(currentConversationId) === String(data.conversation_id)) {
           if (msg.attachments && msg.attachments.length > 0) {
@@ -682,6 +692,7 @@ function connectWebSocket() {
             }
           } else {
             appendMessageToUI(msg);
+            loadConversationsForWebSocket();
           }
         } else {
           loadConversationsForWebSocket();
@@ -745,6 +756,21 @@ function setupMarkMessagesReadOnClick() {
 
         // Xóa thẻ 'unread-label' trong UI sau khi đánh dấu là đã đọc
         unreadMessage.remove();
+      }
+
+      // Đánh dấu cuộc trò chuyện là đã đọc
+      await fetch(`${config.baseURL}/conversations/conversations/${currentConversationId}/mark-read`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // Xóa dấu chấm chưa đọc khỏi cuộc trò chuyện trong danh sách
+      const chatItem = document.querySelector(`.chat-item[data-id="${currentConversationId}"]`);
+      if (chatItem) {
+        const unreadDot = chatItem.querySelector('.unread-dot');
+        if (unreadDot) unreadDot.remove();
       }
     } catch (err) {
       console.warn('❌ Lỗi khi đánh dấu tin nhắn đã đọc:', err);

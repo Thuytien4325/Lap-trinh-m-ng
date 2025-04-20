@@ -944,6 +944,7 @@ footer {
   opacity: 1;
   overflow-y: auto;
   position: relative;
+  scrollbar-width: none;
 }
 
 /* Ẩn mượt */
