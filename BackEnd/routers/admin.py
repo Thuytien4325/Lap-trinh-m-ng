@@ -7,6 +7,7 @@ from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
 from models import Conversation, GroupMember, Notification, Report, User
 from routers.untils import get_admin_user, update_last_active_dependency
+from routers.websocket import websocket_manager
 from schemas import AdminUserResponse, ConversationResponse
 from sqlalchemy.orm import Session
 
@@ -231,7 +232,7 @@ def delete_user(
 @admin_router.delete(
     "/delete-group", dependencies=[Depends(update_last_active_dependency)]
 )
-def delete_group(
+async def delete_group(
     group_id: int,
     db: Session = Depends(get_db),
     admin: User = Depends(get_admin_user),
@@ -258,18 +259,30 @@ def delete_group(
     )
 
     # Gửi thông báo đến tất cả thành viên trong nhóm
-    notifications = [
-        models.Notification(
-            user_username=member.username,
-            sender_username=None,
-            message=f"Nhóm '{group.name}' đã bị xóa bởi quản trị viên hệ thống.",
-            type="system",
-            related_id=group.conversation_id,
-            related_table="conversations",
-            created_at_UTC=datetime.now(timezone.utc),
+    notifications = []
+    for member in group_members:
+        notifications.append(
+            models.Notification(
+                user_username=member.username,
+                sender_username=None,
+                message=f"Nhóm '{group.name}' đã bị xóa bởi quản trị viên hệ thống.",
+                type="system",
+                related_id=group.conversation_id,
+                related_table="conversations",
+                created_at_UTC=datetime.now(timezone.utc),
+            )
         )
-        for member in group_members
-    ]
+
+        # Gửi thông báo qua WebSocket
+        await websocket_manager.send_notification(
+            noti_id=group_id,
+            user_username=member.username,
+            sender_username=admin.username,
+            message=f"Nhóm '{group.name}' đã bị xóa bởi quản trị viên hệ thống.",
+            notification_type="system",
+            related_id=group_id,
+            related_table="conversations",
+        )
 
     db.add_all(notifications)
     db.commit()
@@ -330,7 +343,7 @@ def get_reports(
 
 
 @admin_router.put("/process-reports")
-def update_report_status(
+async def update_report_status(
     report_id: int,
     admin: User = Depends(get_admin_user),
     db: Session = Depends(get_db),
@@ -361,6 +374,17 @@ def update_report_status(
     )
     db.add(notification)
     db.commit()
+
+    # Gửi thông báo qua WebSocket
+    await websocket_manager.send_notification(
+        noti_id=report_id,
+        user_username=report.reporter_username,
+        sender_username=admin.username,
+        message=f"Báo cáo của bạn về '{report.report_type}' đã được xử lí.",
+        notification_type="report",
+        related_id=report_id,
+        related_table="reports",
+    )
 
     return {"message": "Cập nhật trạng thái báo cáo thành công"}
 

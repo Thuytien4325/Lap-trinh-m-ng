@@ -6,6 +6,7 @@ from database import get_db
 from fastapi import APIRouter, Depends, HTTPException
 from routers.untils import update_last_active_dependency
 from routers.users import get_current_user
+from routers.websocket import websocket_manager
 from sqlalchemy.orm import Session, aliased
 
 friend_request_router = APIRouter(prefix="/friend-requests", tags=["Friend Requests"])
@@ -163,6 +164,7 @@ async def send_friend_request(
     db.commit()
     db.refresh(new_request)
 
+    # Tạo và lưu thông báo vào database
     new_notification = models.Notification(
         user_username=receiver.username,
         sender_username=sender.username,
@@ -175,6 +177,17 @@ async def send_friend_request(
 
     db.add(new_notification)
     db.commit()
+
+    # Gửi thông báo qua WebSocket
+    await websocket_manager.send_notification(
+        noti_id=new_request.id,
+        user_username=receiver.username,
+        sender_username=sender.username,
+        message=f"Bạn có một lời mời kết bạn từ {sender.nickname or sender.username}",
+        notification_type="friend_request",
+        related_id=new_request.id,
+        related_table="friend_requests",
+    )
 
     # Lấy thông tin người gửi và người nhận
     sender_info = (
@@ -253,6 +266,7 @@ async def accept_friend_request(
         created_at_UTC=datetime.now(timezone.utc),
     )
 
+    # Tạo thông báo cho người gửi
     new_notification = models.Notification(
         user_username=sender_username,
         sender_username=current_user.username,
@@ -267,6 +281,18 @@ async def accept_friend_request(
     db.add(new_notification)
     db.delete(friend_request)  # Xóa lời mời sau khi chấp nhận
     db.commit()
+
+    # Gửi thông báo qua WebSocket
+    await websocket_manager.send_notification(
+        noti_id=new_notification.id,
+        user_username=sender_username,
+        sender_username=current_user.username,
+        message=f"{current_user.nickname} đã chấp nhận lời mời kết bạn của bạn.",
+        notification_type="friend_accept",
+        related_id=friend_request.id,
+        related_table="friend_requests",
+    )
+
     return {"message": "Đã chấp nhận lời mời kết bạn"}
 
 
@@ -305,6 +331,7 @@ async def reject_friend_request(
         db.commit()
         return {"message": "Lời mời đã bị xóa vì người gửi không còn tồn tại"}
 
+    # Tạo thông báo cho người gửi
     new_notification = models.Notification(
         user_username=sender.username,
         sender_username=current_user.username,
@@ -318,6 +345,18 @@ async def reject_friend_request(
     db.delete(friend_request)
     db.add(new_notification)
     db.commit()
+
+    # Gửi thông báo qua WebSocket
+    await websocket_manager.send_notification(
+        noti_id=new_notification.id,
+        user_username=sender.username,
+        sender_username=current_user.username,
+        message=f"{current_user.nickname} đã từ chối lời mời kết bạn của bạn.",
+        notification_type="friend_reject",
+        related_id=friend_request.id,
+        related_table="friend_requests",
+    )
+
     return {"message": "Đã từ chối lời mời kết bạn"}
 
 

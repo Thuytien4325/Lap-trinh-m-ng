@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       document.getElementById('report-modal-title').textContent = `Báo cáo người dùng: ${username}`;
-      document.getElementById('report-severity-group').style.display = 'none';
+
       openReportModal();
     });
   } else {
@@ -70,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       document.getElementById('report-modal-title').textContent = `Báo cáo cuộc trò chuyện: ${conversationTitle}`;
-      document.getElementById('report-severity-group').style.display = 'none';
       openReportModal();
     });
   } else {
@@ -215,7 +214,6 @@ function openReportModal() {
 
   modal.style.display = 'flex';
   document.getElementById('report-description').value = '';
-  document.getElementById('report-severity').value = 'low';
 }
 
 // Đóng modal report
@@ -237,7 +235,6 @@ function closeReportModal() {
 // Gửi báo cáo
 async function submitReport() {
   const description = document.getElementById('report-description').value.trim();
-  const severity = document.getElementById('report-severity').value;
 
   if (!description) {
     toast({
@@ -424,10 +421,19 @@ export default function toggleReportsList() {
 
   if (currentDisplay === 'none') {
     // Ẩn các panel còn lại
-    [notiList, chatList, requestList, friendList].forEach((el) => {
+    const panels = [notiList, chatList, requestList, friendList];
+    panels.forEach((el) => {
       if (el) {
-        el.classList.add('hiding');
-        setTimeout(() => (el.style.display = 'none'), 300);
+        try {
+          el.classList.add('hiding');
+          setTimeout(() => {
+            if (el) {
+              el.style.display = 'none';
+            }
+          }, 300);
+        } catch (error) {
+          console.error('Error hiding panel:', error);
+        }
       }
     });
 

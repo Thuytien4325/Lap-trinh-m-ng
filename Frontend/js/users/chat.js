@@ -663,11 +663,51 @@ function connectWebSocket() {
 
       // Xử lý thông báo hệ thống
       if (data.type_socket === 'new_notification') {
+        // Hiển thị toast thông báo
         toast({
           title: data.title || 'Thông báo',
           message: data.message,
           type: 'info',
         });
+
+        // Thêm thông báo mới vào đầu danh sách
+        const notiItems = document.getElementById('noti-items');
+        if (notiItems) {
+          const newNoti = document.createElement('li');
+          newNoti.className = 'noti-item unread';
+          newNoti.dataset.notiId = data.id;
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'noti-checkbox';
+
+          const message = document.createElement('div');
+          message.className = 'noti-message';
+          message.style.cursor = 'pointer';
+          message.textContent = data.message;
+
+          // Thêm sự kiện click để xử lý thông báo
+          message.onclick = () =>
+            onClickNotification({
+              id: data.id,
+              type: data.type,
+              related_id: data.related_id,
+              related_table: data.related_table,
+            });
+
+          newNoti.appendChild(checkbox);
+          newNoti.appendChild(message);
+
+          // Thêm vào đầu danh sách
+          if (notiItems.firstChild) {
+            notiItems.insertBefore(newNoti, notiItems.firstChild);
+          } else {
+            notiItems.appendChild(newNoti);
+          }
+
+          // Cập nhật số thông báo chưa đọc
+          checkUnreadNotifications();
+        }
       }
 
       // Xử lý tin nhắn mới
@@ -778,6 +818,58 @@ function setupMarkMessagesReadOnClick() {
   });
 }
 
+// Thêm hàm kiểm tra trạng thái unread cho các toggle
+async function checkUnreadStatus() {
+  const token = localStorage.getItem('access_token');
+  if (!token) return;
+
+  try {
+    // Kiểm tra thông báo chưa đọc
+    const notiRes = await fetch(`${config.baseURL}/notifications/?unread_only=true`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const unreadNotis = await notiRes.json();
+    const bellBtn = document.querySelector('.sidebar-toggle-container button[title="Thông báo"] i');
+    if (bellBtn) {
+      if (unreadNotis.length > 0) {
+        bellBtn.classList.add('has-unread');
+      } else {
+        bellBtn.classList.remove('has-unread');
+      }
+    }
+
+    // Kiểm tra yêu cầu kết bạn chưa đọc
+    const friendReqRes = await fetch(`${config.baseURL}/friend-requests/received`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const friendReqs = await friendReqRes.json();
+    const friendReqBtn = document.querySelector('.sidebar-toggle-container button[title="Yêu cầu kết bạn"] i');
+    if (friendReqBtn) {
+      if (friendReqs.length > 0) {
+        friendReqBtn.classList.add('has-unread');
+      } else {
+        friendReqBtn.classList.remove('has-unread');
+      }
+    }
+
+    // Kiểm tra báo cáo chưa xử lý
+    const reportRes = await fetch(`${config.baseURL}/reports/?status=pending`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const pendingReports = await reportRes.json();
+    const reportBtn = document.querySelector('.sidebar-toggle-container button[title="Báo cáo"] i');
+    if (reportBtn) {
+      if (pendingReports.length > 0) {
+        reportBtn.classList.add('has-unread');
+      } else {
+        reportBtn.classList.remove('has-unread');
+      }
+    }
+  } catch (error) {
+    console.error('Lỗi khi kiểm tra trạng thái unread:', error);
+  }
+}
+
 // Sửa lại phần khởi tạo khi trang load
 document.addEventListener('DOMContentLoaded', () => {
   // Thêm event listener cho input chat
@@ -802,6 +894,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadConversations();
   connectWebSocket();
   setupMarkMessagesReadOnClick();
+
+  // Kiểm tra trạng thái unread cho tất cả các toggle
+  checkUnreadStatus();
 });
 
 // Thêm hàm đóng modal thông tin người dùng
@@ -1009,6 +1104,12 @@ async function toggleNotiList() {
     notiList.style.display = 'flex';
     void notiList.offsetHeight;
     notiList.classList.remove('hiding');
+
+    // Xóa class has-unread khi mở danh sách thông báo
+    const bellBtn = document.querySelector('.sidebar-toggle-container button[title="Thông báo"] i');
+    if (bellBtn) {
+      bellBtn.classList.remove('has-unread');
+    }
   } else {
     notiList.classList.add('hiding');
     setTimeout(() => {
@@ -1081,6 +1182,12 @@ async function toggleFriendRequestsList() {
     requestList.classList.remove('hiding');
 
     await loadFriendRequests();
+
+    // Xóa class has-unread khi mở danh sách yêu cầu kết bạn
+    const friendReqBtn = document.querySelector('.sidebar-toggle-container button[title="Yêu cầu kết bạn"] i');
+    if (friendReqBtn) {
+      friendReqBtn.classList.remove('has-unread');
+    }
   } else {
     requestList.classList.add('hiding');
     setTimeout(() => {
@@ -1891,7 +1998,7 @@ async function onClickNotification(noti) {
     console.log('table', table, 'targetId', targetId);
     if (table === 'conversations') {
       setCurrentConversation(targetId); // Tự động vào cuộc trò chuyện
-    } else if (table === 'friend_requests') {
+    } else if (table === 'friend_request') {
       toggleFriendRequestsList();
     } else if (table === 'friends') {
       toggleFriendsList();
