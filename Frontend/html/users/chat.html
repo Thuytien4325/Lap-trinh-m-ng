@@ -136,7 +136,8 @@
         <div class="report-filters">
           <label for="report-status">Chọn trạng thái báo cáo:</label>
           <select id="report-status" class="report-filter">
-            <option value="pending" selected>Đang chờ</option>
+            <option value="all" selected>Tất cả</option>
+            <option value="pending">Đang chờ</option>
             <option value="in_progress">Đang xử lý</option>
             <option value="resolved">Đã xử lý</option>
           </select>
@@ -295,16 +296,6 @@
           <div class="form-group">
             <label for="report-description">Lý do báo cáo:</label>
             <textarea id="report-description" class="report-textarea" rows="4" placeholder="Nhập lý do báo cáo..."></textarea>
-          </div>
-
-          <div class="form-group" id="report-severity-group" style="display: none">
-            <label for="report-severity">Mức độ nghiêm trọng:</label>
-            <select id="report-severity" class="report-select">
-              <option value="low">Thấp</option>
-              <option value="medium">Trung bình</option>
-              <option value="high">Cao</option>
-              <option value="critical">Nghiêm trọng</option>
-            </select>
           </div>
 
           <button onclick="submitReport()" class="submit-report-btn">

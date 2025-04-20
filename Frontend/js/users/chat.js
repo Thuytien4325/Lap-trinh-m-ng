@@ -806,7 +806,6 @@ async function showUserInfo(username) {
         const modal = document.getElementById('user-info-modal');
         modal.dataset.username = userData.username;
         modal.dataset.userId = userData.user_id;
-        console.log('User ID:', userData.user_id);
 
         const avatarImg = document.getElementById('user-avatar');
         avatarImg.src = avatarUrl;
@@ -2055,11 +2054,11 @@ async function loadConversationInfo() {
       sortedMembers.forEach((member) => {
         const li = document.createElement('li');
         li.className = 'member-item';
+        li.style.cursor = 'pointer';
 
         const memberInfo = document.createElement('div');
         memberInfo.className = 'member-info';
 
-        // Thêm chữ "(Tôi)" nếu là người dùng hiện tại
         const isCurrentUser = member.username === currentUser.username;
         const displayName = isCurrentUser ? `${member.nickname || member.username} (Tôi)` : member.nickname || member.username;
 
@@ -2069,6 +2068,59 @@ async function loadConversationInfo() {
         `;
 
         li.appendChild(memberInfo);
+
+        // Thêm sự kiện click để hiển thị modal thông tin người dùng
+        li.addEventListener('click', async () => {
+          if (isCurrentUser) {
+            // Nếu là bản thân, gọi API lấy thông tin
+            const token = localStorage.getItem('access_token');
+            try {
+              const response = await fetch(`${config.baseURL}/users/`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+
+              if (response.ok) {
+                const userData = await response.json();
+                // Hiển thị modal với thông tin bản thân
+                const modal = document.getElementById('user-info-modal');
+                modal.dataset.username = userData.username;
+                modal.dataset.userId = userData.user_id;
+
+                const avatarImg = document.getElementById('user-avatar');
+                avatarImg.src = userData.avatar
+                  ? `${config.baseURL}/${userData.avatar.replace(/^\/+/, '')}`
+                  : '../../assets/image/private-chat-default.jpg';
+                avatarImg.onerror = () => {
+                  avatarImg.src = '../../assets/image/private-chat-default.jpg';
+                };
+
+                document.getElementById('user-username').textContent = userData.username;
+                document.getElementById('user-nickname').textContent = userData.nickname || 'string';
+                document.getElementById('user-email').textContent = userData.email || 'user@example.com';
+
+                // Ẩn các nút không cần thiết
+                document.getElementById('add-friend-btn').style.display = 'none';
+                document.getElementById('unfriend-btn').style.display = 'none';
+                document.getElementById('report-user-btn').style.display = 'none';
+
+                // Hiển thị modal
+                modal.style.display = 'flex';
+              }
+            } catch (error) {
+              console.error('Lỗi khi lấy thông tin người dùng:', error);
+              toast({
+                title: 'Lỗi',
+                message: 'Không thể tải thông tin người dùng',
+                type: 'error',
+              });
+            }
+          } else {
+            // Nếu là thành viên khác, hiển thị modal thông tin
+            showUserInfo(member.username);
+          }
+        });
 
         // Nếu người dùng là admin, hiển thị các nút quản lý
         if (isAdmin && member.role !== 'admin') {

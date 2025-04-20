@@ -329,7 +329,8 @@ function renderReports(reports) {
   const reportItems = document.getElementById('report-items');
   if (!reportItems) return;
 
-  reportItems.innerHTML = '<li>Đang tải...</li>';
+  // Xóa nội dung cũ
+  reportItems.innerHTML = '';
 
   reports.forEach((report) => {
     const reportItem = document.createElement('li');
@@ -349,21 +350,21 @@ function renderReports(reports) {
     updatedDate.setHours(updatedDate.getHours() + 7);
 
     reportItem.innerHTML = `
-  <div class="report-item-header">
-    <span class="report-item-type">${report.report_type === 'user' ? 'Báo cáo người dùng' : 'Báo cáo nhóm'}</span>
-    <span class="report-item-status ${report.status}">${statusText[report.status]}</span>
-    <i class="fa-solid fa-trash delete-report-icon" title="Xóa báo cáo" data-id="${report.report_id}"></i>
-  </div>
-  <div class="report-item-content">
-    <p><strong>Mã báo cáo:</strong> ${report.report_id}</p>
-    <p><strong>Mục tiêu:</strong> ${report.target_name}</p>
-    <p><strong>Mô tả:</strong> ${report.description}</p>
-    <p><strong>Cập nhật vào:</strong> ${formatDate(updatedDate)}</p>
-  </div>
-  <div class="report-item-footer">
-    <p>${formatDate(createdDate)}</p>
-  </div>
-`;
+      <div class="report-item-header">
+        <span class="report-item-type">${report.report_type === 'user' ? 'Báo cáo người dùng' : 'Báo cáo nhóm'}</span>
+        <span class="report-item-status ${report.status}">${statusText[report.status]}</span>
+        <i class="fa-solid fa-trash delete-report-icon" title="Xóa báo cáo" data-id="${report.report_id}"></i>
+      </div>
+      <div class="report-item-content">
+        <p><strong>Mã báo cáo:</strong> ${report.report_id}</p>
+        <p><strong>Mục tiêu:</strong> ${report.target_name}</p>
+        <p><strong>Mô tả:</strong> ${report.description}</p>
+        <p><strong>Cập nhật vào:</strong> ${formatDate(updatedDate)}</p>
+      </div>
+      <div class="report-item-footer">
+        <p>${formatDate(createdDate)}</p>
+      </div>
+    `;
 
     reportItems.appendChild(reportItem);
 
@@ -388,9 +389,9 @@ function setupReportFilters() {
   const filterSelect = document.getElementById('report-status');
 
   filterSelect.addEventListener('change', () => {
-    const selectedStatuses = Array.from(filterSelect.selectedOptions).map((option) => option.value);
-
+    const selectedStatus = filterSelect.value;
     const reportItems = document.querySelectorAll('.report-item');
+
     reportItems.forEach((item) => {
       const status = item.classList.contains('pending')
         ? 'pending'
@@ -400,7 +401,8 @@ function setupReportFilters() {
         ? 'resolved'
         : '';
 
-      item.style.display = selectedStatuses.includes(status) ? 'block' : 'none';
+      // Hiển thị tất cả nếu chọn "all" hoặc hiển thị theo trạng thái được chọn
+      item.style.display = selectedStatus === 'all' || selectedStatus === status ? 'block' : 'none';
     });
   });
 }
