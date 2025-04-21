@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
   // Mặc định tải Dashboard
-  loadContent('../../html/admin/dashboard.html');
+  // loadContent('../../html/admin/dashboard.html'); PH comment
 
   document.querySelectorAll('.nav-link').forEach((link) => {
     link.addEventListener('click', function (e) {
