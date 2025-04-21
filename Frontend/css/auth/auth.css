@@ -17,13 +17,12 @@ body {
 /* Header & Footer */
 header,
 footer {
-  height: 65px;
-  background: #ffc107;
+  height: 50px;
+  background: #e6ac50;
   color: white;
   text-align: center;
   line-height: 60px;
-  font-weight: bold;
-  font-size: 2rem;
+  
   position: relative;
   z-index: 1000;
   flex-shrink: 0;
@@ -296,3 +295,4 @@ form {
     font-size: 0.9rem;
   }
 }
+
