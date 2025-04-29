@@ -1,0 +1,15 @@
+<!-- update-url.html -->
+<input type="text" id="input-base" placeholder="https://abc.ngrok.io" />
+<button onclick="updateURL()">Cập nhật URL</button>
+
+<script>
+  function updateURL() {
+    const base = document.getElementById('input-base').value;
+    if (!base) return alert('Vui lòng nhập URL');
+
+    const url = base.replace(/\/$/, ''); // loại bỏ dấu /
+    localStorage.setItem('baseURL', url);
+    localStorage.setItem('wsUrl', url.replace(/^http/, 'ws'));
+    alert('Đã cập nhật! Reload lại trang chat.');
+  }
+</script>

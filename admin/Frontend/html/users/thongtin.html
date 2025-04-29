@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trang Thông Tin Cá Nhân</title>
+    <link rel="stylesheet" href="../../css/users/thongtin.css" />
+    <link rel="stylesheet" href="../../css/modal-overlay.css" />
+    <link rel="stylesheet" href="../../css/toast.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <script type="module" src="../../js/auth/auth-check.js"></script>
+    <script type="module" src="../../js/users/thongtin.js"></script>
+  </head>
+  <body>
+    <div id="toast"></div>
+    <div class="profile-container">
+      <div class="profile-card">
+        <img src="../../assets/image/private-chat-default.jpg" alt="Avatar" class="avatar" />
+        <div class="user-details">
+          <div class="user-info-item">
+            <i class="fas fa-at"></i>
+            <span id="user-username"></span>
+          </div>
+          <div class="user-info-item">
+            <i class="fas fa-user"></i>
+            <span id="user-nickname"></span>
+          </div>
+          <div class="user-info-item">
+            <i class="fas fa-envelope"></i>
+            <span id="user-email"></span>
+          </div>
+        </div>
+        <div class="button-container" style="margin-top: auto; text-align: center">
+          <button class="edit-btn">Cập nhật thông tin</button>
+        </div>
+      </div>
+    </div>
+    <footer>
+      <div class="footer-icons">
+        <button class="user-icon" title="Thông tin cá nhân">
+          <i class="fas fa-user"></i>
+        </button>
+        <button onclick="window.location.href='chat.html'" title="Tin nhắn">
+          <i class="fas fa-comment-dots"></i>
+        </button>
+      </div>
+      <button class="logout-button" onclick="logout()" title="Đăng xuất">
+        <i class="fas fa-sign-out-alt"></i>
+      </button>
+    </footer>
+  </body>
+</html>

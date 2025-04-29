@@ -1,0 +1,23 @@
+.context-menu {
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 4px 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  display: none;
+  min-width: 160px;
+  font-family: sans-serif;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.context-menu-item:hover {
+  background: #f0f0f0;
+}
